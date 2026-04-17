@@ -190,13 +190,14 @@ async function extractFromImage(base64Data, mediaType, isFlightStep) {
 {
   "provider": "airline name",
   "reference": "booking reference / PNR code",
+  "flightNumber": "flight number e.g. FR1234",
   "departureAirport": "departure airport name and IATA code e.g. Manchester (MAN)",
   "arrivalAirport": "arrival airport name and IATA code e.g. Palermo (PMO)",
   "flightDate": "YYYY-MM-DD date of the flight",
   "departureTime": "HH:MM in 24h format",
   "arrivalTime": "HH:MM in 24h format",
   "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
-  "notes": "any other useful info like flight number, seat, baggage allowance"
+  "notes": "any other useful info like seat, baggage allowance, terminal"
 }`
     : `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
 {
@@ -399,13 +400,33 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
               </label>
             </div>
           </>
+
+        {/* Flight number + reference (flight steps) or just reference (other steps) */}
+        {isFlightStep ? (
+          <div style={{ display: "flex", gap: "12px" }}>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Flight Number</span>
+              <input value={form.flightNumber || ""} onChange={e => set("flightNumber", e.target.value)}
+                placeholder="e.g. FR1234" style={inputStyle} />
+            </label>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Booking Reference</span>
+              <input value={form.reference} onChange={e => set("reference", e.target.value)}
+                placeholder="e.g. ABC123XY" style={inputStyle} />
+            </label>
+          </div>
+        ) : (
+          <label style={labelStyle}>
+            <span>Booking Reference</span>
+            <input value={form.reference} onChange={e => set("reference", e.target.value)}
+              placeholder="e.g. ABC123XY" style={inputStyle} />
+          </label>
         )}
 
-        {/* Common fields */}
+        {/* Provider + date booked */}
         {[
-          { key: "provider",   label: "Airline / Provider",  placeholder: isFlightStep ? "e.g. Ryanair, EasyJet…" : "e.g. Hilton, Hertz…" },
-          { key: "reference",  label: "Booking Reference",   placeholder: "e.g. ABC123XY" },
-          { key: "dateBooked", label: "Date Booked",         type: "date" },
+          { key: "provider",   label: isFlightStep ? "Airline" : "Provider / Company", placeholder: isFlightStep ? "e.g. Ryanair, EasyJet…" : "e.g. Hilton, Hertz…" },
+          { key: "dateBooked", label: "Date Booked", type: "date" },
         ].map(({ key, label, placeholder, type }) => (
           <label key={key} style={labelStyle}>
             <span>{label}</span>
@@ -413,6 +434,7 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
               onChange={e => set(key, e.target.value)} placeholder={placeholder} style={inputStyle} />
           </label>
         ))}
+
 
         <label style={labelStyle}>
           <span>Notes</span>
@@ -797,7 +819,7 @@ export default function App() {
                           </div>
                           <div style={{ marginTop: "8px" }}>
                             <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</div>
-                            {booking?.provider  && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}</div>}
+                            {booking?.provider  && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}{booking?.flightNumber ? ` · ${booking.flightNumber}` : ""}</div>}
                             {booking?.reference && <div style={{ color: "#666", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
                             {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && (
                               <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
