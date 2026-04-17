@@ -192,9 +192,10 @@ async function extractFromImage(base64Data, mediaType, isFlightStep) {
   "reference": "booking reference / PNR code",
   "departureAirport": "departure airport name and IATA code e.g. Manchester (MAN)",
   "arrivalAirport": "arrival airport name and IATA code e.g. Palermo (PMO)",
+  "flightDate": "YYYY-MM-DD date of the flight",
   "departureTime": "HH:MM in 24h format",
   "arrivalTime": "HH:MM in 24h format",
-  "dateBooked": "YYYY-MM-DD if visible",
+  "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
   "notes": "any other useful info like flight number, seat, baggage allowance"
 }`
     : `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
@@ -315,7 +316,6 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handlePhotoScan}
             style={{ display: "none" }}
             id="photo-scan-input"
@@ -376,6 +376,17 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
                 <span>Arrival Airport</span>
                 <input value={form.arrivalAirport} onChange={e => set("arrivalAirport", e.target.value)}
                   placeholder="e.g. Palermo (PMO)" style={inputStyle} />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Flight Date</span>
+                <input type="date" value={form.flightDate || ""} onChange={e => set("flightDate", e.target.value)}
+                  style={inputStyle} />
+              </label>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>&nbsp;</span>
+                <div style={{ ...inputStyle, background: "transparent", border: "none", padding: 0 }} />
               </label>
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
@@ -794,6 +805,11 @@ export default function App() {
                             {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && (
                               <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
                                 {booking.departureAirport || "?"} → {booking.arrivalAirport || "?"}
+                              </div>
+                            )}
+                            {isFlight(step) && booking?.flightDate && (
+                              <div style={{ color: "#888", fontSize: "11px", marginTop: "2px" }}>
+                                📅 {formatDate(booking.flightDate)}
                               </div>
                             )}
                             {isFlight(step) && (booking?.departureTime || booking?.arrivalTime) && (
