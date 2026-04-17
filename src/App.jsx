@@ -167,16 +167,27 @@ function AddStepModal({ onAdd, onClose }) {
   );
 }
 
+const FLIGHT_ICONS = ["✈️", "🛫"];
+function isFlight(step) {
+  return FLIGHT_ICONS.includes(step.icon) ||
+    /flight|fly|fligh/i.test(step.label);
+}
+
 function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
+  const isFlightStep = isFlight(step);
+
   const [form, setForm] = useState({
-    confirmed:  booking?.confirmed  || false,
-    provider:   booking?.provider   || "",
-    reference:  booking?.reference  || "",
-    cost:       booking?.cost       || "",
-    notes:      booking?.notes      || "",
-    rating:     booking?.rating     ?? null,
-    url:        booking?.url        || "",
-    dateBooked: booking?.dateBooked || "",
+    confirmed:        booking?.confirmed        || false,
+    provider:         booking?.provider         || "",
+    reference:        booking?.reference        || "",
+    notes:            booking?.notes            || "",
+    rating:           booking?.rating           ?? null,
+    dateBooked:       booking?.dateBooked       || "",
+    // flight-only fields
+    departureAirport: booking?.departureAirport || "",
+    arrivalAirport:   booking?.arrivalAirport   || "",
+    departureTime:    booking?.departureTime    || "",
+    arrivalTime:      booking?.arrivalTime      || "",
   });
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(step.label);
@@ -208,6 +219,7 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
 
+        {/* Status */}
         <label style={labelStyle}>
           <span>Status</span>
           <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
@@ -222,12 +234,41 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
           </div>
         </label>
 
+        {/* Flight-specific fields */}
+        {isFlightStep && (
+          <>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Departure Airport</span>
+                <input value={form.departureAirport} onChange={e => set("departureAirport", e.target.value)}
+                  placeholder="e.g. Manchester (MAN)" style={inputStyle} />
+              </label>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Arrival Airport</span>
+                <input value={form.arrivalAirport} onChange={e => set("arrivalAirport", e.target.value)}
+                  placeholder="e.g. Palermo (PMO)" style={inputStyle} />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Departure Time</span>
+                <input type="time" value={form.departureTime} onChange={e => set("departureTime", e.target.value)}
+                  style={inputStyle} />
+              </label>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Arrival Time</span>
+                <input type="time" value={form.arrivalTime} onChange={e => set("arrivalTime", e.target.value)}
+                  style={inputStyle} />
+              </label>
+            </div>
+          </>
+        )}
+
+        {/* Common fields */}
         {[
-          { key: "provider",   label: "Provider / Company",   placeholder: "e.g. British Airways, Hertz, Hilton…" },
-          { key: "reference",  label: "Booking Reference",     placeholder: "e.g. ABC123XY" },
-          { key: "url",        label: "Website / Booking URL", placeholder: "https://…" },
-          { key: "cost",       label: "Cost",                  placeholder: "e.g. £349.00" },
-          { key: "dateBooked", label: "Date Booked",           type: "date" },
+          { key: "provider",   label: "Airline / Provider",  placeholder: isFlightStep ? "e.g. Ryanair, EasyJet…" : "e.g. Hilton, Hertz…" },
+          { key: "reference",  label: "Booking Reference",   placeholder: "e.g. ABC123XY" },
+          { key: "dateBooked", label: "Date Booked",         type: "date" },
         ].map(({ key, label, placeholder, type }) => (
           <label key={key} style={labelStyle}>
             <span>{label}</span>
@@ -239,7 +280,7 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
         <label style={labelStyle}>
           <span>Notes</span>
           <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
-            placeholder="Confirmation details, seat numbers, special requirements…"
+            placeholder={isFlightStep ? "Seat numbers, baggage allowance, terminal info…" : "Confirmation details, special requirements…"}
             rows={3} style={{ ...inputStyle, resize: "vertical" }} />
         </label>
 
@@ -619,11 +660,20 @@ export default function App() {
                           </div>
                           <div style={{ marginTop: "8px" }}>
                             <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</div>
-                            {booking?.provider   && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}</div>}
-                            {booking?.reference  && <div style={{ color: "#666", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
-                            {booking?.cost       && <div style={{ color: "#00d4aa", fontSize: "12px", marginTop: "4px" }}>{booking.cost}</div>}
-                            {booking?.notes      && <div style={{ color: "#555", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
-                            {!booking?.provider && !booking?.notes && (
+                            {booking?.provider  && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}</div>}
+                            {booking?.reference && <div style={{ color: "#666", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
+                            {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && (
+                              <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
+                                {booking.departureAirport || "?"} → {booking.arrivalAirport || "?"}
+                              </div>
+                            )}
+                            {isFlight(step) && (booking?.departureTime || booking?.arrivalTime) && (
+                              <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>
+                                {booking.departureTime || "?"} → {booking.arrivalTime || "?"}
+                              </div>
+                            )}
+                            {booking?.notes     && <div style={{ color: "#555", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
+                            {!booking?.provider && !booking?.notes && !booking?.departureAirport && (
                               <div style={{ color: "#2e2e4a", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>
                             )}
                           </div>
@@ -656,11 +706,6 @@ export default function App() {
 
               {steps.length > 0 && (() => {
                 const { confirmed, total } = completionCount(selectedHoliday);
-                const totalCost = steps.reduce((acc, s) => {
-                  const c = selectedHoliday.bookings?.[s.id]?.cost;
-                  if (c) { const n = parseFloat(c.replace(/[^0-9.]/g, "")); if (!isNaN(n)) acc += n; }
-                  return acc;
-                }, 0);
                 const status = getStatus(selectedHoliday);
                 const daysTo = selectedHoliday.startDate
                   ? Math.ceil((new Date(selectedHoliday.startDate) - new Date()) / 86400000)
@@ -668,7 +713,6 @@ export default function App() {
                 return (
                   <div style={{ marginTop: "18px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
                     <Stat label="Progress" value={`${confirmed}/${total}`} color={confirmed === total && total > 0 ? "#00d4aa" : "#fff"} />
-                    {totalCost > 0 && <Stat label="Tracked Cost" value={`£${totalCost.toFixed(2)}`} color="#00d4aa" />}
                     <Stat label="Status" value={status} color={STATUS_COLORS[status]} small />
                     {daysTo !== null && daysTo > 0 && <Stat label="Days to Go" value={daysTo} color="#6c63ff" />}
                   </div>
