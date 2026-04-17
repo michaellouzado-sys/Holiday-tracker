@@ -30,12 +30,15 @@ create policy "Allow full access to all"
   for all
   using (true)
   with check (true);
-```
-
-4. Go to **Project Settings → API** (left sidebar).
+```4. Go to **Project Settings → API** (left sidebar).
 5. Copy:
    - **Project URL** — looks like `https://abcdefgh.supabase.co`
    - **anon / public key** — a long JWT string
+
+https://mucatufswcpbwcgapxss.supabase.co
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11Y2F0dWZzd2NwYndjZ2FweHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MTUxNDQsImV4cCI6MjA5MTk5MTE0NH0.lNwu4W2o9xGv7rc9ntD1n1Gyfy-r31BkQxSQ2ETHIHk
+
+VITE_ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 ---
 

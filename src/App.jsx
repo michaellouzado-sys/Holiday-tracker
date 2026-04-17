@@ -173,8 +173,69 @@ function isFlight(step) {
     /flight|fly|fligh/i.test(step.label);
 }
 
+// Convert a File to base64 string
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Call Claude API to extract flight/booking details from an image
+async function extractFromImage(base64Data, mediaType, isFlightStep) {
+  const prompt = isFlightStep
+    ? `Extract all flight booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "airline name",
+  "reference": "booking reference / PNR code",
+  "departureAirport": "departure airport name and IATA code e.g. Manchester (MAN)",
+  "arrivalAirport": "arrival airport name and IATA code e.g. Palermo (PMO)",
+  "departureTime": "HH:MM in 24h format",
+  "arrivalTime": "HH:MM in 24h format",
+  "dateBooked": "YYYY-MM-DD if visible",
+  "notes": "any other useful info like flight number, seat, baggage allowance"
+}`
+    : `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "company or provider name",
+  "reference": "booking reference or confirmation number",
+  "dateBooked": "YYYY-MM-DD if visible",
+  "notes": "any other useful details"
+}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-calls": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: base64Data } },
+          { type: "text", text: prompt }
+        ]
+      }]
+    })
+  });
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text || "";
+  // Strip any markdown fences just in case
+  const clean = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+}
+
 function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
   const isFlightStep = isFlight(step);
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     confirmed:        booking?.confirmed        || false,
@@ -183,7 +244,6 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
     notes:            booking?.notes            || "",
     rating:           booking?.rating           ?? null,
     dateBooked:       booking?.dateBooked       || "",
-    // flight-only fields
     departureAirport: booking?.departureAirport || "",
     arrivalAirport:   booking?.arrivalAirport   || "",
     departureTime:    booking?.departureTime    || "",
@@ -191,11 +251,41 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
   });
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(step.label);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const [scanPreview, setScanPreview] = useState(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const commitRename = () => {
     setEditingName(false);
     if (newName.trim()) onRename(newName.trim());
+  };
+
+  const handlePhotoScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanError(null);
+    setScanning(true);
+    setScanPreview(URL.createObjectURL(file));
+    try {
+      const base64 = await fileToBase64(file);
+      const extracted = await extractFromImage(base64, file.type, isFlightStep);
+      // Merge extracted values into form, only overwriting empty fields
+      setForm(prev => {
+        const next = { ...prev };
+        Object.entries(extracted).forEach(([k, v]) => {
+          if (v && next[k] !== undefined) next[k] = v;
+        });
+        return next;
+      });
+    } catch (err) {
+      console.error(err);
+      setScanError("Couldn't read the image — try a clearer photo or fill in manually.");
+    } finally {
+      setScanning(false);
+      // Reset file input so same file can be reselected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -217,6 +307,45 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
             )}
           </div>
           <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+
+        {/* Photo scan button */}
+        <div style={{ marginBottom: "20px" }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoScan}
+            style={{ display: "none" }}
+            id="photo-scan-input"
+          />
+          <label htmlFor="photo-scan-input" style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            padding: "11px", borderRadius: "10px", cursor: scanning ? "wait" : "pointer",
+            background: scanning ? "#1a1a2e" : "#1e1e3a",
+            border: "1px dashed #6c63ff",
+            color: scanning ? "#666" : "#a78bfa",
+            fontSize: "13px", fontWeight: "600", transition: "all 0.2s",
+            opacity: scanning ? 0.7 : 1
+          }}>
+            {scanning ? (
+              <><span style={{ fontSize: "16px" }}>⏳</span> Scanning image…</>
+            ) : (
+              <><span style={{ fontSize: "16px" }}>📷</span> Scan from photo or screenshot</>
+            )}
+          </label>
+          {scanPreview && !scanning && (
+            <div style={{ marginTop: "8px", borderRadius: "8px", overflow: "hidden", maxHeight: "80px", display: "flex", justifyContent: "center", background: "#1a1a2e" }}>
+              <img src={scanPreview} alt="Scanned" style={{ maxHeight: "80px", objectFit: "contain" }} />
+            </div>
+          )}
+          {scanError && (
+            <div style={{ marginTop: "6px", color: "#ff4d66", fontSize: "12px" }}>⚠️ {scanError}</div>
+          )}
+          {!scanning && scanPreview && !scanError && (
+            <div style={{ marginTop: "6px", color: "#00d4aa", fontSize: "12px" }}>✓ Details extracted — check and edit below</div>
+          )}
         </div>
 
         {/* Status */}
