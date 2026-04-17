@@ -190,13 +190,13 @@ async function extractFromImage(base64Data, mediaType, isFlightStep) {
 {
   "provider": "airline name",
   "reference": "booking reference / PNR code",
-  "flightNumber": "flight number e.g. FR1234",
   "departureAirport": "departure airport name and IATA code e.g. Manchester (MAN)",
   "arrivalAirport": "arrival airport name and IATA code e.g. Palermo (PMO)",
   "flightDate": "YYYY-MM-DD date of the flight",
   "departureTime": "HH:MM in 24h format",
   "arrivalTime": "HH:MM in 24h format",
   "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
+  "flightNumber": "flight number e.g. FR1234",
   "notes": "any other useful info like seat, baggage allowance, terminal"
 }`
     : `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
@@ -400,8 +400,8 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
               </label>
             </div>
           </>
+        )}
 
-        {/* Flight number + reference (flight steps) or just reference (other steps) */}
         {isFlightStep ? (
           <div style={{ display: "flex", gap: "12px" }}>
             <label style={{ ...labelStyle, flex: 1 }}>
@@ -423,7 +423,6 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
           </label>
         )}
 
-        {/* Provider + date booked */}
         {[
           { key: "provider",   label: isFlightStep ? "Airline" : "Provider / Company", placeholder: isFlightStep ? "e.g. Ryanair, EasyJet…" : "e.g. Hilton, Hertz…" },
           { key: "dateBooked", label: "Date Booked", type: "date" },
@@ -434,7 +433,6 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
               onChange={e => set(key, e.target.value)} placeholder={placeholder} style={inputStyle} />
           </label>
         ))}
-
 
         <label style={labelStyle}>
           <span>Notes</span>
