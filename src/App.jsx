@@ -172,6 +172,18 @@ function isFlight(step) {
   return FLIGHT_ICONS.includes(step.icon) ||
     /flight|fly|fligh/i.test(step.label);
 }
+function isHotel(step) {
+  return step.icon === "🏨" || /hotel/i.test(step.label);
+}
+function isVilla(step) {
+  return step.icon === "🏠" || /villa|apartment|apt/i.test(step.label);
+}
+function isCarHire(step) {
+  return step.icon === "🚗" || /car hire|car rental|hire car/i.test(step.label);
+}
+function isFerry(step) {
+  return step.icon === "🚢" || /ferry|cruise/i.test(step.label);
+}
 
 // Convert a File to base64 string
 function fileToBase64(file) {
@@ -236,6 +248,11 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
   const isFlightStep = isFlight(step);
   const fileInputRef = useRef(null);
 
+  const isHotelStep   = isHotel(step);
+  const isVillaStep   = isVilla(step);
+  const isCarHireStep = isCarHire(step);
+  const isFerryStep   = isFerry(step);
+
   const [form, setForm] = useState({
     confirmed:        booking?.confirmed        || false,
     provider:         booking?.provider         || "",
@@ -243,10 +260,23 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
     notes:            booking?.notes            || "",
     rating:           booking?.rating           ?? null,
     dateBooked:       booking?.dateBooked       || "",
+    // flight fields
     departureAirport: booking?.departureAirport || "",
     arrivalAirport:   booking?.arrivalAirport   || "",
     departureTime:    booking?.departureTime    || "",
     arrivalTime:      booking?.arrivalTime      || "",
+    flightDate:       booking?.flightDate       || "",
+    flightNumber:     booking?.flightNumber     || "",
+    // hotel / villa fields
+    checkIn:          booking?.checkIn          || "",
+    checkOut:         booking?.checkOut         || "",
+    // car hire fields
+    pickUpDate:       booking?.pickUpDate       || "",
+    dropOffDate:      booking?.dropOffDate      || "",
+    // ferry fields
+    ferryDate:        booking?.ferryDate        || "",
+    ferryDepartTime:  booking?.ferryDepartTime  || "",
+    ferryArriveTime:  booking?.ferryArriveTime  || "",
   });
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(step.label);
@@ -396,6 +426,63 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
               <label style={{ ...labelStyle, flex: 1 }}>
                 <span>Arrival Time</span>
                 <input type="time" value={form.arrivalTime} onChange={e => set("arrivalTime", e.target.value)}
+                  style={inputStyle} />
+              </label>
+            </div>
+          </>
+        )}
+
+        {/* Hotel / Villa check-in & check-out */}
+        {(isHotelStep || isVillaStep) && (
+          <div style={{ display: "flex", gap: "12px" }}>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Check-in Date</span>
+              <input type="date" value={form.checkIn} onChange={e => set("checkIn", e.target.value)}
+                style={inputStyle} />
+            </label>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Check-out Date</span>
+              <input type="date" value={form.checkOut} onChange={e => set("checkOut", e.target.value)}
+                style={inputStyle} />
+            </label>
+          </div>
+        )}
+
+        {/* Car hire pick-up & drop-off */}
+        {isCarHireStep && (
+          <div style={{ display: "flex", gap: "12px" }}>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Pick-up Date</span>
+              <input type="date" value={form.pickUpDate} onChange={e => set("pickUpDate", e.target.value)}
+                style={inputStyle} />
+            </label>
+            <label style={{ ...labelStyle, flex: 1 }}>
+              <span>Drop-off Date</span>
+              <input type="date" value={form.dropOffDate} onChange={e => set("dropOffDate", e.target.value)}
+                style={inputStyle} />
+            </label>
+          </div>
+        )}
+
+        {/* Ferry / Cruise fields */}
+        {isFerryStep && (
+          <>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Departure Date</span>
+                <input type="date" value={form.ferryDate} onChange={e => set("ferryDate", e.target.value)}
+                  style={inputStyle} />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Departure Time</span>
+                <input type="time" value={form.ferryDepartTime} onChange={e => set("ferryDepartTime", e.target.value)}
+                  style={inputStyle} />
+              </label>
+              <label style={{ ...labelStyle, flex: 1 }}>
+                <span>Arrival Time</span>
+                <input type="time" value={form.ferryArriveTime} onChange={e => set("ferryArriveTime", e.target.value)}
                   style={inputStyle} />
               </label>
             </div>
@@ -819,6 +906,26 @@ export default function App() {
                             <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</div>
                             {booking?.provider  && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}{booking?.flightNumber ? ` · ${booking.flightNumber}` : ""}</div>}
                             {booking?.reference && <div style={{ color: "#666", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
+                            {(isHotel(step) || isVilla(step)) && (booking?.checkIn || booking?.checkOut) && (
+                              <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
+                                {booking.checkIn ? formatDate(booking.checkIn) : "?"} → {booking.checkOut ? formatDate(booking.checkOut) : "?"}
+                              </div>
+                            )}
+                            {isCarHire(step) && (booking?.pickUpDate || booking?.dropOffDate) && (
+                              <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
+                                {booking.pickUpDate ? formatDate(booking.pickUpDate) : "?"} → {booking.dropOffDate ? formatDate(booking.dropOffDate) : "?"}
+                              </div>
+                            )}
+                            {isFerry(step) && booking?.ferryDate && (
+                              <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>
+                                📅 {formatDate(booking.ferryDate)}
+                              </div>
+                            )}
+                            {isFerry(step) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && (
+                              <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>
+                                {booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}
+                              </div>
+                            )}
                             {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && (
                               <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>
                                 {booking.departureAirport || "?"} → {booking.arrivalAirport || "?"}
