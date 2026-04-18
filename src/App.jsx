@@ -196,28 +196,67 @@ function fileToBase64(file) {
 }
 
 // Call Claude API to extract flight/booking details from an image
-async function extractFromImage(base64Data, mediaType, isFlightStep) {
-  const prompt = isFlightStep
-    ? `Extract all flight booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+async function extractFromImage(base64Data, mediaType, stepType) {
+  const prompts = {
+    flight: `Extract all flight booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
 {
   "provider": "airline name",
   "reference": "booking reference / PNR code",
+  "flightNumber": "flight number e.g. FR1234",
   "departureAirport": "departure airport name and IATA code e.g. Manchester (MAN)",
   "arrivalAirport": "arrival airport name and IATA code e.g. Palermo (PMO)",
   "flightDate": "YYYY-MM-DD date of the flight",
   "departureTime": "HH:MM in 24h format",
   "arrivalTime": "HH:MM in 24h format",
   "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
-  "flightNumber": "flight number e.g. FR1234",
   "notes": "any other useful info like seat, baggage allowance, terminal"
-}`
-    : `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+}`,
+    ferry: `Extract all ferry or cruise booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "ferry or cruise company name",
+  "reference": "booking reference or confirmation number",
+  "ferryDate": "YYYY-MM-DD departure date of the ferry",
+  "ferryDepartTime": "HH:MM departure time in 24h format",
+  "ferryArriveTime": "HH:MM arrival time in 24h format",
+  "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
+  "notes": "any other useful info like route, cabin, car deck"
+}`,
+    hotel: `Extract all hotel booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "hotel name",
+  "reference": "booking reference or confirmation number",
+  "checkIn": "YYYY-MM-DD check-in date",
+  "checkOut": "YYYY-MM-DD check-out date",
+  "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
+  "notes": "any other useful info like room type, board basis, special requests"
+}`,
+    villa: `Extract all villa or apartment booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "company or owner name",
+  "reference": "booking reference or confirmation number",
+  "checkIn": "YYYY-MM-DD check-in date",
+  "checkOut": "YYYY-MM-DD check-out date",
+  "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
+  "notes": "any other useful info like address, access codes, special instructions"
+}`,
+    carHire: `Extract all car hire booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
+{
+  "provider": "car hire company name",
+  "reference": "booking reference or confirmation number",
+  "pickUpDate": "YYYY-MM-DD pick-up date",
+  "dropOffDate": "YYYY-MM-DD drop-off date",
+  "dateBooked": "YYYY-MM-DD date the booking was made, if visible",
+  "notes": "any other useful info like car type, pick-up location, extras"
+}`,
+    default: `Extract booking details from this image. Return ONLY a JSON object with these fields (use empty string if not found):
 {
   "provider": "company or provider name",
   "reference": "booking reference or confirmation number",
   "dateBooked": "YYYY-MM-DD if visible",
   "notes": "any other useful details"
-}`;
+}`,
+  };
+  const prompt = prompts[stepType] || prompts.default;
 
   const response = await fetch("/api/scan", {
     method: "POST",
@@ -298,7 +337,8 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
     setScanPreview(URL.createObjectURL(file));
     try {
       const base64 = await fileToBase64(file);
-      const extracted = await extractFromImage(base64, file.type, isFlightStep);
+      const stepType = isFlightStep ? "flight" : isFerryStep ? "ferry" : isHotelStep ? "hotel" : isVillaStep ? "villa" : isCarHireStep ? "carHire" : "default";
+      const extracted = await extractFromImage(base64, file.type, stepType);
       // Merge extracted values into form, only overwriting empty fields
       setForm(prev => {
         const next = { ...prev };
