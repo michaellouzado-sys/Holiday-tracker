@@ -159,7 +159,10 @@ function getStepSummary(step, booking) {
   if (isCarHire(step)) return [booking.provider, booking.carType, booking.pickUpLocation].filter(Boolean).join("  ·  ");
   if (isParking(step)) return [booking.carParkName, booking.terminalName].filter(Boolean).join("  ·  ");
   if (isTransfer(step)) return [booking.provider, booking.pickupLocation, booking.pickupTime].filter(Boolean).join("  ·  ");
-  return [booking.provider, booking.reference].filter(Boolean).join("  ·  ");
+  const dateParts = [];
+  if (booking.customStartDate) dateParts.push(formatDate(booking.customStartDate));
+  if (booking.customEndDate && booking.customEndDate !== booking.customStartDate) dateParts.push(formatDate(booking.customEndDate));
+  return [booking.provider, dateParts.join(' → '), booking.reference].filter(Boolean).join("  ·  ");
 }
 
 // Build a sorted list of timeline events from a holiday
@@ -376,6 +379,9 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     pickupTime:          booking?.pickupTime          || "",
     pickupLocation:      booking?.pickupLocation      || "",
     driverContact:       booking?.driverContact       || "",
+    // custom step dates
+    customStartDate:     booking?.customStartDate     || step.startDate || "",
+    customEndDate:       booking?.customEndDate       || step.endDate   || "",
     // price fields
     totalPrice:          booking?.totalPrice          || "",
     amountPaid:          booking?.amountPaid          || "",
