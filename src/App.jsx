@@ -1157,14 +1157,10 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
     ? Math.round((new Date(booking.checkOut) - new Date(booking.checkIn)) / 86400000) : null;
 
   return (
-    <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
-      <div style={{ position: "absolute", top: "8px", left: "8px", display: "flex", flexDirection: "column", gap: "2px", zIndex: 2 }}>
-        <button onClick={e => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} style={{ ...reorderBtn, opacity: isFirst ? 0.15 : 0.45 }}>▲</button>
-        <button onClick={e => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} style={{ ...reorderBtn, opacity: isLast ? 0.15 : 0.45 }}>▼</button>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <div onClick={onOpen} style={{
         background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa44" : "#2a2a45"}`,
-        borderRadius: "14px", padding: "16px 16px 16px 36px",
+        borderRadius: "14px", padding: "16px",
         cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden", flex: 1
       }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa" : "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
@@ -1228,6 +1224,35 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {booking?.notes && <div style={{ color: "#555", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
           {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#2e2e4a", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
         </div>
+      </div>
+      {/* Reorder bar — below the card, clearly separate */}
+      <div style={{ display: "flex", gap: "4px" }}>
+        <button
+          onClick={e => { e.stopPropagation(); onMoveUp(); }}
+          disabled={isFirst}
+          style={{
+            flex: 1, padding: "7px", background: "#0e0e1f",
+            border: "1px solid #1e1e3a", borderRadius: "8px",
+            color: isFirst ? "#222" : "#555", cursor: isFirst ? "default" : "pointer",
+            fontSize: "14px", transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { if (!isFirst) { e.currentTarget.style.background = "#1a1a2e"; e.currentTarget.style.color = "#aaa"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "#0e0e1f"; e.currentTarget.style.color = isFirst ? "#222" : "#555"; }}
+          title="Move up"
+        >↑ Move up</button>
+        <button
+          onClick={e => { e.stopPropagation(); onMoveDown(); }}
+          disabled={isLast}
+          style={{
+            flex: 1, padding: "7px", background: "#0e0e1f",
+            border: "1px solid #1e1e3a", borderRadius: "8px",
+            color: isLast ? "#222" : "#555", cursor: isLast ? "default" : "pointer",
+            fontSize: "14px", transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { if (!isLast) { e.currentTarget.style.background = "#1a1a2e"; e.currentTarget.style.color = "#aaa"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "#0e0e1f"; e.currentTarget.style.color = isLast ? "#222" : "#555"; }}
+          title="Move down"
+        >↓ Move down</button>
       </div>
     </div>
   );
