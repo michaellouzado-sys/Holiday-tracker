@@ -38,6 +38,31 @@ const RATING_OPTIONS = [
 
 const STATUS_COLORS = { upcoming: "#00d4aa", active: "#FFD93D", past: "#a0a0b0" };
 
+const CURRENCIES = [
+  { code: "GBP", symbol: "£", label: "GBP £" },
+  { code: "EUR", symbol: "€", label: "EUR €" },
+  { code: "USD", symbol: "$",  label: "USD $" },
+  { code: "AED", symbol: "AED", label: "AED" },
+  { code: "AUD", symbol: "A$", label: "AUD A$" },
+  { code: "CAD", symbol: "C$", label: "CAD C$" },
+  { code: "CHF", symbol: "CHF", label: "CHF" },
+  { code: "DKK", symbol: "kr", label: "DKK kr" },
+  { code: "HKD", symbol: "HK$", label: "HKD HK$" },
+  { code: "JPY", symbol: "¥",  label: "JPY ¥" },
+  { code: "MXN", symbol: "MX$", label: "MXN MX$" },
+  { code: "NOK", symbol: "kr", label: "NOK kr" },
+  { code: "NZD", symbol: "NZ$", label: "NZD NZ$" },
+  { code: "SEK", symbol: "kr", label: "SEK kr" },
+  { code: "SGD", symbol: "S$", label: "SGD S$" },
+  { code: "THB", symbol: "฿",  label: "THB ฿" },
+  { code: "TRY", symbol: "₺",  label: "TRY ₺" },
+  { code: "ZAR", symbol: "R",  label: "ZAR R" },
+];
+
+function getCurrencySymbol(code) {
+  return CURRENCIES.find(c => c.code === code)?.symbol || code || "£";
+}
+
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 function formatDate(d) {
@@ -186,7 +211,7 @@ function AddStepModal({ onAdd, onClose }) {
 }
 
 // ─── Booking Modal ─────────────────────────────────────────────────────────────
-function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
+function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClose, onRename }) {
   const isFlightStep   = isFlight(step);
   const isHotelStep    = isHotel(step);
   const isVillaStep    = isVilla(step);
@@ -241,6 +266,7 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
     // price fields
     totalPrice:          booking?.totalPrice          || "",
     amountPaid:          booking?.amountPaid          || "",
+    paymentDueDate:      booking?.paymentDueDate      || "",
   });
 
   const [editingName, setEditingName] = useState(false);
@@ -421,33 +447,41 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
         <Field k="dateBooked" label="Date Booked" type="date" />
 
         {/* Pricing */}
-        <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
-          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Pricing</div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
-              <span>Total Price</span>
-              <input value={form.totalPrice} onChange={e => set("totalPrice", e.target.value)} placeholder="£" style={inputStyle} />
-            </label>
-            <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
-              <span>Amount Paid</span>
-              <input value={form.amountPaid} onChange={e => set("amountPaid", e.target.value)} placeholder="£" style={inputStyle} />
-            </label>
-          </div>
-          {(() => {
-            const total = parseFloat((form.totalPrice || "").replace(/[^0-9.]/g, ""));
-            const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
-            const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
-            if (outstanding === null) return null;
-            return (
-              <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#555", fontSize: "12px" }}>Outstanding</span>
-                <span style={{ color: outstanding <= 0 ? "#00d4aa" : "#FFD93D", fontWeight: "700", fontSize: "14px" }}>
-                  {outstanding <= 0 ? "✓ Fully paid" : `£${outstanding.toFixed(2)}`}
-                </span>
+        {(() => {
+          const sym = getCurrencySymbol(currency);
+          const total = parseFloat((form.totalPrice || "").replace(/[^0-9.]/g, ""));
+          const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
+          const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
+          return (
+            <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
+              <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Pricing ({currency})</div>
+              <div style={{ display: "flex", gap: "12px" }}>
+                <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
+                  <span>Total Price</span>
+                  <input value={form.totalPrice} onChange={e => set("totalPrice", e.target.value)} placeholder={`${sym}0.00`} style={inputStyle} />
+                </label>
+                <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
+                  <span>Amount Paid</span>
+                  <input value={form.amountPaid} onChange={e => set("amountPaid", e.target.value)} placeholder={`${sym}0.00`} style={inputStyle} />
+                </label>
               </div>
-            );
-          })()}
-        </div>
+              {outstanding !== null && (
+                <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: "#555", fontSize: "12px" }}>Outstanding</span>
+                  <span style={{ color: outstanding <= 0 ? "#00d4aa" : "#FFD93D", fontWeight: "700", fontSize: "14px" }}>
+                    {outstanding <= 0 ? "✓ Fully paid" : `${sym}${outstanding.toFixed(2)}`}
+                  </span>
+                </div>
+              )}
+              {outstanding !== null && outstanding > 0 && (
+                <label style={{ ...labelStyle, marginTop: "12px", marginBottom: 0 }}>
+                  <span>Payment Due Date</span>
+                  <input type="date" value={form.paymentDueDate} onChange={e => set("paymentDueDate", e.target.value)} style={inputStyle} />
+                </label>
+              )}
+            </div>
+          );
+        })()}
 
         <TextArea k="notes" label="Notes" placeholder="Any additional details..." rows={3} />
 
@@ -482,6 +516,7 @@ function HolidayModal({ holiday, onSave, onClose }) {
     name: holiday?.name || "", destination: holiday?.destination || "",
     startDate: holiday?.startDate || "", endDate: holiday?.endDate || "",
     notes: holiday?.notes || "", emoji: holiday?.emoji || "✈️",
+    currency: holiday?.currency || "GBP",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const emojis = ["✈️","🏖️","🏔️","🌍","🗺️","🏝️","🎿","🌴","🏛️","🌅"];
@@ -516,6 +551,13 @@ function HolidayModal({ holiday, onSave, onClose }) {
           ))}
         </div>
         <label style={labelStyle}>
+          <span>Currency</span>
+          <select value={form.currency} onChange={e => set("currency", e.target.value)}
+            style={{ ...inputStyle, cursor: "pointer" }}>
+            {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
           <span>Notes</span>
           <textarea value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any general notes..." rows={2} style={{ ...inputStyle, resize: "vertical" }} />
         </label>
@@ -529,7 +571,7 @@ function HolidayModal({ holiday, onSave, onClose }) {
 }
 
 // ─── Step Card ─────────────────────────────────────────────────────────────────
-function StepCard({ step, booking, onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
+function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
   const isBooked = booking?.confirmed;
   const rating = RATING_OPTIONS.find(r => r.value === (booking?.rating ?? null));
   const nights = (isHotel(step) || isVilla(step)) && booking?.checkIn && booking?.checkOut
@@ -585,15 +627,21 @@ function StepCard({ step, booking, onOpen, onMoveUp, onMoveDown, isFirst, isLast
           {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
 
           {(() => {
+            const sym = getCurrencySymbol(currency);
             const total = parseFloat((booking?.totalPrice || "").replace(/[^0-9.]/g, ""));
             const paid  = parseFloat((booking?.amountPaid  || "").replace(/[^0-9.]/g, ""));
             const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
             if (!booking?.totalPrice) return null;
             return (
-              <div style={{ marginTop: "5px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <span style={{ color: "#00d4aa", fontSize: "11px" }}>£{total.toFixed(2)}</span>
-                {outstanding !== null && outstanding > 0 && <span style={{ color: "#FFD93D", fontSize: "11px" }}>£{outstanding.toFixed(2)} due</span>}
-                {outstanding !== null && outstanding <= 0 && <span style={{ color: "#00d4aa", fontSize: "11px" }}>✓ paid</span>}
+              <div style={{ marginTop: "5px" }}>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={{ color: "#00d4aa", fontSize: "11px" }}>{sym}{total.toFixed(2)}</span>
+                  {outstanding !== null && outstanding > 0 && <span style={{ color: "#FFD93D", fontSize: "11px" }}>{sym}{outstanding.toFixed(2)} due</span>}
+                  {outstanding !== null && outstanding <= 0 && <span style={{ color: "#00d4aa", fontSize: "11px" }}>✓ paid</span>}
+                </div>
+                {outstanding !== null && outstanding > 0 && booking?.paymentDueDate && (
+                  <div style={{ color: "#888", fontSize: "11px", marginTop: "2px" }}>Due {formatDate(booking.paymentDueDate)}</div>
+                )}
               </div>
             );
           })()}
@@ -754,6 +802,7 @@ export default function App() {
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#00d4aa" : "#6c63ff" }}>{pct}%</span></div>
                         <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.4s" }} /></div>
                         {(() => {
+                          const sym = getCurrencySymbol(h.currency);
                           let gt = 0, gp = 0, has = false;
                           (h.steps || []).forEach(s => {
                             const b = h.bookings?.[s.id] || {};
@@ -766,9 +815,9 @@ export default function App() {
                           const go = gt - gp;
                           return (
                             <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
-                              <span style={{ color: "#aaa" }}>£{gt.toFixed(2)} total</span>
-                              <span style={{ color: "#00d4aa" }}>£{gp.toFixed(2)} paid</span>
-                              {go > 0 && <span style={{ color: "#FFD93D" }}>£{go.toFixed(2)} due</span>}
+                              <span style={{ color: "#aaa" }}>{sym}{gt.toFixed(2)} total</span>
+                              <span style={{ color: "#00d4aa" }}>{sym}{gp.toFixed(2)} paid</span>
+                              {go > 0 && <span style={{ color: "#FFD93D" }}>{sym}{go.toFixed(2)} due</span>}
                               {go <= 0 && <span style={{ color: "#00d4aa" }}>✓ all paid</span>}
                             </div>
                           );
@@ -793,6 +842,7 @@ export default function App() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(255px, 1fr))", gap: "12px" }}>
                   {steps.map((step, idx) => (
                     <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
+                      currency={selectedHoliday.currency || "GBP"}
                       onOpen={() => setBookingModal({ stepId: step.id })}
                       onMoveUp={() => moveStep(step.id, -1)}
                       onMoveDown={() => moveStep(step.id, 1)}
@@ -834,11 +884,12 @@ export default function App() {
                     {hasAnyPrice && (
                       <div style={{ marginTop: "10px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px" }}>
                         <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Trip Finances</div>
+                        {(() => { const sym = getCurrencySymbol(selectedHoliday.currency); return (
                         <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginBottom: "12px" }}>
-                          <Stat label="Total Cost" value={`£${grandTotal.toFixed(2)}`} color="#fff" />
-                          <Stat label="Paid" value={`£${grandPaid.toFixed(2)}`} color="#00d4aa" />
-                          <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `£${grandOutstanding.toFixed(2)}`} color={grandOutstanding <= 0 ? "#00d4aa" : "#FFD93D"} />
-                        </div>
+                          <Stat label={`Total Cost (${selectedHoliday.currency || 'GBP'})`} value={`${sym}${grandTotal.toFixed(2)}`} color="#fff" />
+                          <Stat label="Paid" value={`${sym}${grandPaid.toFixed(2)}`} color="#00d4aa" />
+                          <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `${sym}${grandOutstanding.toFixed(2)}`} color={grandOutstanding <= 0 ? "#00d4aa" : "#FFD93D"} />
+                        </div>); })()}
                         {grandOutstanding > 0 && (
                           <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
                             <div style={{ height: "100%", borderRadius: "3px", width: `${Math.min(100, (grandPaid / grandTotal) * 100).toFixed(1)}%`, background: "linear-gradient(90deg, #00d4aa, #6c63ff)", transition: "width 0.4s" }} />
@@ -860,6 +911,7 @@ export default function App() {
         const step = (selectedHoliday.steps || []).find(s => s.id === bookingModal.stepId);
         if (!step) return null;
         return <BookingModal step={step} booking={selectedHoliday.bookings?.[bookingModal.stepId]}
+          currency={selectedHoliday.currency || "GBP"}
           onSave={data => saveBooking(bookingModal.stepId, data)}
           onDelete={() => removeStep(bookingModal.stepId)}
           onRename={newLabel => renameStep(bookingModal.stepId, newLabel)}
