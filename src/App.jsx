@@ -985,6 +985,152 @@ function PackingView({ holiday, onUpdate }) {
   );
 }
 
+
+// ─── Supplier Ratings Summary ──────────────────────────────────────────────────
+function SupplierSummary({ holidays }) {
+  // Collect all rated bookings across all holidays
+  const entries = [];
+  holidays.forEach(h => {
+    (h.steps || []).forEach(step => {
+      const b = h.bookings?.[step.id];
+      if (b?.provider && b?.rating != null) {
+        entries.push({
+          provider: b.provider,
+          stepLabel: step.label,
+          stepIcon: step.icon,
+          rating: b.rating,
+          holidayName: h.name,
+          holidayEmoji: h.emoji,
+        });
+      }
+    });
+  });
+
+  if (entries.length === 0) return (
+    <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
+      <div style={{ fontSize: "36px", marginBottom: "12px" }}>⭐</div>
+      <p>Rate your suppliers on individual bookings to see a summary here.</p>
+    </div>
+  );
+
+  // Group by provider
+  const byProvider = {};
+  entries.forEach(e => {
+    if (!byProvider[e.provider]) byProvider[e.provider] = { provider: e.provider, entries: [] };
+    byProvider[e.provider].entries.push(e);
+  });
+
+  const providers = Object.values(byProvider).map(p => ({
+    ...p,
+    avgRating: p.entries.reduce((s, e) => s + e.rating, 0) / p.entries.length,
+    count: p.entries.length,
+  })).sort((a, b) => b.avgRating - a.avgRating);
+
+  const RATING_MAP = { 1: { label: "Poor", emoji: "👎", color: "#ff4d66" }, 2: { label: "OK", emoji: "😐", color: "#888" }, 3: { label: "Good", emoji: "👍", color: "#6c63ff" }, 4: { label: "Excellent", emoji: "⭐", color: "#00d4aa" } };
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {providers.map(p => {
+          const avg = p.avgRating;
+          const color = avg >= 3.5 ? "#00d4aa" : avg >= 2.5 ? "#6c63ff" : avg >= 1.5 ? "#888" : "#ff4d66";
+          return (
+            <div key={p.provider} style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "14px", padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                <div>
+                  <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600" }}>{p.provider}</div>
+                  <div style={{ color: "#444", fontSize: "12px", marginTop: "2px" }}>
+                    {[...new Set(p.entries.map(e => e.stepIcon + " " + e.stepLabel))].join("  ·  ")}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ color, fontSize: "22px", fontWeight: "700" }}>{avg.toFixed(1)}</div>
+                  <div style={{ color: "#444", fontSize: "11px" }}>{p.count} review{p.count !== 1 ? "s" : ""}</div>
+                </div>
+              </div>
+              {/* Star bar */}
+              <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px", marginBottom: "10px" }}>
+                <div style={{ height: "100%", borderRadius: "2px", width: `${(avg / 4) * 100}%`, background: color, transition: "width 0.4s" }} />
+              </div>
+              {/* Individual ratings */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                {p.entries.map((e, i) => {
+                  const r = RATING_MAP[e.rating];
+                  return (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
+                      <span style={{ color: "#555" }}>{e.holidayEmoji} {e.holidayName}</span>
+                      <span style={{ color: r.color }}>{r.emoji} {r.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Memories View ─────────────────────────────────────────────────────────────
+function MemoriesView({ holiday, onUpdate }) {
+  const memories = holiday.memories || [];
+  const [newText, setNewText] = useState("");
+  const [newEmoji, setNewEmoji] = useState("✨");
+  const MEMORY_EMOJIS = ["✨","🌅","🍕","🏖️","🎉","😂","😍","🥂","🚶","🌊","🏔️","🎭","🍷","📸","🤩","💃","🌺","🎶","⚡","🌙"];
+
+  function addMemory() {
+    if (!newText.trim()) return;
+    onUpdate([...memories, { id: generateId(), emoji: newEmoji, text: newText.trim(), date: new Date().toISOString().slice(0,10) }]);
+    setNewText("");
+  }
+
+  function removeMemory(id) {
+    onUpdate(memories.filter(m => m.id !== id));
+  }
+
+  return (
+    <div style={{ paddingBottom: "20px" }}>
+      {/* Add memory */}
+      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "14px", padding: "16px 18px", marginBottom: "20px" }}>
+        <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Add a memory</div>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
+          {MEMORY_EMOJIS.map(e => (
+            <button key={e} onClick={() => setNewEmoji(e)} style={{ width: "34px", height: "34px", fontSize: "16px", background: newEmoji === e ? "#1e1e3a" : "#1a1a2e", border: `1px solid ${newEmoji === e ? "#6c63ff" : "#2a2a45"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="What made this trip special? A moment, a meal, a laugh..." rows={2}
+            style={{ ...inputStyle, marginTop: 0, flex: 1, resize: "none" }}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), addMemory())} />
+          <button onClick={addMemory} style={{ ...primaryBtn, alignSelf: "flex-end" }}>Add</button>
+        </div>
+      </div>
+
+      {/* Memories list */}
+      {memories.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#333" }}>
+          <div style={{ fontSize: "36px", marginBottom: "12px" }}>✨</div>
+          <p>No memories yet — add highlights from your trip!</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {[...memories].reverse().map(m => (
+            <div key={m.id} style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 16px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "24px", flexShrink: 0 }}>{m.emoji}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#ccc", fontSize: "14px", lineHeight: "1.5" }}>{m.text}</div>
+                {m.date && <div style={{ color: "#333", fontSize: "11px", marginTop: "4px" }}>{formatDate(m.date)}</div>}
+              </div>
+              <button onClick={() => removeMemory(m.id)} style={{ background: "none", border: "none", color: "#2a2a45", cursor: "pointer", fontSize: "16px", padding: "0 2px", flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Step Card ─────────────────────────────────────────────────────────────────
 function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
   const isBooked = booking?.confirmed;
@@ -1077,7 +1223,9 @@ export default function App() {
   const [bookingModal, setBookingModal] = useState(null);
   const [holidayModal, setHolidayModal] = useState(null);
   const [addStepModal, setAddStepModal] = useState(false);
-  const [detailTab, setDetailTab]       = useState("bookings"); // bookings | timeline | itinerary | packing
+  const [detailTab, setDetailTab]       = useState("bookings");
+  const [showSuppliers, setShowSuppliers] = useState(false);
+  const [rebookModal, setRebookModal]   = useState(null); // holiday to rebook from // bookings | timeline | itinerary | packing
   const [loaded, setLoaded]             = useState(false);
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
@@ -1099,6 +1247,31 @@ export default function App() {
 
   function updatePacking(packed) {
     updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, packing: packed } : h));
+  }
+
+  function updateMemories(mems) {
+    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, memories: mems } : h));
+  }
+
+  function rebookHoliday(source) {
+    // Create a new holiday pre-populated with same steps (cleared bookings)
+    const newH = {
+      id: generateId(),
+      name: source.name + " (copy)",
+      destination: source.destination,
+      emoji: source.emoji,
+      currency: source.currency || "GBP",
+      startDate: "", endDate: "", notes: "",
+      steps: (source.steps || []).map(s => ({ ...s, id: generateId() })),
+      bookings: {},
+      packing: undefined,
+      memories: [],
+    };
+    updateHolidays(prev => [...prev, newH]);
+    setRebookModal(null);
+    setSelectedId(newH.id);
+    setView("detail");
+    setDetailTab("bookings");
   }
   const selectedHoliday = holidays.find(h => h.id === selectedId);
 
@@ -1187,8 +1360,15 @@ export default function App() {
             {view === "detail" && selectedHoliday && <p style={{ margin: "4px 0 0 30px", color: "#555", fontSize: "13px" }}>{selectedHoliday.destination && `📍 ${selectedHoliday.destination}`}{selectedHoliday.startDate && ` · ${formatDate(selectedHoliday.startDate)}${selectedHoliday.endDate ? ` → ${formatDate(selectedHoliday.endDate)}` : ""}`}</p>}
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
-            {view === "detail" && selectedHoliday && (<><button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={secondaryBtn}>Edit</button><button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644" }}>Delete</button></>)}
-            {view === "list" && <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>}
+            {view === "detail" && selectedHoliday && (<>
+              <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#6c63ff", borderColor: "#6c63ff44" }}>Rebook</button>
+              <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={secondaryBtn}>Edit</button>
+              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644" }}>Delete</button>
+            </>)}
+            {view === "list" && <>
+              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#fff" : "#aaa", background: showSuppliers ? "#1e1e3a" : "#1a1a2e" }}>⭐ Suppliers</button>
+              <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
+            </>}
           </div>
         </div>
 
@@ -1199,6 +1379,17 @@ export default function App() {
               <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#6c63ff" : "#1a1a2e", border: `1px solid ${filterStatus === s ? "#6c63ff" : "#2a2a45"}`, color: filterStatus === s ? "#fff" : "#888", textTransform: "capitalize" }}>{s}</button>
             ))}
           </div>
+          {/* Supplier ratings panel */}
+          {showSuppliers && (
+            <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "16px", padding: "20px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "16px", color: "#fff" }}>⭐ Supplier Ratings</div>
+                <div style={{ color: "#444", fontSize: "12px" }}>Across all holidays</div>
+              </div>
+              <SupplierSummary holidays={holidays} />
+            </div>
+          )}
+
           {filteredHolidays.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#444" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌍</div>
@@ -1278,6 +1469,7 @@ export default function App() {
                   { id: "timeline",   label: "Timeline",  icon: "📅" },
                   { id: "itinerary",  label: "Itinerary", icon: "🗺️" },
                   { id: "packing",    label: "Packing",   icon: "🎒" },
+                  { id: "memories",   label: "Memories",  icon: "✨" },
                 ].map(tab => (
                   <button key={tab.id} onClick={() => setDetailTab(tab.id)} style={{
                     flex: 1, padding: "8px 4px", borderRadius: "7px", border: "none", cursor: "pointer",
@@ -1330,6 +1522,11 @@ export default function App() {
               {/* Packing tab */}
               {detailTab === "packing" && (
                 <PackingView holiday={selectedHoliday} onUpdate={updatePacking} />
+              )}
+
+              {/* Memories tab */}
+              {detailTab === "memories" && (
+                <MemoriesView holiday={selectedHoliday} onUpdate={updateMemories} />
               )}
 
               {steps.length > 0 && (() => {
@@ -1397,6 +1594,28 @@ export default function App() {
       })()}
 
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
+
+      {/* Rebook modal */}
+      {rebookModal && (
+        <div style={overlay}>
+          <div style={{ ...modal, maxWidth: "420px" }}>
+            <div style={modalHeader}>
+              <h3 style={modalTitle}>Rebook Holiday</h3>
+              <button onClick={() => setRebookModal(null)} style={closeBtn}>✕</button>
+            </div>
+            <p style={{ color: "#888", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
+              This will create a new copy of <strong style={{ color: "#fff" }}>{rebookModal.emoji} {rebookModal.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
+            </p>
+            <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#555" }}>
+              {(rebookModal.steps || []).length} step{(rebookModal.steps || []).length !== 1 ? "s" : ""} will be copied · All booking details cleared · Dates cleared
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={() => setRebookModal(null)} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
+              <button onClick={() => rebookHoliday(rebookModal)} style={{ ...primaryBtn, flex: 2 }}>Create Copy</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {saveError && (
         <div style={{ position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", background: "#ff4d66", color: "#fff", padding: "10px 20px", borderRadius: "10px", fontSize: "13px", zIndex: 2000 }}>
