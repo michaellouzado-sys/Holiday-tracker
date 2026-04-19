@@ -370,6 +370,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     carExtras:           booking?.carExtras           || "",
     // ferry
     ferryDate:           booking?.ferryDate           || "",
+    sailingReturnDate:   booking?.sailingReturnDate   || "",
     ferryDepartTime:     booking?.ferryDepartTime     || "",
     ferryArriveTime:     booking?.ferryArriveTime     || "",
     // parking
@@ -526,7 +527,10 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* ── Ferry / Sailing fields ── */}
         {(isFerryStep || isSailingStep) && (<>
-          <Row><HalfField k="ferryDate" label="Departure Date" type="date" /></Row>
+          <Row>
+            <HalfField k="ferryDate" label="Departure Date" type="date" />
+            {isSailingStep && <HalfField k="sailingReturnDate" label="Return Date" type="date" />}
+          </Row>
           <Row><HalfField k="ferryDepartTime" label="Departure Time" type="time" /><HalfField k="ferryArriveTime" label="Arrival Time" type="time" /></Row>
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
         </>)}
@@ -1191,7 +1195,11 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {isCarHire(step) && booking?.carType && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>🚗 {booking.carType}</div>}
 
           {/* Ferry */}
-          {(isFerry(step) || isSailing(step)) && booking?.ferryDate && <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>📅 {formatDate(booking.ferryDate)}</div>}
+          {(isFerry(step) || isSailing(step)) && booking?.ferryDate && (
+            <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>
+              📅 {formatDate(booking.ferryDate)}{isSailing(step) && booking?.sailingReturnDate ? " → " + formatDate(booking.sailingReturnDate) : ""}
+            </div>
+          )}
           {(isFerry(step) || isSailing(step)) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>{booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}</div>}
 
           {/* Parking */}
