@@ -705,14 +705,6 @@ export default function App() {
     loadFromSupabase().then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
   }, []);
 
-  useEffect(() => {
-    if (!selectedHoliday) return;
-    const displayCurrency = selectedHoliday.currency || "GBP";
-    fetchRates(displayCurrency).then(r => {
-      if (r) { setRates(r); setRatesUpdatedAt(r.updatedAt); }
-    });
-  }, [selectedHoliday?.id, selectedHoliday?.currency]);
-
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -722,6 +714,14 @@ export default function App() {
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
   const selectedHoliday = holidays.find(h => h.id === selectedId);
+
+  useEffect(() => {
+    if (!selectedHoliday) return;
+    const displayCurrency = selectedHoliday.currency || "GBP";
+    fetchRates(displayCurrency).then(r => {
+      if (r) { setRates(r); setRatesUpdatedAt(r.updatedAt); }
+    });
+  }, [selectedHoliday?.id, selectedHoliday?.currency]);
 
   function saveHoliday(form) {
     if (holidayModal?.holiday) updateHolidays(prev => prev.map(h => h.id === holidayModal.holiday.id ? { ...h, ...form } : h));
