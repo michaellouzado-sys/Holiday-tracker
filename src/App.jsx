@@ -1478,9 +1478,7 @@ export default function App() {
                           const go = gt - gp;
                           return (
                             <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
-                              <span style={{ color: "#aaa" }}>{sym}{Math.ceil(gt)} total</span>
-                              <span style={{ color: "#00d4aa" }}>{sym}{Math.ceil(gp)} paid</span>
-                              {go > 0 && <span style={{ color: "#FFD93D" }}>{sym}{Math.ceil(go)} due</span>}
+                              {go > 0 && <span style={{ color: "#FFD93D" }}>{sym}{Math.ceil(go)} outstanding</span>}
                               {go <= 0 && <span style={{ color: "#00d4aa" }}>✓ all paid</span>}
                             </div>
                           );
@@ -1596,8 +1594,6 @@ export default function App() {
                         <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Trip Finances</div>
                         {(() => { const sym = getCurrencySymbol(selectedHoliday.currency); return (
                         <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginBottom: "12px" }}>
-                          <Stat label={`Total Cost (${selectedHoliday.currency || 'GBP'})`} value={`${sym}${Math.ceil(grandTotal)}`} color="#fff" />
-                          <Stat label="Paid" value={`${sym}${Math.ceil(grandPaid)}`} color="#00d4aa" />
                           <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `${sym}${Math.ceil(grandOutstanding)}`} color={grandOutstanding <= 0 ? "#00d4aa" : "#FFD93D"} />
                         </div>); })()}
                         {grandOutstanding > 0 && (
