@@ -115,6 +115,93 @@ function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise/i.test(
 function isParking(step)  { return step.icon === "🅿️" || /parking/i.test(step.label); }
 function isTransfer(step) { return step.icon === "🚌" || /transfer/i.test(step.label); }
 
+
+// ─── Phase 2 helpers ───────────────────────────────────────────────────────────
+
+// Returns the primary date string (YYYY-MM-DD) for a step, used for timeline/itinerary
+function getStepDate(step, booking) {
+  if (!booking) return null;
+  if (isFlight(step))   return booking.flightDate   || null;
+  if (isFerry(step))    return booking.ferryDate     || null;
+  if (isHotel(step) || isVilla(step)) return booking.checkIn || null;
+  if (isCarHire(step))  return booking.pickUpDate    || null;
+  if (isParking(step))  return booking.parkingEntry ? booking.parkingEntry.slice(0,10) : null;
+  if (isTransfer(step)) return null; // transfers don't have a standalone date
+  return null;
+}
+
+// Returns a short time string for timeline display
+function getStepTime(step, booking) {
+  if (!booking) return null;
+  if (isFlight(step))   return booking.departureTime || null;
+  if (isFerry(step))    return booking.ferryDepartTime || null;
+  if (isTransfer(step)) return booking.pickupTime || null;
+  return null;
+}
+
+// Returns a human-readable summary line for a booking step
+function getStepSummary(step, booking) {
+  if (!booking) return "";
+  if (isFlight(step)) {
+    const route = [booking.departureAirport, booking.arrivalAirport].filter(Boolean).join(" → ");
+    const time  = [booking.departureTime, booking.arrivalTime].filter(Boolean).join(" → ");
+    return [route, time, booking.flightNumber].filter(Boolean).join("  ·  ");
+  }
+  if (isFerry(step)) {
+    const time = [booking.ferryDepartTime, booking.ferryArriveTime].filter(Boolean).join(" → ");
+    return [booking.provider, time].filter(Boolean).join("  ·  ");
+  }
+  if (isHotel(step) || isVilla(step)) {
+    const nights = booking.checkIn && booking.checkOut
+      ? Math.round((new Date(booking.checkOut) - new Date(booking.checkIn)) / 86400000) : null;
+    return [booking.provider, booking.propertyAddress, nights ? `${nights} nights` : ""].filter(Boolean).join("  ·  ");
+  }
+  if (isCarHire(step)) return [booking.provider, booking.carType, booking.pickUpLocation].filter(Boolean).join("  ·  ");
+  if (isParking(step)) return [booking.carParkName, booking.terminalName].filter(Boolean).join("  ·  ");
+  if (isTransfer(step)) return [booking.provider, booking.pickupLocation, booking.pickupTime].filter(Boolean).join("  ·  ");
+  return [booking.provider, booking.reference].filter(Boolean).join("  ·  ");
+}
+
+// Build a sorted list of timeline events from a holiday
+function buildTimeline(holiday) {
+  const steps = holiday.steps || [];
+  const events = [];
+  steps.forEach(step => {
+    const b = holiday.bookings?.[step.id];
+    const date = getStepDate(step, b);
+    events.push({ step, booking: b, date, time: getStepTime(step, b) });
+  });
+  // Sort: items with dates first (by date+time), then undated
+  events.sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    const da = a.date + (a.time || "00:00");
+    const db = b.date + (b.time || "00:00");
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
+  return events;
+}
+
+// Group timeline events by date
+function groupByDate(events) {
+  const groups = {};
+  events.forEach(ev => {
+    const key = ev.date || "__undated__";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(ev);
+  });
+  return groups;
+}
+
+// Default packing list categories
+const DEFAULT_PACKING = [
+  { category: "Documents", items: ["Passport", "Travel insurance docs", "Booking confirmations", "Driving licence"] },
+  { category: "Clothing", items: ["T-shirts", "Shorts / trousers", "Underwear", "Socks", "Swimwear", "Evening wear", "Jacket / hoodie"] },
+  { category: "Toiletries", items: ["Toothbrush & toothpaste", "Shampoo & conditioner", "Sun cream", "Deodorant", "Razor", "Medications"] },
+  { category: "Electronics", items: ["Phone charger", "Plug adaptor", "Headphones", "Camera"] },
+  { category: "Misc", items: ["Cash / cards", "Sunglasses", "Book / e-reader", "Reusable water bottle"] },
+];
 // ─── Supabase ──────────────────────────────────────────────────────────────────
 async function loadFromSupabase() {
   const { data, error } = await supabase.from("app_data").select("data").eq("id", SHARED_ROW_ID).maybeSingle();
@@ -603,6 +690,295 @@ function HolidayModal({ holiday, onSave, onClose }) {
   );
 }
 
+
+// ─── Timeline View ─────────────────────────────────────────────────────────────
+function TimelineView({ holiday, onOpenBooking }) {
+  const events = buildTimeline(holiday);
+  const groups = groupByDate(events);
+  const dateKeys = Object.keys(groups).sort((a, b) => {
+    if (a === "__undated__") return 1;
+    if (b === "__undated__") return -1;
+    return a < b ? -1 : 1;
+  });
+
+  return (
+    <div style={{ paddingBottom: "20px" }}>
+      {dateKeys.map(dateKey => (
+        <div key={dateKey} style={{ marginBottom: "28px" }}>
+          {/* Date header */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+            <div style={{ background: "#6c63ff", borderRadius: "8px", padding: "6px 14px", fontSize: "13px", fontWeight: "700", color: "#fff", whiteSpace: "nowrap" }}>
+              {dateKey === "__undated__" ? "No date set" : formatDate(dateKey)}
+            </div>
+            <div style={{ flex: 1, height: "1px", background: "#1e1e3a" }} />
+          </div>
+          {/* Events for this date */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "16px", borderLeft: "2px solid #1e1e3a" }}>
+            {groups[dateKey].map(({ step, booking }, i) => {
+              const isBooked = booking?.confirmed;
+              const summary = getStepSummary(step, booking);
+              const time = getStepTime(step, booking);
+              return (
+                <div key={step.id} onClick={() => onOpenBooking(step.id)}
+                  style={{
+                    background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa33" : "#2a2a45"}`,
+                    borderRadius: "12px", padding: "12px 16px", cursor: "pointer",
+                    display: "flex", alignItems: "flex-start", gap: "12px", transition: "all 0.15s",
+                    marginLeft: "-1px"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa33" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+                >
+                  <span style={{ fontSize: "22px", flexShrink: 0 }}>{step.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</span>
+                      {time && <span style={{ color: "#00d4aa", fontSize: "12px", fontFamily: "monospace" }}>{time}</span>}
+                      {isBooked && <span style={{ background: "#00d4aa22", color: "#00d4aa", fontSize: "10px", padding: "1px 7px", borderRadius: "10px", fontWeight: "700" }}>✓ BOOKED</span>}
+                      {!isBooked && <span style={{ background: "#ff4d6622", color: "#ff4d66", fontSize: "10px", padding: "1px 7px", borderRadius: "10px" }}>pending</span>}
+                    </div>
+                    {summary && <div style={{ color: "#666", fontSize: "12px", marginTop: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
+                    {booking?.reference && <div style={{ color: "#444", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {events.length === 0 && (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "#333" }}>
+          <div style={{ fontSize: "36px", marginBottom: "12px" }}>📅</div>
+          <p>No booking steps yet — add some steps to see the timeline.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Itinerary View ────────────────────────────────────────────────────────────
+function ItineraryView({ holiday, onOpenBooking }) {
+  const events = buildTimeline(holiday);
+  const dated = events.filter(e => e.date);
+  const undated = events.filter(e => !e.date);
+
+  if (!holiday.startDate) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
+        <div style={{ fontSize: "36px", marginBottom: "12px" }}>🗺️</div>
+        <p>Set departure and return dates on the holiday to see the day-by-day itinerary.</p>
+      </div>
+    );
+  }
+
+  // Build day-by-day from startDate to endDate
+  const start = new Date(holiday.startDate);
+  const end   = holiday.endDate ? new Date(holiday.endDate) : new Date(holiday.startDate);
+  const days  = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
+  }
+
+  const tripDuration = Math.round((end - start) / 86400000) + 1;
+
+  return (
+    <div style={{ paddingBottom: "20px" }}>
+      {/* Trip duration banner */}
+      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Departure</div>
+          <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{formatDate(holiday.startDate)}</div>
+        </div>
+        <div>
+          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Return</div>
+          <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{holiday.endDate ? formatDate(holiday.endDate) : "—"}</div>
+        </div>
+        <div>
+          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Duration</div>
+          <div style={{ color: "#6c63ff", fontSize: "15px", fontWeight: "700", marginTop: "2px" }}>{tripDuration} day{tripDuration !== 1 ? "s" : ""}</div>
+        </div>
+      </div>
+
+      {days.map((day, idx) => {
+        const dateStr = day.toISOString().slice(0, 10);
+        const dayEvents = dated.filter(e => e.date === dateStr);
+        const dayNum = idx + 1;
+        return (
+          <div key={dateStr} style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
+              <div style={{ background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "8px", padding: "5px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
+                <div style={{ color: "#6c63ff", fontSize: "10px", fontWeight: "700", textTransform: "uppercase" }}>Day</div>
+                <div style={{ color: "#fff", fontSize: "18px", fontWeight: "700", lineHeight: 1 }}>{dayNum}</div>
+              </div>
+              <div>
+                <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{day.toLocaleDateString("en-GB", { weekday: "long" })}</div>
+                <div style={{ color: "#555", fontSize: "12px" }}>{formatDate(dateStr)}</div>
+              </div>
+            </div>
+            {dayEvents.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingLeft: "16px", borderLeft: "2px solid #1e1e3a", marginLeft: "26px" }}>
+                {dayEvents.map(({ step, booking }) => {
+                  const isBooked = booking?.confirmed;
+                  const time = getStepTime(step, booking);
+                  const summary = getStepSummary(step, booking);
+                  return (
+                    <div key={step.id} onClick={() => onOpenBooking(step.id)}
+                      style={{ background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa33" : "#2a2a45"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa33" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+                    >
+                      <span style={{ fontSize: "20px" }}>{step.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ color: "#fff", fontSize: "13px", fontWeight: "600" }}>{step.label}</span>
+                          {time && <span style={{ color: "#00d4aa", fontSize: "12px" }}>{time}</span>}
+                        </div>
+                        {summary && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
+                      </div>
+                      {!isBooked && <span style={{ color: "#ff4d66", fontSize: "10px", whiteSpace: "nowrap" }}>not booked</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ marginLeft: "70px", color: "#2a2a45", fontSize: "13px", fontStyle: "italic" }}>No bookings for this day</div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Undated items */}
+      {undated.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          <div style={{ color: "#444", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>No date set</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {undated.map(({ step, booking }) => (
+              <div key={step.id} onClick={() => onOpenBooking(step.id)}
+                style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+              >
+                <span style={{ fontSize: "20px" }}>{step.icon}</span>
+                <span style={{ color: "#aaa", fontSize: "13px" }}>{step.label}</span>
+                {booking?.provider && <span style={{ color: "#555", fontSize: "12px" }}>· {booking.provider}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Packing List View ─────────────────────────────────────────────────────────
+function PackingView({ holiday, onUpdate }) {
+  const packing = holiday.packing || DEFAULT_PACKING.map(cat => ({
+    category: cat.category,
+    items: cat.items.map(name => ({ id: generateId(), name, checked: false }))
+  }));
+
+  const [newItemText, setNewItemText] = useState({});
+  const [newCatText, setNewCatText] = useState("");
+
+  function save(updated) {
+    onUpdate(updated);
+  }
+
+  function toggleItem(catIdx, itemId) {
+    const updated = packing.map((cat, ci) => ci !== catIdx ? cat : {
+      ...cat, items: cat.items.map(it => it.id === itemId ? { ...it, checked: !it.checked } : it)
+    });
+    save(updated);
+  }
+
+  function addItem(catIdx) {
+    const text = (newItemText[catIdx] || "").trim();
+    if (!text) return;
+    const updated = packing.map((cat, ci) => ci !== catIdx ? cat : {
+      ...cat, items: [...cat.items, { id: generateId(), name: text, checked: false }]
+    });
+    save(updated);
+    setNewItemText(prev => ({ ...prev, [catIdx]: "" }));
+  }
+
+  function removeItem(catIdx, itemId) {
+    const updated = packing.map((cat, ci) => ci !== catIdx ? cat : {
+      ...cat, items: cat.items.filter(it => it.id !== itemId)
+    });
+    save(updated);
+  }
+
+  function addCategory() {
+    const text = newCatText.trim();
+    if (!text) return;
+    save([...packing, { category: text, items: [] }]);
+    setNewCatText("");
+  }
+
+  function removeCategory(catIdx) {
+    save(packing.filter((_, i) => i !== catIdx));
+  }
+
+  const totalItems = packing.reduce((acc, c) => acc + c.items.length, 0);
+  const checkedItems = packing.reduce((acc, c) => acc + c.items.filter(i => i.checked).length, 0);
+
+  return (
+    <div style={{ paddingBottom: "20px" }}>
+      {/* Progress */}
+      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+          <span style={{ color: "#aaa", fontSize: "13px" }}>{checkedItems} of {totalItems} packed</span>
+          <span style={{ color: checkedItems === totalItems && totalItems > 0 ? "#00d4aa" : "#6c63ff", fontSize: "13px", fontWeight: "700" }}>
+            {totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0}%
+          </span>
+        </div>
+        <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
+          <div style={{ height: "100%", borderRadius: "3px", width: `${totalItems > 0 ? (checkedItems / totalItems) * 100 : 0}%`, background: checkedItems === totalItems && totalItems > 0 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.3s" }} />
+        </div>
+      </div>
+
+      {/* Categories */}
+      {packing.map((cat, catIdx) => (
+        <div key={catIdx} style={{ marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <div style={{ color: "#aaa", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{cat.category}</div>
+            <button onClick={() => removeCategory(catIdx)} style={{ background: "none", border: "none", color: "#333", cursor: "pointer", fontSize: "14px" }} title="Remove category">✕</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {cat.items.map(item => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#12121f", border: "1px solid #1e1e3a", borderRadius: "8px", padding: "9px 12px" }}>
+                <button onClick={() => toggleItem(catIdx, item.id)} style={{
+                  width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, cursor: "pointer",
+                  background: item.checked ? "#00d4aa" : "transparent",
+                  border: `2px solid ${item.checked ? "#00d4aa" : "#3a3a5a"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: "#001a15"
+                }}>{item.checked ? "✓" : ""}</button>
+                <span style={{ color: item.checked ? "#444" : "#ccc", fontSize: "14px", flex: 1, textDecoration: item.checked ? "line-through" : "none" }}>{item.name}</span>
+                <button onClick={() => removeItem(catIdx, item.id)} style={{ background: "none", border: "none", color: "#2a2a45", cursor: "pointer", fontSize: "14px", padding: "0 2px" }}>✕</button>
+              </div>
+            ))}
+            {/* Add item */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              <input value={newItemText[catIdx] || ""} onChange={e => setNewItemText(p => ({ ...p, [catIdx]: e.target.value }))}
+                placeholder="Add item..." style={{ ...inputStyle, marginTop: 0, fontSize: "13px", padding: "7px 12px", flex: 1 }}
+                onKeyDown={e => e.key === "Enter" && addItem(catIdx)} />
+              <button onClick={() => addItem(catIdx)} style={{ ...secondaryBtn, padding: "7px 14px", fontSize: "13px" }}>+</button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Add category */}
+      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+        <input value={newCatText} onChange={e => setNewCatText(e.target.value)}
+          placeholder="New category..." style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+          onKeyDown={e => e.key === "Enter" && addCategory()} />
+        <button onClick={addCategory} style={{ ...primaryBtn }}>+ Category</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Step Card ─────────────────────────────────────────────────────────────────
 function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
   const isBooked = booking?.confirmed;
@@ -695,6 +1071,7 @@ export default function App() {
   const [bookingModal, setBookingModal] = useState(null);
   const [holidayModal, setHolidayModal] = useState(null);
   const [addStepModal, setAddStepModal] = useState(false);
+  const [detailTab, setDetailTab]       = useState("bookings"); // bookings | timeline | itinerary | packing
   const [loaded, setLoaded]             = useState(false);
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
@@ -713,6 +1090,10 @@ export default function App() {
   }, []);
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
+
+  function updatePacking(packed) {
+    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, packing: packed } : h));
+  }
   const selectedHoliday = holidays.find(h => h.id === selectedId);
 
   useEffect(() => {
@@ -882,29 +1263,68 @@ export default function App() {
           const steps = selectedHoliday.steps || [];
           return (
             <div>
-              {selectedHoliday.notes && <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "12px 16px", marginBottom: "18px", color: "#777", fontSize: "13px" }}>📝 {selectedHoliday.notes}</div>}
-              {steps.length > 0 ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(255px, 1fr))", gap: "12px" }}>
-                  {steps.map((step, idx) => (
-                    <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
-                      currency={selectedHoliday.currency || "GBP"}
-                      onOpen={() => setBookingModal({ stepId: step.id })}
-                      onMoveUp={() => moveStep(step.id, -1)}
-                      onMoveDown={() => moveStep(step.id, 1)}
-                      isFirst={idx === 0} isLast={idx === steps.length - 1} />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "60px 20px", color: "#333", border: "1px dashed #1e1e38", borderRadius: "16px" }}>
-                  <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
-                  <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#444", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
-                </div>
+              {selectedHoliday.notes && <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", color: "#777", fontSize: "13px" }}>📝 {selectedHoliday.notes}</div>}
+
+              {/* Tab bar */}
+              <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#0e0e1f", borderRadius: "10px", padding: "4px" }}>
+                {[
+                  { id: "bookings",   label: "Bookings",  icon: "📋" },
+                  { id: "timeline",   label: "Timeline",  icon: "📅" },
+                  { id: "itinerary",  label: "Itinerary", icon: "🗺️" },
+                  { id: "packing",    label: "Packing",   icon: "🎒" },
+                ].map(tab => (
+                  <button key={tab.id} onClick={() => setDetailTab(tab.id)} style={{
+                    flex: 1, padding: "8px 4px", borderRadius: "7px", border: "none", cursor: "pointer",
+                    background: detailTab === tab.id ? "#1e1e3a" : "transparent",
+                    color: detailTab === tab.id ? "#fff" : "#555",
+                    fontSize: "12px", fontWeight: detailTab === tab.id ? "700" : "400",
+                    transition: "all 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px"
+                  }}>
+                    <span style={{ fontSize: "16px" }}>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Bookings tab */}
+              {detailTab === "bookings" && (<>
+                {steps.length > 0 ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(255px, 1fr))", gap: "12px" }}>
+                    {steps.map((step, idx) => (
+                      <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
+                        currency={selectedHoliday.currency || "GBP"}
+                        onOpen={() => setBookingModal({ stepId: step.id })}
+                        onMoveUp={() => moveStep(step.id, -1)}
+                        onMoveDown={() => moveStep(step.id, 1)}
+                        isFirst={idx === 0} isLast={idx === steps.length - 1} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#333", border: "1px dashed #1e1e38", borderRadius: "16px" }}>
+                    <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
+                    <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#444", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
+                  </div>
+                )}
+                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#12121f", border: "1px dashed #2a2a45", borderRadius: "12px", color: "#444", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.color = "#6c63ff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.color = "#444"; }}
+                ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
+              </>)}
+
+              {/* Timeline tab */}
+              {detailTab === "timeline" && (
+                <TimelineView holiday={selectedHoliday} onOpenBooking={stepId => setBookingModal({ stepId })} />
               )}
 
-              <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#12121f", border: "1px dashed #2a2a45", borderRadius: "12px", color: "#444", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.color = "#6c63ff"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.color = "#444"; }}
-              ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
+              {/* Itinerary tab */}
+              {detailTab === "itinerary" && (
+                <ItineraryView holiday={selectedHoliday} onOpenBooking={stepId => setBookingModal({ stepId })} />
+              )}
+
+              {/* Packing tab */}
+              {detailTab === "packing" && (
+                <PackingView holiday={selectedHoliday} onUpdate={updatePacking} />
+              )}
 
               {steps.length > 0 && (() => {
                 const { confirmed, total } = completionCount(selectedHoliday);
