@@ -398,21 +398,9 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanPreview, setScanPreview] = useState(null);
-  const [saved, setSaved] = useState(true);
-  const autoSaveTimer = useRef(null);
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false); };
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // Autosave: debounce 800ms after last change
-  useEffect(() => {
-    if (saved) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
-      onSave(form);
-      setSaved(true);
-    }, 800);
-    return () => clearTimeout(autoSaveTimer.current);
-  }, [form]);
-
+  const saveAndClose = () => { onSave(form); onClose(); };
   const commitRename = () => { setEditingName(false); if (newName.trim()) onRename(newName.trim()); };
 
   const handlePhotoScan = async (e) => {
@@ -483,7 +471,10 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
               </h3>
             )}
           </div>
-          <button onClick={onClose} style={closeBtn}>✕</button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button onClick={saveAndClose} style={{ ...primaryBtn, padding: "8px 16px", fontSize: "13px" }}>Save & Close</button>
+            <button onClick={onClose} style={{ ...closeBtn, fontSize: "18px" }} title="Discard changes">✕</button>
+          </div>
         </div>
 
         {/* Photo scan */}
@@ -646,12 +637,9 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           </div>
         </label>
 
-        <div style={{ display: "flex", gap: "8px", marginTop: "24px", alignItems: "center" }}>
-          <button onClick={onDelete} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644", padding: "10px 14px" }} title="Remove this step">🗑</button>
-          <div style={{ flex: 1, textAlign: "center", fontSize: "12px", color: saved ? "#00d4aa" : "#555" }}>
-            {saved ? "✓ Saved" : "Saving…"}
-          </div>
-          <button onClick={onClose} style={{ ...primaryBtn }}>Done</button>
+        <div style={{ display: "flex", gap: "8px", marginTop: "24px" }}>
+          <button onClick={onDelete} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644", flex: 1 }}>🗑 Remove this step</button>
+          <button onClick={saveAndClose} style={{ ...primaryBtn, flex: 2 }}>Save & Close</button>
         </div>
       </div>
     </div>
