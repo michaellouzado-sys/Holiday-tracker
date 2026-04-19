@@ -18,7 +18,8 @@ const STEP_TEMPLATES = [
   { icon: "📋", label: "Visa / ETA" },
   { icon: "💱", label: "Currency" },
   { icon: "🎭", label: "Activities / Tours" },
-  { icon: "🚢", label: "Ferry / Cruise" },
+  { icon: "🚢", label: "Ferry / Boat Transfer" },
+  { icon: "⛵", label: "Sailing Trip" },
   { icon: "🎫", label: "Theme Park Tickets" },
   { icon: "🍽️", label: "Restaurant Reservation" },
   { icon: "🏥", label: "Travel Vaccinations" },
@@ -111,7 +112,8 @@ function isFlight(step)   { return ["✈️","🛫"].includes(step.icon) || /fli
 function isHotel(step)    { return step.icon === "🏨" || /hotel/i.test(step.label); }
 function isVilla(step)    { return step.icon === "🏠" || /villa|apartment/i.test(step.label); }
 function isCarHire(step)  { return step.icon === "🚗" || /car hire|car rental/i.test(step.label); }
-function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise/i.test(step.label); }
+function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise|boat transfer/i.test(step.label); }
+function isSailing(step)  { return step.icon === "⛵" || /sailing/i.test(step.label); }
 function isParking(step)  { return step.icon === "🅿️" || /parking/i.test(step.label); }
 function isTransfer(step) { return step.icon === "🚌" || /transfer/i.test(step.label); }
 
@@ -122,7 +124,7 @@ function isTransfer(step) { return step.icon === "🚌" || /transfer/i.test(step
 function getStepDate(step, booking) {
   if (!booking) return null;
   if (isFlight(step))   return booking.flightDate   || null;
-  if (isFerry(step))    return booking.ferryDate     || null;
+  if (isFerry(step) || isSailing(step)) return booking.ferryDate || null;
   if (isHotel(step) || isVilla(step)) return booking.checkIn || null;
   if (isCarHire(step))  return booking.pickUpDate    || null;
   if (isParking(step))  return booking.parkingEntry ? booking.parkingEntry.slice(0,10) : null;
@@ -147,7 +149,7 @@ function getStepSummary(step, booking) {
     const time  = [booking.departureTime, booking.arrivalTime].filter(Boolean).join(" → ");
     return [route, time, booking.flightNumber].filter(Boolean).join("  ·  ");
   }
-  if (isFerry(step)) {
+  if (isFerry(step) || isSailing(step)) {
     const time = [booking.ferryDepartTime, booking.ferryArriveTime].filter(Boolean).join(" → ");
     return [booking.provider, time].filter(Boolean).join("  ·  ");
   }
@@ -333,6 +335,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
   const isVillaStep    = isVilla(step);
   const isCarHireStep  = isCarHire(step);
   const isFerryStep    = isFerry(step);
+  const isSailingStep  = isSailing(step);
   const isParkingStep  = isParking(step);
   const isTransferStep = isTransfer(step);
   const isAccomm       = isHotelStep || isVillaStep;
@@ -405,7 +408,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     setScanPreview(URL.createObjectURL(file));
     try {
       const base64 = await fileToBase64(file);
-      const stepType = isFlightStep ? "flight" : isFerryStep ? "ferry" : isHotelStep ? "hotel"
+      const stepType = isFlightStep ? "flight" : (isFerryStep || isSailingStep) ? "ferry" : isHotelStep ? "hotel"
         : isVillaStep ? "villa" : isCarHireStep ? "carHire" : isParkingStep ? "parking"
         : isTransferStep ? "transfer" : "default";
       const extracted = await extractFromImage(base64, file.type, stepType);
@@ -508,8 +511,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           <Row><HalfField k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" /></Row>
         </>)}
 
-        {/* ── Ferry fields ── */}
-        {isFerryStep && (<>
+        {/* ── Ferry / Sailing fields ── */}
+        {(isFerryStep || isSailingStep) && (<>
           <Row><HalfField k="ferryDate" label="Departure Date" type="date" /></Row>
           <Row><HalfField k="ferryDepartTime" label="Departure Time" type="time" /><HalfField k="ferryArriveTime" label="Arrival Time" type="time" /></Row>
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
@@ -559,7 +562,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         </>)}
 
         {/* ── Common fields (non-typed steps get reference here) ── */}
-        {!isFlightStep && !isFerryStep && !isAccomm && !isCarHireStep && !isParkingStep && !isTransferStep && (
+        {!isFlightStep && !isFerryStep && !isSailingStep && !isAccomm && !isCarHireStep && !isParkingStep && !isTransferStep && (
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
         )}
 
@@ -1176,8 +1179,8 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {isCarHire(step) && booking?.carType && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>🚗 {booking.carType}</div>}
 
           {/* Ferry */}
-          {isFerry(step) && booking?.ferryDate && <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>📅 {formatDate(booking.ferryDate)}</div>}
-          {isFerry(step) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>{booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}</div>}
+          {(isFerry(step) || isSailing(step)) && booking?.ferryDate && <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>📅 {formatDate(booking.ferryDate)}</div>}
+          {(isFerry(step) || isSailing(step)) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>{booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}</div>}
 
           {/* Parking */}
           {isParking(step) && booking?.carParkName && <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>{booking.carParkName}</div>}
