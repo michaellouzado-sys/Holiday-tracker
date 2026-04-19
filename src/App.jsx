@@ -238,6 +238,9 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
     pickupTime:          booking?.pickupTime          || "",
     pickupLocation:      booking?.pickupLocation      || "",
     driverContact:       booking?.driverContact       || "",
+    // price fields
+    totalPrice:          booking?.totalPrice          || "",
+    amountPaid:          booking?.amountPaid          || "",
   });
 
   const [editingName, setEditingName] = useState(false);
@@ -417,6 +420,35 @@ function BookingModal({ step, booking, onSave, onDelete, onClose, onRename }) {
         <Field k="provider" label={isFlightStep ? "Airline" : isCarHireStep ? "Car Hire Company" : isParkingStep ? "Car Park Company" : "Provider / Company"} placeholder="..." />
         <Field k="dateBooked" label="Date Booked" type="date" />
 
+        {/* Pricing */}
+        <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
+          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Pricing</div>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
+              <span>Total Price</span>
+              <input value={form.totalPrice} onChange={e => set("totalPrice", e.target.value)} placeholder="£" style={inputStyle} />
+            </label>
+            <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
+              <span>Amount Paid</span>
+              <input value={form.amountPaid} onChange={e => set("amountPaid", e.target.value)} placeholder="£" style={inputStyle} />
+            </label>
+          </div>
+          {(() => {
+            const total = parseFloat((form.totalPrice || "").replace(/[^0-9.]/g, ""));
+            const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
+            const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
+            if (outstanding === null) return null;
+            return (
+              <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#555", fontSize: "12px" }}>Outstanding</span>
+                <span style={{ color: outstanding <= 0 ? "#00d4aa" : "#FFD93D", fontWeight: "700", fontSize: "14px" }}>
+                  {outstanding <= 0 ? "✓ Fully paid" : `£${outstanding.toFixed(2)}`}
+                </span>
+              </div>
+            );
+          })()}
+        </div>
+
         <TextArea k="notes" label="Notes" placeholder="Any additional details..." rows={3} />
 
         {/* Rating */}
@@ -552,6 +584,19 @@ function StepCard({ step, booking, onOpen, onMoveUp, onMoveDown, isFirst, isLast
           {isTransfer(step) && booking?.pickupTime && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "4px" }}>⏰ {booking.pickupTime}</div>}
           {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
 
+          {(() => {
+            const total = parseFloat((booking?.totalPrice || "").replace(/[^0-9.]/g, ""));
+            const paid  = parseFloat((booking?.amountPaid  || "").replace(/[^0-9.]/g, ""));
+            const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
+            if (!booking?.totalPrice) return null;
+            return (
+              <div style={{ marginTop: "5px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ color: "#00d4aa", fontSize: "11px" }}>£{total.toFixed(2)}</span>
+                {outstanding !== null && outstanding > 0 && <span style={{ color: "#FFD93D", fontSize: "11px" }}>£{outstanding.toFixed(2)} due</span>}
+                {outstanding !== null && outstanding <= 0 && <span style={{ color: "#00d4aa", fontSize: "11px" }}>✓ paid</span>}
+              </div>
+            );
+          })()}
           {booking?.notes && <div style={{ color: "#555", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
           {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#2e2e4a", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
         </div>
@@ -708,6 +753,26 @@ export default function App() {
                       {total > 0 ? (<>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#00d4aa" : "#6c63ff" }}>{pct}%</span></div>
                         <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.4s" }} /></div>
+                        {(() => {
+                          let gt = 0, gp = 0, has = false;
+                          (h.steps || []).forEach(s => {
+                            const b = h.bookings?.[s.id] || {};
+                            const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+                            const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
+                            if (!isNaN(t)) { gt += t; has = true; }
+                            if (!isNaN(p)) gp += p;
+                          });
+                          if (!has) return null;
+                          const go = gt - gp;
+                          return (
+                            <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
+                              <span style={{ color: "#aaa" }}>£{gt.toFixed(2)} total</span>
+                              <span style={{ color: "#00d4aa" }}>£{gp.toFixed(2)} paid</span>
+                              {go > 0 && <span style={{ color: "#FFD93D" }}>£{go.toFixed(2)} due</span>}
+                              {go <= 0 && <span style={{ color: "#00d4aa" }}>✓ all paid</span>}
+                            </div>
+                          );
+                        })()}
                       </>) : <span style={{ fontSize: "12px", color: "#333" }}>No booking steps added yet</span>}
                     </div>
                     <div style={{ color: "#2a2a45", fontSize: "20px" }}>›</div>
@@ -750,12 +815,38 @@ export default function App() {
                 const { confirmed, total } = completionCount(selectedHoliday);
                 const status = getStatus(selectedHoliday);
                 const daysTo = selectedHoliday.startDate ? Math.ceil((new Date(selectedHoliday.startDate) - new Date()) / 86400000) : null;
+                let grandTotal = 0, grandPaid = 0, hasAnyPrice = false;
+                steps.forEach(s => {
+                  const b = selectedHoliday.bookings?.[s.id] || {};
+                  const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+                  const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
+                  if (!isNaN(t)) { grandTotal += t; hasAnyPrice = true; }
+                  if (!isNaN(p)) grandPaid += p;
+                });
+                const grandOutstanding = grandTotal - grandPaid;
                 return (
-                  <div style={{ marginTop: "18px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
-                    <Stat label="Progress" value={`${confirmed}/${total}`} color={confirmed === total && total > 0 ? "#00d4aa" : "#fff"} />
-                    <Stat label="Status" value={status} color={STATUS_COLORS[status]} small />
-                    {daysTo !== null && daysTo > 0 && <Stat label="Days to Go" value={daysTo} color="#6c63ff" />}
-                  </div>
+                  <>
+                    <div style={{ marginTop: "18px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                      <Stat label="Progress" value={`${confirmed}/${total}`} color={confirmed === total && total > 0 ? "#00d4aa" : "#fff"} />
+                      <Stat label="Status" value={status} color={STATUS_COLORS[status]} small />
+                      {daysTo !== null && daysTo > 0 && <Stat label="Days to Go" value={daysTo} color="#6c63ff" />}
+                    </div>
+                    {hasAnyPrice && (
+                      <div style={{ marginTop: "10px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px" }}>
+                        <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Trip Finances</div>
+                        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginBottom: "12px" }}>
+                          <Stat label="Total Cost" value={`£${grandTotal.toFixed(2)}`} color="#fff" />
+                          <Stat label="Paid" value={`£${grandPaid.toFixed(2)}`} color="#00d4aa" />
+                          <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `£${grandOutstanding.toFixed(2)}`} color={grandOutstanding <= 0 ? "#00d4aa" : "#FFD93D"} />
+                        </div>
+                        {grandOutstanding > 0 && (
+                          <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
+                            <div style={{ height: "100%", borderRadius: "3px", width: `${Math.min(100, (grandPaid / grandTotal) * 100).toFixed(1)}%`, background: "linear-gradient(90deg, #00d4aa, #6c63ff)", transition: "width 0.4s" }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 );
               })()}
             </div>
