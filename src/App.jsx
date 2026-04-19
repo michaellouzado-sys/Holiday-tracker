@@ -397,7 +397,20 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanPreview, setScanPreview] = useState(null);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [saved, setSaved] = useState(true);
+  const autoSaveTimer = useRef(null);
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaved(false); };
+
+  // Autosave: debounce 800ms after last change
+  useEffect(() => {
+    if (saved) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      onSave(form);
+      setSaved(true);
+    }, 800);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [form]);
 
   const commitRename = () => { setEditingName(false); if (newName.trim()) onRename(newName.trim()); };
 
@@ -629,10 +642,12 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           </div>
         </label>
 
-        <div style={{ display: "flex", gap: "8px", marginTop: "24px" }}>
+        <div style={{ display: "flex", gap: "8px", marginTop: "24px", alignItems: "center" }}>
           <button onClick={onDelete} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644", padding: "10px 14px" }} title="Remove this step">🗑</button>
-          <button onClick={onClose} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
-          <button onClick={() => onSave(form)} style={{ ...primaryBtn, flex: 2 }}>Save</button>
+          <div style={{ flex: 1, textAlign: "center", fontSize: "12px", color: saved ? "#00d4aa" : "#555" }}>
+            {saved ? "✓ Saved" : "Saving…"}
+          </div>
+          <button onClick={onClose} style={{ ...primaryBtn }}>Done</button>
         </div>
       </div>
     </div>
@@ -1156,6 +1171,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
         onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa44" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
       >
         {isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#00d4aa", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#001a15", fontWeight: "700", borderBottomLeftRadius: "10px" }}>✓ BOOKED</div>}
+        {!isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#ff4d6622", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ff4d66", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span style={{ fontSize: "24px" }}>{step.icon}</span>
           {booking?.rating != null && <span style={{ fontSize: "15px", marginTop: "2px" }}>{rating?.emoji}</span>}
