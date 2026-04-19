@@ -63,6 +63,32 @@ function getCurrencySymbol(code) {
   return CURRENCIES.find(c => c.code === code)?.symbol || code || "£";
 }
 
+// Fetch live exchange rates and cache in memory for the session
+const ratesCache = {};
+async function fetchRates(base) {
+  if (ratesCache[base]) return ratesCache[base];
+  try {
+    const res = await fetch(`/api/rates?base=${base}`);
+    const data = await res.json();
+    if (data.rates) {
+      ratesCache[base] = data;
+      return data;
+    }
+  } catch (e) { console.error("Rates fetch failed", e); }
+  return null;
+}
+
+function convertAmount(amount, fromCurrency, toCurrency, rates) {
+  if (!amount || isNaN(amount)) return 0;
+  if (fromCurrency === toCurrency) return amount;
+  if (!rates?.rates) return amount; // fallback: no conversion
+  // rates are relative to rates.base
+  const fromRate = rates.rates[fromCurrency];
+  const toRate   = rates.rates[toCurrency];
+  if (!fromRate || !toRate) return amount;
+  return (amount / fromRate) * toRate;
+}
+
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 function formatDate(d) {
@@ -267,6 +293,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     totalPrice:          booking?.totalPrice          || "",
     amountPaid:          booking?.amountPaid          || "",
     paymentDueDate:      booking?.paymentDueDate      || "",
+    stepCurrency:        booking?.stepCurrency        || currency,
   });
 
   const [editingName, setEditingName] = useState(false);
@@ -448,13 +475,19 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* Pricing */}
         {(() => {
-          const sym = getCurrencySymbol(currency);
+          const sym = getCurrencySymbol(form.stepCurrency || currency);
           const total = parseFloat((form.totalPrice || "").replace(/[^0-9.]/g, ""));
           const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
           const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
           return (
             <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
-              <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Pricing ({currency})</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Pricing</div>
+                <select value={form.stepCurrency} onChange={e => set("stepCurrency", e.target.value)}
+                  style={{ background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "6px", color: "#aaa", fontSize: "12px", padding: "4px 8px", cursor: "pointer" }}>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                </select>
+              </div>
               <div style={{ display: "flex", gap: "12px" }}>
                 <label style={{ ...labelStyle, flex: 1, marginBottom: 0 }}>
                   <span>Total Price</span>
@@ -627,7 +660,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
 
           {(() => {
-            const sym = getCurrencySymbol(currency);
+            const sym = getCurrencySymbol(booking?.stepCurrency || currency);
             const total = parseFloat((booking?.totalPrice || "").replace(/[^0-9.]/g, ""));
             const paid  = parseFloat((booking?.amountPaid  || "").replace(/[^0-9.]/g, ""));
             const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
@@ -664,11 +697,21 @@ export default function App() {
   const [addStepModal, setAddStepModal] = useState(false);
   const [loaded, setLoaded]             = useState(false);
   const [saveError, setSaveError]       = useState(null);
+  const [rates, setRates]               = useState(null);
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
   const saveTimer = useRef(null);
 
   useEffect(() => {
     loadFromSupabase().then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!selectedHoliday) return;
+    const displayCurrency = selectedHoliday.currency || "GBP";
+    fetchRates(displayCurrency).then(r => {
+      if (r) { setRates(r); setRatesUpdatedAt(r.updatedAt); }
+    });
+  }, [selectedHoliday?.id, selectedHoliday?.currency]);
 
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -802,14 +845,16 @@ export default function App() {
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#00d4aa" : "#6c63ff" }}>{pct}%</span></div>
                         <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.4s" }} /></div>
                         {(() => {
-                          const sym = getCurrencySymbol(h.currency);
+                          const displayC = h.currency || "GBP";
+                          const sym = getCurrencySymbol(displayC);
                           let gt = 0, gp = 0, has = false;
                           (h.steps || []).forEach(s => {
                             const b = h.bookings?.[s.id] || {};
+                            const stepC = b.stepCurrency || displayC;
                             const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
                             const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
-                            if (!isNaN(t)) { gt += t; has = true; }
-                            if (!isNaN(p)) gp += p;
+                            if (!isNaN(t)) { gt += convertAmount(t, stepC, displayC, rates); has = true; }
+                            if (!isNaN(p)) gp += convertAmount(p, stepC, displayC, rates);
                           });
                           if (!has) return null;
                           const go = gt - gp;
@@ -866,12 +911,14 @@ export default function App() {
                 const status = getStatus(selectedHoliday);
                 const daysTo = selectedHoliday.startDate ? Math.ceil((new Date(selectedHoliday.startDate) - new Date()) / 86400000) : null;
                 let grandTotal = 0, grandPaid = 0, hasAnyPrice = false;
+                const displayCur = selectedHoliday.currency || "GBP";
                 steps.forEach(s => {
                   const b = selectedHoliday.bookings?.[s.id] || {};
+                  const stepCur = b.stepCurrency || displayCur;
                   const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
                   const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
-                  if (!isNaN(t)) { grandTotal += t; hasAnyPrice = true; }
-                  if (!isNaN(p)) grandPaid += p;
+                  if (!isNaN(t)) { grandTotal += convertAmount(t, stepCur, displayCur, rates); hasAnyPrice = true; }
+                  if (!isNaN(p)) grandPaid  += convertAmount(p, stepCur, displayCur, rates);
                 });
                 const grandOutstanding = grandTotal - grandPaid;
                 return (
@@ -893,6 +940,11 @@ export default function App() {
                         {grandOutstanding > 0 && (
                           <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
                             <div style={{ height: "100%", borderRadius: "3px", width: `${Math.min(100, (grandPaid / grandTotal) * 100).toFixed(1)}%`, background: "linear-gradient(90deg, #00d4aa, #6c63ff)", transition: "width 0.4s" }} />
+                          </div>
+                        )}
+                        {ratesUpdatedAt && (
+                          <div style={{ marginTop: "8px", color: "#333", fontSize: "11px" }}>
+                            Exchange rates: {new Date(ratesUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                           </div>
                         )}
                       </div>
