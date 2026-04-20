@@ -1875,7 +1875,7 @@ export default function App({ user }) {
                       </>) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>No booking steps added yet</span>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: "8px", alignSelf: "stretch" }}>
-                      <div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: "8px", alignSelf: "stretch" }}><div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div><div style={{ fontSize: "10px", fontFamily: ""Playfair Display", Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}><span style={{ color: "#0ea5e9" }}>all</span><span style={{ color: "#cbd5e1" }}>booked</span></div></div>
                       <div style={{ fontSize: "10px", fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
                         <span style={{ color: "#0ea5e9" }}>all</span><span style={{ color: "#cbd5e1" }}>booked</span>
                       </div>
