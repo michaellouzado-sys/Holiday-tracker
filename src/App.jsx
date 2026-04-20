@@ -1409,6 +1409,26 @@ function MemoriesView({ holiday, onUpdate }) {
   );
 }
 
+
+// ─── Linkified Text ────────────────────────────────────────────────────────────
+// Renders text with any URLs as clickable links
+function LinkifiedText({ text, style }) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return (
+    <span style={style}>
+      {parts.map((part, i) =>
+        urlRegex.test(part)
+          ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{ color: "#0ea5e9", textDecoration: "underline", wordBreak: "break-all" }}>{part}</a>
+          : part
+      )}
+    </span>
+  );
+}
+
 // ─── Step Card ─────────────────────────────────────────────────────────────────
 function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
   const isBooked = booking?.confirmed;
@@ -1486,7 +1506,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
               </div>
             );
           })()}
-          {booking?.notes && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
+          {booking?.notes && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "5px", lineHeight: "1.4" }}><LinkifiedText text={booking.notes} /></div>}
           {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#cbd5e1", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
         </div>
       </div>
@@ -1867,7 +1887,7 @@ export default function App({ user }) {
           const steps = selectedHoliday.steps || [];
           return (
             <div>
-              {selectedHoliday.notes && <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", color: "#64748b", fontSize: "13px" }}>📝 {selectedHoliday.notes}</div>}
+              {selectedHoliday.notes && <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", color: "#64748b", fontSize: "13px" }}>📝 <LinkifiedText text={selectedHoliday.notes} /></div>}
 
               {/* Tab bar */}
               <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#f8fafc", borderRadius: "10px", padding: "4px" }}>
