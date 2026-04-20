@@ -1502,6 +1502,95 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
   );
 }
 
+
+// ─── Instructions Modal ────────────────────────────────────────────────────────
+const APP_VERSION = "1.4"; // bump this whenever the instructions change
+
+function InstructionsModal({ onClose }) {
+  const sections = [
+    {
+      icon: "✈️",
+      title: "Creating a holiday",
+      text: "Tap + New Holiday to create a trip. Set the name, destination, travel dates and currency. You can have as many holidays as you like — past trips are kept so you can refer back to them."
+    },
+    {
+      icon: "📋",
+      title: "Adding booking steps",
+      text: "Open a holiday and tap + Add Booking Step. Choose from the template list (flights, hotel, car hire, parking, transfers, ferry, sailing and more) or create a completely custom step with your own name and dates. Steps are tailored — flights show airports and times, hotels show check-in/out, car hire shows pick-up location, and so on."
+    },
+    {
+      icon: "📷",
+      title: "Scanning confirmations",
+      text: "Inside any booking step, tap Scan from photo or screenshot. Take a photo of your confirmation email or upload a screenshot — the app reads it automatically and fills in the details. Works for all step types."
+    },
+    {
+      icon: "💾",
+      title: "Saving details",
+      text: "Nothing saves until you tap Save & Close. This means you can edit freely without worrying about accidental saves. Dates and times use a custom picker — select a value then tap ✓ Confirm to set it."
+    },
+    {
+      icon: "📅",
+      title: "Timeline & Itinerary",
+      text: "Inside each holiday, switch to the Timeline tab to see all bookings sorted chronologically. The Itinerary tab shows a day-by-day view from departure to return. Bookings automatically slot into the right day based on their dates."
+    },
+    {
+      icon: "🎒",
+      title: "Packing list",
+      text: "The Packing tab inside each holiday has a pre-built checklist you can customise. Tick items off as you pack, add your own items or categories, and remove anything that doesn't apply."
+    },
+    {
+      icon: "✨",
+      title: "Memories",
+      text: "After your trip, use the Memories tab to add highlights — a great meal, a funny moment, a view you want to remember. Past holidays become a travel journal."
+    },
+    {
+      icon: "💰",
+      title: "Finances",
+      text: "Enter a total price and amount paid on each booking step. Outstanding amounts are shown on the card. The holiday summary shows your total outstanding across all steps, with currency conversion if you've mixed currencies."
+    },
+    {
+      icon: "⭐",
+      title: "Supplier ratings",
+      text: "Rate any booking 👎 😐 👍 ⭐ after your trip. Tap Suppliers on the main screen to see a ranked summary of every provider you've used across all holidays — great for deciding who to rebook."
+    },
+    {
+      icon: "🔁",
+      title: "Rebooking a trip",
+      text: "On any past holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
+    },
+  ];
+
+  return (
+    <div style={{ ...overlay, alignItems: "flex-start", paddingTop: "20px" }} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "560px", marginTop: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={modalHeader}>
+          <div>
+            <h2 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "22px", color: "#0f172a" }}>
+              How to use <span style={{ color: "#0ea5e9" }}>allbooked</span>
+            </h2>
+            <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "4px" }}>v{APP_VERSION}</div>
+          </div>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {sections.map((s, i) => (
+            <div key={i} style={{ display: "flex", gap: "14px", alignItems: "flex-start", padding: "14px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <span style={{ fontSize: "24px", flexShrink: 0 }}>{s.icon}</span>
+              <div>
+                <div style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a", marginBottom: "4px" }}>{s.title}</div>
+                <div style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.6" }}>{s.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={onClose} style={{ ...primaryBtn, width: "100%", marginTop: "20px" }}>Got it — let's go!</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function App({ user }) {
   const [holidays, setHolidays]         = useState([]);
@@ -1513,7 +1602,11 @@ export default function App({ user }) {
   const [addStepModal, setAddStepModal] = useState(false);
   const [detailTab, setDetailTab]       = useState("bookings");
   const [showSuppliers, setShowSuppliers] = useState(false);
-  const [rebookModal, setRebookModal]   = useState(null); // holiday to rebook from // bookings | timeline | itinerary | packing
+  const [rebookModal, setRebookModal]   = useState(null);
+  const [showInstructions, setShowInstructions] = useState(() => {
+    try { return localStorage.getItem("allbooked_seen_v" + APP_VERSION) !== "1"; }
+    catch { return true; }
+  }); // holiday to rebook from // bookings | timeline | itinerary | packing
   const [loaded, setLoaded]             = useState(false);
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
@@ -1532,6 +1625,11 @@ export default function App({ user }) {
   }, []);
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
+
+  function dismissInstructions() {
+    try { localStorage.setItem("allbooked_seen_v" + APP_VERSION, "1"); } catch {}
+    setShowInstructions(false);
+  }
 
   function updatePacking(packed) {
     updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, packing: packed } : h));
@@ -1656,6 +1754,7 @@ export default function App({ user }) {
             {view === "list" && <>
               <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9" }}>⭐ Suppliers</button>
+              <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd" }}>? Help</button>
             </>}
             <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#94a3b8" }} title={user.email}>Sign out</button>
           </div>
@@ -1879,6 +1978,8 @@ export default function App({ user }) {
       })()}
 
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
+
+      {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
 
       {/* Rebook modal */}
       {rebookModal && (
