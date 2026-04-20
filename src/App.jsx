@@ -273,7 +273,7 @@ function AddStepModal({ onAdd, onClose }) {
   const filtered = STEP_TEMPLATES.filter(t => t.label.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div style={overlay} onClick={saveAndClose}>
+    <div style={overlay} onClick={onClose}>
       <div style={{ ...modal, maxWidth: "500px" }} onClick={e => e.stopPropagation()}>
         <div style={modalHeader}>
           <h3 style={modalTitle}>Add Booking Step</h3>
