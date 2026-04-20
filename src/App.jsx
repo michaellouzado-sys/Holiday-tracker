@@ -8,7 +8,7 @@ const STEP_TEMPLATES = [
   { icon: "✈️", label: "Return Flights" },
   { icon: "🛫", label: "Internal Flight" },
   { icon: "🅿️", label: "Airport Parking" },
-  { icon: "🚕", label: "Transfers to/from Airport" },
+  { icon: "🚕", label: "Transfer to/from Airport" },
   { icon: "🏨", label: "Hotel" },
   { icon: "🏠", label: "Villa / Apartment" },
   { icon: "🚗", label: "Car Hire" },
@@ -114,7 +114,7 @@ function isCarHire(step)  { return step.icon === "🚗" || /car hire|car rental/
 function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise|boat transfer/i.test(step.label); }
 function isSailing(step)  { return step.icon === "⛵" || /sailing/i.test(step.label); }
 function isParking(step)  { return step.icon === "🅿️" || /parking/i.test(step.label); }
-function isTransfer(step) { return step.icon === "🚌" || step.icon === "🚕" || /transfer/i.test(step.label); }
+function isTransfer(step) { return ["🚌","🚕","🚂","🚆","🚇"].includes(step.icon) || /transfer|taxi|train|rail|tube|metro|shuttle|bus|coach/i.test(step.label); }
 
 
 // ─── Phase 2 helpers ───────────────────────────────────────────────────────────
@@ -811,8 +811,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             <HalfDateField k="transferDate" label="Transfer Date" />
             <HalfTimeField k="pickupTime" label="Pickup Time" />
           </Row>
-          <Field k="pickupLocation" label="Pickup Location" placeholder="e.g. Hotel lobby, Arrivals Hall Gate B..." />
-          <Field k="driverContact" label="Driver / Contact Number" placeholder="e.g. +44 7700 900123..." />
+          <Field k="pickupLocation" label="Pickup / Departure Point" placeholder="e.g. Hotel lobby, Manchester Piccadilly, Terminal 2..." />
+          <Field k="driverContact" label="Driver / Operator Contact" placeholder="e.g. +44 7700 900123, National Rail 03457 48 49 50..." />
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
         </>)}
 
