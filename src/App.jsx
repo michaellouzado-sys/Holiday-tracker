@@ -456,6 +456,100 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
   );
 }
 
+
+// ─── Time Picker ───────────────────────────────────────────────────────────────
+function TimePicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [draftH, setDraftH] = useState(() => value ? value.slice(0,2) : "");
+  const [draftM, setDraftM] = useState(() => value ? value.slice(3,5) : "");
+
+  // Sync when value changes externally (photo scan)
+  const prevValue = React.useRef(value);
+  if (prevValue.current !== value) {
+    prevValue.current = value;
+    if (value) { setDraftH(value.slice(0,2)); setDraftM(value.slice(3,5)); }
+  }
+
+  const hours   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2,"0"));
+  const minutes = ["00","05","10","15","20","25","30","35","40","45","50","55"];
+
+  function confirm() {
+    if (draftH !== "" && draftM !== "") onChange(`${draftH}:${draftM}`);
+    setOpen(false);
+  }
+  function clear() { onChange(""); setOpen(false); }
+
+  const displayValue = value || "";
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        width: "100%", padding: "10px 13px", background: "#f8fafc",
+        border: `1px solid ${open ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px",
+        color: displayValue ? "#0f172a" : "#94a3b8", fontSize: "14px", cursor: "pointer",
+        textAlign: "left", marginTop: "6px"
+      }}>
+        <span>{displayValue || "Select time"}</span>
+        <span style={{ fontSize: "12px", color: "#94a3b8" }}>🕐</span>
+      </button>
+
+      {open && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", left: 0,
+          background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px",
+          padding: "12px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)",
+          minWidth: "220px"
+        }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+            {/* Hours */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Hour</div>
+              <div style={{ maxHeight: "160px", overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px" }}>
+                {hours.map(h => (
+                  <button key={h} type="button" onClick={() => setDraftH(h)} style={{
+                    padding: "5px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px",
+                    background: draftH === h ? "#0ea5e9" : "transparent",
+                    color: draftH === h ? "#ffffff" : "#0f172a",
+                    fontWeight: draftH === h ? "700" : "400"
+                  }}>{h}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ width: "1px", background: "#f1f5f9" }} />
+            {/* Minutes */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Min</div>
+              <div style={{ maxHeight: "160px", overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px" }}>
+                {minutes.map(m => (
+                  <button key={m} type="button" onClick={() => setDraftM(m)} style={{
+                    padding: "5px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px",
+                    background: draftM === m ? "#0ea5e9" : "transparent",
+                    color: draftM === m ? "#ffffff" : "#0f172a",
+                    fontWeight: draftM === m ? "700" : "400"
+                  }}>{m}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          {draftH && draftM && (
+            <div style={{ textAlign: "center", fontSize: "22px", fontWeight: "700", color: "#0ea5e9", marginBottom: "8px" }}>
+              {draftH}:{draftM}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "8px", borderTop: "1px solid #f1f5f9", paddingTop: "10px" }}>
+            <button type="button" onClick={clear} style={{ flex: 1, padding: "7px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#94a3b8", fontSize: "13px", cursor: "pointer" }}>Clear</button>
+            <button type="button" onClick={confirm} disabled={!draftH || !draftM} style={{ flex: 2, padding: "7px", background: draftH && draftM ? "#0ea5e9" : "#e0f2fe", border: "none", borderRadius: "8px", color: "#ffffff", fontSize: "13px", fontWeight: "700", cursor: draftH && draftM ? "pointer" : "default" }}>✓ Confirm</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Booking Modal ─────────────────────────────────────────────────────────────
 function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClose, onRename }) {
   const isFlightStep   = isFlight(step);
@@ -589,6 +683,13 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
       <DatePicker value={form[k]} onChange={v => set(k, v)} />
     </label>
   );
+  // Time fields use custom picker
+  const HalfTimeField = ({ k, label }) => (
+    <label style={{ ...labelStyle, flex: 1 }}>
+      <span>{label}</span>
+      <TimePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
 
   // Calculate nights for hotel/villa
   const nights = isAccomm && form.checkIn && form.checkOut
@@ -655,7 +756,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {isFlightStep && (<>
           <Row><HalfField k="departureAirport" label="Departure Airport" placeholder="e.g. Manchester (MAN)" /><HalfField k="arrivalAirport" label="Arrival Airport" placeholder="e.g. Palermo (PMO)" /></Row>
           <Row><HalfDateField k="flightDate" label="Flight Date" /><HalfField k="flightNumber" label="Flight Number" placeholder="e.g. FR1234" /></Row>
-          <Row><HalfField k="departureTime" label="Departure Time" type="time" /><HalfField k="arrivalTime" label="Arrival Time" type="time" /></Row>
+          <Row><HalfTimeField k="departureTime" label="Departure Time" /><HalfTimeField k="arrivalTime" label="Arrival Time" /></Row>
           <Row><HalfField k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" /></Row>
         </>)}
 
@@ -665,7 +766,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             <HalfDateField k="ferryDate" label="Departure Date" />
             {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" />}
           </Row>
-          <Row><HalfField k="ferryDepartTime" label="Departure Time" type="time" /><HalfField k="ferryArriveTime" label="Arrival Time" type="time" /></Row>
+          <Row><HalfTimeField k="ferryDepartTime" label="Departure Time" /><HalfTimeField k="ferryArriveTime" label="Arrival Time" /></Row>
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
         </>)}
 
@@ -708,7 +809,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {isTransferStep && (<>
           <Row>
             <HalfDateField k="transferDate" label="Transfer Date" />
-            <HalfField k="pickupTime" label="Pickup Time" type="time" />
+            <HalfTimeField k="pickupTime" label="Pickup Time" />
           </Row>
           <Field k="pickupLocation" label="Pickup Location" placeholder="e.g. Hotel lobby, Arrivals Hall Gate B..." />
           <Field k="driverContact" label="Driver / Contact Number" placeholder="e.g. +44 7700 900123..." />
