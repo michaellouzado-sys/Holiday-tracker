@@ -37,7 +37,7 @@ const RATING_OPTIONS = [
   { value: 4,    label: "Excellent", emoji: "⭐" },
 ];
 
-const STATUS_COLORS = { upcoming: "#00d4aa", active: "#FFD93D", past: "#a0a0b0" };
+const STATUS_COLORS = { upcoming: "#10b981", active: "#f59e0b", past: "#94a3b8" };
 
 const CURRENCIES = [
   { code: "GBP", symbol: "£", label: "GBP £" },
@@ -284,9 +284,9 @@ function AddStepModal({ onAdd, onClose }) {
           {[["template","Choose from list"],["custom","Custom step"]].map(([v,l]) => (
             <button key={v} onClick={() => setMode(v)} style={{
               ...toggleBtn, flex: 1,
-              background: mode === v ? "#1e1e3a" : "#1a1a2e",
-              border: `1px solid ${mode === v ? "#6c63ff" : "#2a2a45"}`,
-              color: mode === v ? "#fff" : "#888"
+              background: mode === v ? "#e0f2fe" : "#f1f5f9",
+              border: `1px solid ${mode === v ? "#0ea5e9" : "#e2e8f0"}`,
+              color: mode === v ? "#0f172a" : "#64748b"
             }}>{l}</button>
           ))}
         </div>
@@ -296,12 +296,12 @@ function AddStepModal({ onAdd, onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
               {filtered.map((t, i) => (
                 <button key={i} onClick={() => onAdd({ id: generateId(), icon: t.icon, label: t.label })}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "10px", cursor: "pointer", color: "#ccc", fontSize: "13px", textAlign: "left" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.color = "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.color = "#ccc"; }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "10px", cursor: "pointer", color: "#334155", fontSize: "13px", textAlign: "left" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0f172a"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#334155"; }}
                 ><span style={{ fontSize: "20px" }}>{t.icon}</span><span>{t.label}</span></button>
               ))}
-              {filtered.length === 0 && <div style={{ color: "#555", fontSize: "13px", gridColumn: "1/-1", padding: "16px 0" }}>No matches — try Custom step</div>}
+              {filtered.length === 0 && <div style={{ color: "#94a3b8", fontSize: "13px", gridColumn: "1/-1", padding: "16px 0" }}>No matches — try Custom step</div>}
             </div>
           </>
         ) : (
@@ -310,7 +310,7 @@ function AddStepModal({ onAdd, onClose }) {
               <span>Icon</span>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
                 {STEP_ICONS.map(e => (
-                  <button key={e} onClick={() => setCustomIcon(e)} style={{ width: "38px", height: "38px", fontSize: "18px", background: customIcon === e ? "#1e1e3a" : "#1a1a2e", border: `1px solid ${customIcon === e ? "#6c63ff" : "#2a2a45"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
+                  <button key={e} onClick={() => setCustomIcon(e)} style={{ width: "38px", height: "38px", fontSize: "18px", background: customIcon === e ? "#e0f2fe" : "#f1f5f9", border: `1px solid ${customIcon === e ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
                 ))}
               </div>
             </label>
@@ -466,8 +466,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
                 onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setEditingName(false); setNewName(step.label); } }}
                 style={{ ...inputStyle, margin: 0, padding: "4px 8px", fontSize: "16px", width: "220px" }} />
             ) : (
-              <h3 style={{ margin: 0, fontSize: "17px", color: "#fff", cursor: "pointer" }} title="Click to rename" onClick={() => setEditingName(true)}>
-                {step.label} <span style={{ fontSize: "12px", color: "#444" }}>✏️</span>
+              <h3 style={{ margin: 0, fontSize: "17px", color: "#0f172a", cursor: "pointer" }} title="Click to rename" onClick={() => setEditingName(true)}>
+                {step.label} <span style={{ fontSize: "12px", color: "#94a3b8" }}>✏️</span>
               </h3>
             )}
           </div>
@@ -483,14 +483,14 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           <label htmlFor="photo-scan-input" style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
             padding: "11px", borderRadius: "10px", cursor: scanning ? "wait" : "pointer",
-            background: scanning ? "#1a1a2e" : "#1e1e3a", border: "1px dashed #6c63ff",
-            color: scanning ? "#666" : "#a78bfa", fontSize: "13px", fontWeight: "600",
+            background: scanning ? "#f1f5f9" : "#e0f2fe", border: "1px dashed #6c63ff",
+            color: scanning ? "#64748b" : "#38bdf8", fontSize: "13px", fontWeight: "600",
           }}>
             {scanning ? <><span style={{ fontSize: "16px" }}>⏳</span> Scanning...</> : <><span style={{ fontSize: "16px" }}>📷</span> Scan from photo or screenshot</>}
           </label>
-          {scanPreview && !scanning && <div style={{ marginTop: "8px", borderRadius: "8px", overflow: "hidden", maxHeight: "80px", display: "flex", justifyContent: "center", background: "#1a1a2e" }}><img src={scanPreview} alt="Scanned" style={{ maxHeight: "80px", objectFit: "contain" }} /></div>}
-          {scanError && <div style={{ marginTop: "6px", color: "#ff4d66", fontSize: "12px" }}>⚠️ {scanError}</div>}
-          {!scanning && scanPreview && !scanError && <div style={{ marginTop: "6px", color: "#00d4aa", fontSize: "12px" }}>✓ Details extracted — check and edit below</div>}
+          {scanPreview && !scanning && <div style={{ marginTop: "8px", borderRadius: "8px", overflow: "hidden", maxHeight: "80px", display: "flex", justifyContent: "center", background: "#f1f5f9" }}><img src={scanPreview} alt="Scanned" style={{ maxHeight: "80px", objectFit: "contain" }} /></div>}
+          {scanError && <div style={{ marginTop: "6px", color: "#ef4444", fontSize: "12px" }}>⚠️ {scanError}</div>}
+          {!scanning && scanPreview && !scanError && <div style={{ marginTop: "6px", color: "#10b981", fontSize: "12px" }}>✓ Details extracted — check and edit below</div>}
         </div>
 
         {/* Status */}
@@ -500,9 +500,9 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             {[true, false].map(v => (
               <button key={String(v)} onClick={() => set("confirmed", v)} style={{
                 ...toggleBtn, flex: 1,
-                background: form.confirmed === v ? (v ? "#00d4aa22" : "#ff4d6622") : "#1a1a2e",
-                border: `1px solid ${form.confirmed === v ? (v ? "#00d4aa" : "#ff4d66") : "#2a2a45"}`,
-                color: form.confirmed === v ? (v ? "#00d4aa" : "#ff4d66") : "#888"
+                background: form.confirmed === v ? (v ? "#10b98122" : "#ef444422") : "#f1f5f9",
+                border: `1px solid ${form.confirmed === v ? (v ? "#10b981" : "#ef4444") : "#e2e8f0"}`,
+                color: form.confirmed === v ? (v ? "#10b981" : "#ef4444") : "#64748b"
               }}>{v ? "✓ Booked" : "○ Not Booked"}</button>
             ))}
           </div>
@@ -533,7 +533,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             <HalfField k="checkOut" label="Check-out Date" type="date" />
           </Row>
           {nights !== null && nights > 0 && (
-            <div style={{ marginTop: "-8px", marginBottom: "14px", color: "#6c63ff", fontSize: "12px" }}>
+            <div style={{ marginTop: "-8px", marginBottom: "14px", color: "#0ea5e9", fontSize: "12px" }}>
               {nights} night{nights !== 1 ? "s" : ""}
             </div>
           )}
@@ -584,11 +584,11 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
           const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
           return (
-            <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Pricing</div>
+                <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Pricing</div>
                 <select value={form.stepCurrency} onChange={e => set("stepCurrency", e.target.value)}
-                  style={{ background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "6px", color: "#aaa", fontSize: "12px", padding: "4px 8px", cursor: "pointer" }}>
+                  style={{ background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "6px", color: "#64748b", fontSize: "12px", padding: "4px 8px", cursor: "pointer" }}>
                   {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
                 </select>
               </div>
@@ -604,8 +604,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
               </div>
               {outstanding !== null && (
                 <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "#555", fontSize: "12px" }}>Outstanding</span>
-                  <span style={{ color: outstanding <= 0 ? "#00d4aa" : "#FFD93D", fontWeight: "700", fontSize: "14px" }}>
+                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>Outstanding</span>
+                  <span style={{ color: outstanding <= 0 ? "#10b981" : "#f59e0b", fontWeight: "700", fontSize: "14px" }}>
                     {outstanding <= 0 ? "✓ Fully paid" : `${sym}${Math.ceil(outstanding)}`}
                   </span>
                 </div>
@@ -629,16 +629,16 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             {RATING_OPTIONS.map(r => (
               <button key={String(r.value)} onClick={() => set("rating", r.value)} style={{
                 ...toggleBtn, flex: 1,
-                background: form.rating === r.value ? "#1e1e3a" : "#1a1a2e",
-                border: `1px solid ${form.rating === r.value ? "#6c63ff" : "#2a2a45"}`,
-                color: form.rating === r.value ? "#fff" : "#888", fontSize: "18px"
+                background: form.rating === r.value ? "#e0f2fe" : "#f1f5f9",
+                border: `1px solid ${form.rating === r.value ? "#0ea5e9" : "#e2e8f0"}`,
+                color: form.rating === r.value ? "#0f172a" : "#64748b", fontSize: "18px"
               }} title={r.label}>{r.emoji}</button>
             ))}
           </div>
         </label>
 
         <div style={{ display: "flex", gap: "8px", marginTop: "24px" }}>
-          <button onClick={onDelete} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644", flex: 1 }}>🗑 Remove this step</button>
+          <button onClick={onDelete} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", flex: 1 }}>🗑 Remove this step</button>
           <button onClick={saveAndClose} style={{ ...primaryBtn, flex: 2 }}>Save & Close</button>
         </div>
       </div>
@@ -668,7 +668,7 @@ function HolidayModal({ holiday, onSave, onClose }) {
           <span>Icon</span>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
             {emojis.map(e => (
-              <button key={e} onClick={() => set("emoji", e)} style={{ width: "40px", height: "40px", fontSize: "20px", background: form.emoji === e ? "#1e1e3a" : "#1a1a2e", border: `1px solid ${form.emoji === e ? "#6c63ff" : "#2a2a45"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
+              <button key={e} onClick={() => set("emoji", e)} style={{ width: "40px", height: "40px", fontSize: "20px", background: form.emoji === e ? "#e0f2fe" : "#f1f5f9", border: `1px solid ${form.emoji === e ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
             ))}
           </div>
         </label>
@@ -723,10 +723,10 @@ function TimelineView({ holiday, onOpenBooking }) {
         <div key={dateKey} style={{ marginBottom: "28px" }}>
           {/* Date header */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-            <div style={{ background: "#6c63ff", borderRadius: "8px", padding: "6px 14px", fontSize: "13px", fontWeight: "700", color: "#fff", whiteSpace: "nowrap" }}>
+            <div style={{ background: "#0ea5e9", borderRadius: "8px", padding: "6px 14px", fontSize: "13px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap" }}>
               {dateKey === "__undated__" ? "No date set" : formatDate(dateKey)}
             </div>
-            <div style={{ flex: 1, height: "1px", background: "#1e1e3a" }} />
+            <div style={{ flex: 1, height: "1px", background: "#e0f2fe" }} />
           </div>
           {/* Events for this date */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "16px", borderLeft: "2px solid #1e1e3a" }}>
@@ -737,24 +737,24 @@ function TimelineView({ holiday, onOpenBooking }) {
               return (
                 <div key={step.id} onClick={() => onOpenBooking(step.id)}
                   style={{
-                    background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa33" : "#2a2a45"}`,
+                    background: "#0f172a", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`,
                     borderRadius: "12px", padding: "12px 16px", cursor: "pointer",
                     display: "flex", alignItems: "flex-start", gap: "12px", transition: "all 0.15s",
                     marginLeft: "-1px"
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa33" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
                 >
                   <span style={{ fontSize: "22px", flexShrink: 0 }}>{step.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                      <span style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</span>
-                      {time && <span style={{ color: "#00d4aa", fontSize: "12px", fontFamily: "monospace" }}>{time}</span>}
-                      {isBooked && <span style={{ background: "#00d4aa22", color: "#00d4aa", fontSize: "10px", padding: "1px 7px", borderRadius: "10px", fontWeight: "700" }}>✓ BOOKED</span>}
-                      {!isBooked && <span style={{ background: "#ff4d6622", color: "#ff4d66", fontSize: "10px", padding: "1px 7px", borderRadius: "10px" }}>pending</span>}
+                      <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{step.label}</span>
+                      {time && <span style={{ color: "#10b981", fontSize: "12px", fontFamily: "monospace" }}>{time}</span>}
+                      {isBooked && <span style={{ background: "#10b98122", color: "#10b981", fontSize: "10px", padding: "1px 7px", borderRadius: "10px", fontWeight: "700" }}>✓ BOOKED</span>}
+                      {!isBooked && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: "10px", padding: "1px 7px", borderRadius: "10px" }}>pending</span>}
                     </div>
-                    {summary && <div style={{ color: "#666", fontSize: "12px", marginTop: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
-                    {booking?.reference && <div style={{ color: "#444", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
+                    {summary && <div style={{ color: "#64748b", fontSize: "12px", marginTop: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
+                    {booking?.reference && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
                   </div>
                 </div>
               );
@@ -763,7 +763,7 @@ function TimelineView({ holiday, onOpenBooking }) {
         </div>
       ))}
       {events.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 20px", color: "#333" }}>
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "#cbd5e1" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>📅</div>
           <p>No booking steps yet — add some steps to see the timeline.</p>
         </div>
@@ -780,7 +780,7 @@ function ItineraryView({ holiday, onOpenBooking }) {
 
   if (!holiday.startDate) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
+      <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
         <div style={{ fontSize: "36px", marginBottom: "12px" }}>🗺️</div>
         <p>Set departure and return dates on the holiday to see the day-by-day itinerary.</p>
       </div>
@@ -800,18 +800,18 @@ function ItineraryView({ holiday, onOpenBooking }) {
   return (
     <div style={{ paddingBottom: "20px" }}>
       {/* Trip duration banner */}
-      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
         <div>
-          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Departure</div>
-          <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{formatDate(holiday.startDate)}</div>
+          <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Departure</div>
+          <div style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{formatDate(holiday.startDate)}</div>
         </div>
         <div>
-          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Return</div>
-          <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{holiday.endDate ? formatDate(holiday.endDate) : "—"}</div>
+          <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Return</div>
+          <div style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600", marginTop: "2px" }}>{holiday.endDate ? formatDate(holiday.endDate) : "—"}</div>
         </div>
         <div>
-          <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Duration</div>
-          <div style={{ color: "#6c63ff", fontSize: "15px", fontWeight: "700", marginTop: "2px" }}>{tripDuration} day{tripDuration !== 1 ? "s" : ""}</div>
+          <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Duration</div>
+          <div style={{ color: "#0ea5e9", fontSize: "15px", fontWeight: "700", marginTop: "2px" }}>{tripDuration} day{tripDuration !== 1 ? "s" : ""}</div>
         </div>
       </div>
 
@@ -822,13 +822,13 @@ function ItineraryView({ holiday, onOpenBooking }) {
         return (
           <div key={dateStr} style={{ marginBottom: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
-              <div style={{ background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "8px", padding: "5px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
-                <div style={{ color: "#6c63ff", fontSize: "10px", fontWeight: "700", textTransform: "uppercase" }}>Day</div>
-                <div style={{ color: "#fff", fontSize: "18px", fontWeight: "700", lineHeight: 1 }}>{dayNum}</div>
+              <div style={{ background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "8px", padding: "5px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
+                <div style={{ color: "#0ea5e9", fontSize: "10px", fontWeight: "700", textTransform: "uppercase" }}>Day</div>
+                <div style={{ color: "#0f172a", fontSize: "18px", fontWeight: "700", lineHeight: 1 }}>{dayNum}</div>
               </div>
               <div>
-                <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{day.toLocaleDateString("en-GB", { weekday: "long" })}</div>
-                <div style={{ color: "#555", fontSize: "12px" }}>{formatDate(dateStr)}</div>
+                <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{day.toLocaleDateString("en-GB", { weekday: "long" })}</div>
+                <div style={{ color: "#94a3b8", fontSize: "12px" }}>{formatDate(dateStr)}</div>
               </div>
             </div>
             {dayEvents.length > 0 ? (
@@ -839,25 +839,25 @@ function ItineraryView({ holiday, onOpenBooking }) {
                   const summary = getStepSummary(step, booking);
                   return (
                     <div key={step.id} onClick={() => onOpenBooking(step.id)}
-                      style={{ background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa33" : "#2a2a45"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa33" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+                      style={{ background: "#0f172a", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
                     >
                       <span style={{ fontSize: "20px" }}>{step.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ color: "#fff", fontSize: "13px", fontWeight: "600" }}>{step.label}</span>
-                          {time && <span style={{ color: "#00d4aa", fontSize: "12px" }}>{time}</span>}
+                          <span style={{ color: "#0f172a", fontSize: "13px", fontWeight: "600" }}>{step.label}</span>
+                          {time && <span style={{ color: "#10b981", fontSize: "12px" }}>{time}</span>}
                         </div>
-                        {summary && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
+                        {summary && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
                       </div>
-                      {!isBooked && <span style={{ color: "#ff4d66", fontSize: "10px", whiteSpace: "nowrap" }}>not booked</span>}
+                      {!isBooked && <span style={{ color: "#ef4444", fontSize: "10px", whiteSpace: "nowrap" }}>not booked</span>}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div style={{ marginLeft: "70px", color: "#2a2a45", fontSize: "13px", fontStyle: "italic" }}>No bookings for this day</div>
+              <div style={{ marginLeft: "70px", color: "#e2e8f0", fontSize: "13px", fontStyle: "italic" }}>No bookings for this day</div>
             )}
           </div>
         );
@@ -866,17 +866,17 @@ function ItineraryView({ holiday, onOpenBooking }) {
       {/* Undated items */}
       {undated.length > 0 && (
         <div style={{ marginTop: "8px" }}>
-          <div style={{ color: "#444", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>No date set</div>
+          <div style={{ color: "#94a3b8", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>No date set</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {undated.map(({ step, booking }) => (
               <div key={step.id} onClick={() => onOpenBooking(step.id)}
-                style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
               >
                 <span style={{ fontSize: "20px" }}>{step.icon}</span>
-                <span style={{ color: "#aaa", fontSize: "13px" }}>{step.label}</span>
-                {booking?.provider && <span style={{ color: "#555", fontSize: "12px" }}>· {booking.provider}</span>}
+                <span style={{ color: "#64748b", fontSize: "13px" }}>{step.label}</span>
+                {booking?.provider && <span style={{ color: "#94a3b8", fontSize: "12px" }}>· {booking.provider}</span>}
               </div>
             ))}
           </div>
@@ -941,15 +941,15 @@ function PackingView({ holiday, onUpdate }) {
   return (
     <div style={{ paddingBottom: "20px" }}>
       {/* Progress */}
-      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-          <span style={{ color: "#aaa", fontSize: "13px" }}>{checkedItems} of {totalItems} packed</span>
-          <span style={{ color: checkedItems === totalItems && totalItems > 0 ? "#00d4aa" : "#6c63ff", fontSize: "13px", fontWeight: "700" }}>
+          <span style={{ color: "#64748b", fontSize: "13px" }}>{checkedItems} of {totalItems} packed</span>
+          <span style={{ color: checkedItems === totalItems && totalItems > 0 ? "#10b981" : "#0ea5e9", fontSize: "13px", fontWeight: "700" }}>
             {totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0}%
           </span>
         </div>
-        <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
-          <div style={{ height: "100%", borderRadius: "3px", width: `${totalItems > 0 ? (checkedItems / totalItems) * 100 : 0}%`, background: checkedItems === totalItems && totalItems > 0 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.3s" }} />
+        <div style={{ height: "6px", background: "#e0f2fe", borderRadius: "3px" }}>
+          <div style={{ height: "100%", borderRadius: "3px", width: `${totalItems > 0 ? (checkedItems / totalItems) * 100 : 0}%`, background: checkedItems === totalItems && totalItems > 0 ? "#10b981" : "linear-gradient(90deg, #0ea5e9, #38bdf8)", transition: "width 0.3s" }} />
         </div>
       </div>
 
@@ -957,20 +957,20 @@ function PackingView({ holiday, onUpdate }) {
       {packing.map((cat, catIdx) => (
         <div key={catIdx} style={{ marginBottom: "20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <div style={{ color: "#aaa", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{cat.category}</div>
-            <button onClick={() => removeCategory(catIdx)} style={{ background: "none", border: "none", color: "#333", cursor: "pointer", fontSize: "14px" }} title="Remove category">✕</button>
+            <div style={{ color: "#64748b", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{cat.category}</div>
+            <button onClick={() => removeCategory(catIdx)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: "14px" }} title="Remove category">✕</button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {cat.items.map(item => (
-              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#12121f", border: "1px solid #1e1e3a", borderRadius: "8px", padding: "9px 12px" }}>
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#0f172a", border: "1px solid #1e1e3a", borderRadius: "8px", padding: "9px 12px" }}>
                 <button onClick={() => toggleItem(catIdx, item.id)} style={{
                   width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, cursor: "pointer",
-                  background: item.checked ? "#00d4aa" : "transparent",
-                  border: `2px solid ${item.checked ? "#00d4aa" : "#3a3a5a"}`,
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: "#001a15"
+                  background: item.checked ? "#10b981" : "transparent",
+                  border: `2px solid ${item.checked ? "#10b981" : "#cbd5e1"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: "#ffffff"
                 }}>{item.checked ? "✓" : ""}</button>
-                <span style={{ color: item.checked ? "#444" : "#ccc", fontSize: "14px", flex: 1, textDecoration: item.checked ? "line-through" : "none" }}>{item.name}</span>
-                <button onClick={() => removeItem(catIdx, item.id)} style={{ background: "none", border: "none", color: "#2a2a45", cursor: "pointer", fontSize: "14px", padding: "0 2px" }}>✕</button>
+                <span style={{ color: item.checked ? "#94a3b8" : "#334155", fontSize: "14px", flex: 1, textDecoration: item.checked ? "line-through" : "none" }}>{item.name}</span>
+                <button onClick={() => removeItem(catIdx, item.id)} style={{ background: "none", border: "none", color: "#e2e8f0", cursor: "pointer", fontSize: "14px", padding: "0 2px" }}>✕</button>
               </div>
             ))}
             {/* Add item */}
@@ -1017,7 +1017,7 @@ function SupplierSummary({ holidays }) {
   });
 
   if (entries.length === 0) return (
-    <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
+    <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
       <div style={{ fontSize: "36px", marginBottom: "12px" }}>⭐</div>
       <p>Rate your suppliers on individual bookings to see a summary here.</p>
     </div>
@@ -1036,30 +1036,30 @@ function SupplierSummary({ holidays }) {
     count: p.entries.length,
   })).sort((a, b) => b.avgRating - a.avgRating);
 
-  const RATING_MAP = { 1: { label: "Poor", emoji: "👎", color: "#ff4d66" }, 2: { label: "OK", emoji: "😐", color: "#888" }, 3: { label: "Good", emoji: "👍", color: "#6c63ff" }, 4: { label: "Excellent", emoji: "⭐", color: "#00d4aa" } };
+  const RATING_MAP = { 1: { label: "Poor", emoji: "👎", color: "#ef4444" }, 2: { label: "OK", emoji: "😐", color: "#64748b" }, 3: { label: "Good", emoji: "👍", color: "#0ea5e9" }, 4: { label: "Excellent", emoji: "⭐", color: "#10b981" } };
 
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {providers.map(p => {
           const avg = p.avgRating;
-          const color = avg >= 3.5 ? "#00d4aa" : avg >= 2.5 ? "#6c63ff" : avg >= 1.5 ? "#888" : "#ff4d66";
+          const color = avg >= 3.5 ? "#10b981" : avg >= 2.5 ? "#0ea5e9" : avg >= 1.5 ? "#64748b" : "#ef4444";
           return (
-            <div key={p.provider} style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "14px", padding: "16px 18px" }}>
+            <div key={p.provider} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "16px 18px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                 <div>
-                  <div style={{ color: "#fff", fontSize: "15px", fontWeight: "600" }}>{p.provider}</div>
-                  <div style={{ color: "#444", fontSize: "12px", marginTop: "2px" }}>
+                  <div style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{p.provider}</div>
+                  <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "2px" }}>
                     {[...new Set(p.entries.map(e => e.stepIcon + " " + e.stepLabel))].join("  ·  ")}
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ color, fontSize: "22px", fontWeight: "700" }}>{avg.toFixed(1)}</div>
-                  <div style={{ color: "#444", fontSize: "11px" }}>{p.count} review{p.count !== 1 ? "s" : ""}</div>
+                  <div style={{ color: "#94a3b8", fontSize: "11px" }}>{p.count} review{p.count !== 1 ? "s" : ""}</div>
                 </div>
               </div>
               {/* Star bar */}
-              <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px", marginBottom: "10px" }}>
+              <div style={{ height: "4px", background: "#e0f2fe", borderRadius: "2px", marginBottom: "10px" }}>
                 <div style={{ height: "100%", borderRadius: "2px", width: `${(avg / 4) * 100}%`, background: color, transition: "width 0.4s" }} />
               </div>
               {/* Individual ratings */}
@@ -1068,7 +1068,7 @@ function SupplierSummary({ holidays }) {
                   const r = RATING_MAP[e.rating];
                   return (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
-                      <span style={{ color: "#555" }}>{e.holidayEmoji} {e.holidayName}</span>
+                      <span style={{ color: "#94a3b8" }}>{e.holidayEmoji} {e.holidayName}</span>
                       <span style={{ color: r.color }}>{r.emoji} {r.label}</span>
                     </div>
                   );
@@ -1102,11 +1102,11 @@ function MemoriesView({ holiday, onUpdate }) {
   return (
     <div style={{ paddingBottom: "20px" }}>
       {/* Add memory */}
-      <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "14px", padding: "16px 18px", marginBottom: "20px" }}>
-        <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Add a memory</div>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "16px 18px", marginBottom: "20px" }}>
+        <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Add a memory</div>
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
           {MEMORY_EMOJIS.map(e => (
-            <button key={e} onClick={() => setNewEmoji(e)} style={{ width: "34px", height: "34px", fontSize: "16px", background: newEmoji === e ? "#1e1e3a" : "#1a1a2e", border: `1px solid ${newEmoji === e ? "#6c63ff" : "#2a2a45"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
+            <button key={e} onClick={() => setNewEmoji(e)} style={{ width: "34px", height: "34px", fontSize: "16px", background: newEmoji === e ? "#e0f2fe" : "#f1f5f9", border: `1px solid ${newEmoji === e ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
           ))}
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
@@ -1119,20 +1119,20 @@ function MemoriesView({ holiday, onUpdate }) {
 
       {/* Memories list */}
       {memories.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "#333" }}>
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#cbd5e1" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>✨</div>
           <p>No memories yet — add highlights from your trip!</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {[...memories].reverse().map(m => (
-            <div key={m.id} style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 16px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+            <div key={m.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
               <span style={{ fontSize: "24px", flexShrink: 0 }}>{m.emoji}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ color: "#ccc", fontSize: "14px", lineHeight: "1.5" }}>{m.text}</div>
-                {m.date && <div style={{ color: "#333", fontSize: "11px", marginTop: "4px" }}>{formatDate(m.date)}</div>}
+                <div style={{ color: "#334155", fontSize: "14px", lineHeight: "1.5" }}>{m.text}</div>
+                {m.date && <div style={{ color: "#cbd5e1", fontSize: "11px", marginTop: "4px" }}>{formatDate(m.date)}</div>}
               </div>
-              <button onClick={() => removeMemory(m.id)} style={{ background: "none", border: "none", color: "#2a2a45", cursor: "pointer", fontSize: "16px", padding: "0 2px", flexShrink: 0 }}>✕</button>
+              <button onClick={() => removeMemory(m.id)} style={{ background: "none", border: "none", color: "#e2e8f0", cursor: "pointer", fontSize: "16px", padding: "0 2px", flexShrink: 0 }}>✕</button>
             </div>
           ))}
         </div>
@@ -1151,52 +1151,52 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <div onClick={onOpen} style={{
-        background: "#12121f", border: `1px solid ${isBooked ? "#00d4aa44" : "#2a2a45"}`,
+        background: "#0f172a", border: `1px solid ${isBooked ? "#10b98144" : "#e2e8f0"}`,
         borderRadius: "14px", padding: "16px",
         cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden", flex: 1
       }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa" : "#6c63ff"; e.currentTarget.style.background = "#161628"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#00d4aa44" : "#2a2a45"; e.currentTarget.style.background = "#12121f"; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#10b981" : "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98144" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
       >
-        {isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#00d4aa", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#001a15", fontWeight: "700", borderBottomLeftRadius: "10px" }}>✓ BOOKED</div>}
-        {!isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#ff4d6622", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ff4d66", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
+        {isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#10b981", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ffffff", fontWeight: "700", borderBottomLeftRadius: "10px" }}>✓ BOOKED</div>}
+        {!isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#ef444422", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ef4444", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span style={{ fontSize: "24px" }}>{step.icon}</span>
           {booking?.rating != null && <span style={{ fontSize: "15px", marginTop: "2px" }}>{rating?.emoji}</span>}
         </div>
         <div style={{ marginTop: "8px" }}>
-          <div style={{ color: "#fff", fontSize: "14px", fontWeight: "600" }}>{step.label}</div>
-          {booking?.provider && <div style={{ color: "#6c63ff", fontSize: "12px", marginTop: "2px" }}>{booking.provider}{booking?.flightNumber ? ` · ${booking.flightNumber}` : ""}</div>}
-          {booking?.reference && <div style={{ color: "#666", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
+          <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{step.label}</div>
+          {booking?.provider && <div style={{ color: "#0ea5e9", fontSize: "12px", marginTop: "2px" }}>{booking.provider}{booking?.flightNumber ? ` · ${booking.flightNumber}` : ""}</div>}
+          {booking?.reference && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px", fontFamily: "monospace" }}>Ref: {booking.reference}</div>}
 
           {/* Flight */}
-          {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>{booking.departureAirport || "?"} → {booking.arrivalAirport || "?"}</div>}
-          {isFlight(step) && booking?.flightDate && <div style={{ color: "#888", fontSize: "11px", marginTop: "2px" }}>📅 {formatDate(booking.flightDate)}</div>}
-          {isFlight(step) && (booking?.departureTime || booking?.arrivalTime) && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>{booking.departureTime || "?"} → {booking.arrivalTime || "?"}</div>}
+          {isFlight(step) && (booking?.departureAirport || booking?.arrivalAirport) && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>{booking.departureAirport || "?"} → {booking.arrivalAirport || "?"}</div>}
+          {isFlight(step) && booking?.flightDate && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>📅 {formatDate(booking.flightDate)}</div>}
+          {isFlight(step) && (booking?.departureTime || booking?.arrivalTime) && <div style={{ color: "#10b981", fontSize: "11px", marginTop: "2px" }}>{booking.departureTime || "?"} → {booking.arrivalTime || "?"}</div>}
 
           {/* Hotel / Villa */}
-          {(isHotel(step) || isVilla(step)) && (booking?.checkIn || booking?.checkOut) && <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>{booking.checkIn ? formatDate(booking.checkIn) : "?"} → {booking.checkOut ? formatDate(booking.checkOut) : "?"}{nights ? ` (${nights}n)` : ""}</div>}
-          {(isHotel(step) || isVilla(step)) && booking?.wifiPassword && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>📶 {booking.wifiPassword}</div>}
+          {(isHotel(step) || isVilla(step)) && (booking?.checkIn || booking?.checkOut) && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>{booking.checkIn ? formatDate(booking.checkIn) : "?"} → {booking.checkOut ? formatDate(booking.checkOut) : "?"}{nights ? ` (${nights}n)` : ""}</div>}
+          {(isHotel(step) || isVilla(step)) && booking?.wifiPassword && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>📶 {booking.wifiPassword}</div>}
 
           {/* Car hire */}
-          {isCarHire(step) && (booking?.pickUpDate || booking?.dropOffDate) && <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>{booking.pickUpDate ? formatDate(booking.pickUpDate) : "?"} → {booking.dropOffDate ? formatDate(booking.dropOffDate) : "?"}</div>}
-          {isCarHire(step) && booking?.carType && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>🚗 {booking.carType}</div>}
+          {isCarHire(step) && (booking?.pickUpDate || booking?.dropOffDate) && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>{booking.pickUpDate ? formatDate(booking.pickUpDate) : "?"} → {booking.dropOffDate ? formatDate(booking.dropOffDate) : "?"}</div>}
+          {isCarHire(step) && booking?.carType && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>🚗 {booking.carType}</div>}
 
           {/* Ferry */}
           {(isFerry(step) || isSailing(step)) && booking?.ferryDate && (
-            <div style={{ color: "#888", fontSize: "11px", marginTop: "4px" }}>
+            <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>
               📅 {formatDate(booking.ferryDate)}{isSailing(step) && booking?.sailingReturnDate ? " → " + formatDate(booking.sailingReturnDate) : ""}
             </div>
           )}
-          {(isFerry(step) || isSailing(step)) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "2px" }}>{booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}</div>}
+          {(isFerry(step) || isSailing(step)) && (booking?.ferryDepartTime || booking?.ferryArriveTime) && <div style={{ color: "#10b981", fontSize: "11px", marginTop: "2px" }}>{booking.ferryDepartTime || "?"} → {booking.ferryArriveTime || "?"}</div>}
 
           {/* Parking */}
-          {isParking(step) && booking?.carParkName && <div style={{ color: "#aaa", fontSize: "11px", marginTop: "4px" }}>{booking.carParkName}</div>}
-          {isParking(step) && booking?.terminalName && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>{booking.terminalName}</div>}
+          {isParking(step) && booking?.carParkName && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>{booking.carParkName}</div>}
+          {isParking(step) && booking?.terminalName && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>{booking.terminalName}</div>}
 
           {/* Transfer */}
-          {isTransfer(step) && booking?.pickupTime && <div style={{ color: "#00d4aa", fontSize: "11px", marginTop: "4px" }}>⏰ {booking.pickupTime}</div>}
-          {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
+          {isTransfer(step) && booking?.pickupTime && <div style={{ color: "#10b981", fontSize: "11px", marginTop: "4px" }}>⏰ {booking.pickupTime}</div>}
+          {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
 
           {(() => {
             const sym = getCurrencySymbol(booking?.stepCurrency || currency);
@@ -1207,18 +1207,18 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
             return (
               <div style={{ marginTop: "5px" }}>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <span style={{ color: "#00d4aa", fontSize: "11px" }}>{sym}{Math.ceil(total)}</span>
-                  {outstanding !== null && outstanding > 0 && <span style={{ color: "#FFD93D", fontSize: "11px" }}>{sym}{Math.ceil(outstanding)} due</span>}
-                  {outstanding !== null && outstanding <= 0 && <span style={{ color: "#00d4aa", fontSize: "11px" }}>✓ paid</span>}
+                  <span style={{ color: "#10b981", fontSize: "11px" }}>{sym}{Math.ceil(total)}</span>
+                  {outstanding !== null && outstanding > 0 && <span style={{ color: "#f59e0b", fontSize: "11px" }}>{sym}{Math.ceil(outstanding)} due</span>}
+                  {outstanding !== null && outstanding <= 0 && <span style={{ color: "#10b981", fontSize: "11px" }}>✓ paid</span>}
                 </div>
                 {outstanding !== null && outstanding > 0 && booking?.paymentDueDate && (
-                  <div style={{ color: "#888", fontSize: "11px", marginTop: "2px" }}>Due {formatDate(booking.paymentDueDate)}</div>
+                  <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>Due {formatDate(booking.paymentDueDate)}</div>
                 )}
               </div>
             );
           })()}
-          {booking?.notes && <div style={{ color: "#555", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
-          {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#2e2e4a", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
+          {booking?.notes && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "5px", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{booking.notes}</div>}
+          {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#cbd5e1", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
         </div>
       </div>
       {/* Reorder bar — below the card, clearly separate */}
@@ -1227,26 +1227,26 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           onClick={e => { e.stopPropagation(); onMoveUp(); }}
           disabled={isFirst}
           style={{
-            flex: 1, padding: "7px", background: "#0e0e1f",
+            flex: 1, padding: "7px", background: "#f8fafc",
             border: "1px solid #1e1e3a", borderRadius: "8px",
-            color: isFirst ? "#222" : "#555", cursor: isFirst ? "default" : "pointer",
+            color: isFirst ? "#e2e8f0" : "#94a3b8", cursor: isFirst ? "default" : "pointer",
             fontSize: "14px", transition: "all 0.15s",
           }}
-          onMouseEnter={e => { if (!isFirst) { e.currentTarget.style.background = "#1a1a2e"; e.currentTarget.style.color = "#aaa"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#0e0e1f"; e.currentTarget.style.color = isFirst ? "#222" : "#555"; }}
+          onMouseEnter={e => { if (!isFirst) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = isFirst ? "#e2e8f0" : "#94a3b8"; }}
           title="Move up"
         >↑ Move up</button>
         <button
           onClick={e => { e.stopPropagation(); onMoveDown(); }}
           disabled={isLast}
           style={{
-            flex: 1, padding: "7px", background: "#0e0e1f",
+            flex: 1, padding: "7px", background: "#f8fafc",
             border: "1px solid #1e1e3a", borderRadius: "8px",
-            color: isLast ? "#222" : "#555", cursor: isLast ? "default" : "pointer",
+            color: isLast ? "#e2e8f0" : "#94a3b8", cursor: isLast ? "default" : "pointer",
             fontSize: "14px", transition: "all 0.15s",
           }}
-          onMouseEnter={e => { if (!isLast) { e.currentTarget.style.background = "#1a1a2e"; e.currentTarget.style.color = "#aaa"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#0e0e1f"; e.currentTarget.style.color = isLast ? "#222" : "#555"; }}
+          onMouseEnter={e => { if (!isLast) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = isLast ? "#e2e8f0" : "#94a3b8"; }}
           title="Move down"
         >↓ Move down</button>
       </div>
@@ -1377,7 +1377,7 @@ export default function App({ user }) {
 
   const filteredHolidays = holidays.filter(h => filterStatus === "all" || getStatus(h) === filterStatus);
 
-  if (!loaded) return <div style={{ ...appShell, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div style={{ color: "#6c63ff", fontSize: "24px" }}>✈️ Loading...</div></div>;
+  if (!loaded) return <div style={{ ...appShell, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div style={{ color: "#0ea5e9", fontSize: "24px" }}>✈️ Loading...</div></div>;
 
   return (
     <div style={appShell}>
@@ -1392,24 +1392,24 @@ export default function App({ user }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {view === "detail" && <button onClick={() => setView("list")} style={{ background: "none", border: "none", color: "#6c63ff", cursor: "pointer", fontSize: "20px", padding: 0 }}>←</button>}
-              <h1 style={{ margin: 0, fontSize: "26px", fontFamily: "'Playfair Display', Georgia, serif", color: "#fff", letterSpacing: "-0.5px" }}>
-                {view === "detail" && selectedHoliday ? <span>{selectedHoliday.emoji} {selectedHoliday.name}</span> : <>My <span style={{ color: "#6c63ff" }}>Holidays</span></>}
+              {view === "detail" && <button onClick={() => setView("list")} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "20px", padding: 0 }}>←</button>}
+              <h1 style={{ margin: 0, fontSize: "26px", fontFamily: "'Playfair Display', Georgia, serif", color: "#0f172a", letterSpacing: "-0.5px" }}>
+                {view === "detail" && selectedHoliday ? <span>{selectedHoliday.emoji} {selectedHoliday.name}</span> : <>My <span style={{ color: "#0ea5e9" }}>Holidays</span></>}
               </h1>
             </div>
-            {view === "detail" && selectedHoliday && <p style={{ margin: "4px 0 0 30px", color: "#555", fontSize: "13px" }}>{selectedHoliday.destination && `📍 ${selectedHoliday.destination}`}{selectedHoliday.startDate && ` · ${formatDate(selectedHoliday.startDate)}${selectedHoliday.endDate ? ` → ${formatDate(selectedHoliday.endDate)}` : ""}`}</p>}
+            {view === "detail" && selectedHoliday && <p style={{ margin: "4px 0 0 30px", color: "#94a3b8", fontSize: "13px" }}>{selectedHoliday.destination && `📍 ${selectedHoliday.destination}`}{selectedHoliday.startDate && ` · ${formatDate(selectedHoliday.startDate)}${selectedHoliday.endDate ? ` → ${formatDate(selectedHoliday.endDate)}` : ""}`}</p>}
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
             {view === "detail" && selectedHoliday && (<>
-              <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#6c63ff", borderColor: "#6c63ff44" }}>Rebook</button>
+              <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={secondaryBtn}>Edit</button>
-              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ff4d66", borderColor: "#ff4d6644" }}>Delete</button>
+              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444" }}>Delete</button>
             </>)}
             {view === "list" && <>
-              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#fff" : "#aaa", background: showSuppliers ? "#1e1e3a" : "#1a1a2e" }}>⭐ Suppliers</button>
+              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9" }}>⭐ Suppliers</button>
               <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
             </>}
-            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#444" }} title={user.email}>Sign out</button>
+            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#94a3b8" }} title={user.email}>Sign out</button>
           </div>
         </div>
 
@@ -1417,22 +1417,22 @@ export default function App({ user }) {
         {view === "list" && (<>
           <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
             {["all","upcoming","active","past"].map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#6c63ff" : "#1a1a2e", border: `1px solid ${filterStatus === s ? "#6c63ff" : "#2a2a45"}`, color: filterStatus === s ? "#fff" : "#888", textTransform: "capitalize" }}>{s}</button>
+              <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{s}</button>
             ))}
           </div>
           {/* Supplier ratings panel */}
           {showSuppliers && (
-            <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "16px", padding: "20px", marginBottom: "20px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px", marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "16px", color: "#fff" }}>⭐ Supplier Ratings</div>
-                <div style={{ color: "#444", fontSize: "12px" }}>Across all holidays</div>
+                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "16px", color: "#0f172a" }}>⭐ Supplier Ratings</div>
+                <div style={{ color: "#94a3b8", fontSize: "12px" }}>Across all holidays</div>
               </div>
               <SupplierSummary holidays={holidays} />
             </div>
           )}
 
           {filteredHolidays.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 20px", color: "#444" }}>
+            <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌍</div>
               <p style={{ fontSize: "16px" }}>No holidays yet. Add your first trip!</p>
               <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, marginTop: "16px" }}>+ Add Holiday</button>
@@ -1445,24 +1445,24 @@ export default function App({ user }) {
                 const status = getStatus(h);
                 return (
                   <div key={h.id} onClick={() => { setSelectedId(h.id); setView("detail"); }}
-                    style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "16px", padding: "20px 24px", cursor: "pointer", display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center", transition: "border-color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "#6c63ff"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "#2a2a45"}
+                    style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px 24px", cursor: "pointer", display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center", transition: "border-color 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "#0ea5e9"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}
                   >
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", flexWrap: "wrap" }}>
                         <span style={{ fontSize: "22px" }}>{h.emoji}</span>
-                        <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "17px", color: "#fff" }}>{h.name}</span>
+                        <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "17px", color: "#0f172a" }}>{h.name}</span>
                         <span style={{ fontSize: "11px", padding: "2px 10px", borderRadius: "20px", textTransform: "uppercase", background: STATUS_COLORS[status] + "22", color: STATUS_COLORS[status], border: `1px solid ${STATUS_COLORS[status]}44` }}>{status}</span>
                       </div>
-                      <div style={{ color: "#555", fontSize: "13px", display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
+                      <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
                         {h.destination && <span>📍 {h.destination}</span>}
                         {h.startDate && <span>📅 {formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</span>}
-                        <span style={{ color: "#3a3a5a" }}>{total} step{total !== 1 ? "s" : ""}</span>
+                        <span style={{ color: "#cbd5e1" }}>{total} step{total !== 1 ? "s" : ""}</span>
                       </div>
                       {total > 0 ? (<>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#00d4aa" : "#6c63ff" }}>{pct}%</span></div>
-                        <div style={{ height: "4px", background: "#1e1e3a", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#00d4aa" : "linear-gradient(90deg, #6c63ff, #a78bfa)", transition: "width 0.4s" }} /></div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#10b981" : "#0ea5e9" }}>{pct}%</span></div>
+                        <div style={{ height: "4px", background: "#e0f2fe", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#10b981" : "linear-gradient(90deg, #0ea5e9, #38bdf8)", transition: "width 0.4s" }} /></div>
                         {(() => {
                           const displayC = h.currency || "GBP";
                           const sym = getCurrencySymbol(displayC);
@@ -1479,14 +1479,14 @@ export default function App({ user }) {
                           const go = gt - gp;
                           return (
                             <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
-                              {go > 0 && <span style={{ color: "#FFD93D" }}>{sym}{Math.ceil(go)} outstanding</span>}
-                              {go <= 0 && <span style={{ color: "#00d4aa" }}>✓ all paid</span>}
+                              {go > 0 && <span style={{ color: "#f59e0b" }}>{sym}{Math.ceil(go)} outstanding</span>}
+                              {go <= 0 && <span style={{ color: "#10b981" }}>✓ all paid</span>}
                             </div>
                           );
                         })()}
-                      </>) : <span style={{ fontSize: "12px", color: "#333" }}>No booking steps added yet</span>}
+                      </>) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>No booking steps added yet</span>}
                     </div>
-                    <div style={{ color: "#2a2a45", fontSize: "20px" }}>›</div>
+                    <div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div>
                   </div>
                 );
               })}
@@ -1499,10 +1499,10 @@ export default function App({ user }) {
           const steps = selectedHoliday.steps || [];
           return (
             <div>
-              {selectedHoliday.notes && <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", color: "#777", fontSize: "13px" }}>📝 {selectedHoliday.notes}</div>}
+              {selectedHoliday.notes && <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", color: "#64748b", fontSize: "13px" }}>📝 {selectedHoliday.notes}</div>}
 
               {/* Tab bar */}
-              <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#0e0e1f", borderRadius: "10px", padding: "4px" }}>
+              <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#f8fafc", borderRadius: "10px", padding: "4px" }}>
                 {[
                   { id: "bookings",   label: "Bookings",  icon: "📋" },
                   { id: "timeline",   label: "Timeline",  icon: "📅" },
@@ -1512,8 +1512,8 @@ export default function App({ user }) {
                 ].map(tab => (
                   <button key={tab.id} onClick={() => setDetailTab(tab.id)} style={{
                     flex: 1, padding: "8px 4px", borderRadius: "7px", border: "none", cursor: "pointer",
-                    background: detailTab === tab.id ? "#1e1e3a" : "transparent",
-                    color: detailTab === tab.id ? "#fff" : "#555",
+                    background: detailTab === tab.id ? "#e0f2fe" : "transparent",
+                    color: detailTab === tab.id ? "#0f172a" : "#94a3b8",
                     fontSize: "12px", fontWeight: detailTab === tab.id ? "700" : "400",
                     transition: "all 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px"
                   }}>
@@ -1537,14 +1537,14 @@ export default function App({ user }) {
                     ))}
                   </div>
                 ) : (
-                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#333", border: "1px dashed #1e1e38", borderRadius: "16px" }}>
+                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#cbd5e1", border: "1px dashed #1e1e38", borderRadius: "16px" }}>
                     <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
-                    <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#444", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
+                    <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#94a3b8", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
                   </div>
                 )}
-                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#12121f", border: "1px dashed #2a2a45", borderRadius: "12px", color: "#444", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#6c63ff"; e.currentTarget.style.color = "#6c63ff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a45"; e.currentTarget.style.color = "#444"; }}
+                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#0f172a", border: "1px dashed #2a2a45", borderRadius: "12px", color: "#94a3b8", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0ea5e9"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}
                 ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
               </>)}
 
@@ -1585,25 +1585,25 @@ export default function App({ user }) {
                 const grandOutstanding = grandTotal - grandPaid;
                 return (
                   <>
-                    <div style={{ marginTop: "18px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
-                      <Stat label="Progress" value={`${confirmed}/${total}`} color={confirmed === total && total > 0 ? "#00d4aa" : "#fff"} />
+                    <div style={{ marginTop: "18px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 20px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                      <Stat label="Progress" value={`${confirmed}/${total}`} color={confirmed === total && total > 0 ? "#10b981" : "#0f172a"} />
                       <Stat label="Status" value={status} color={STATUS_COLORS[status]} small />
-                      {daysTo !== null && daysTo > 0 && <Stat label="Days to Go" value={daysTo} color="#6c63ff" />}
+                      {daysTo !== null && daysTo > 0 && <Stat label="Days to Go" value={daysTo} color="#0ea5e9" />}
                     </div>
                     {hasAnyPrice && (
-                      <div style={{ marginTop: "10px", background: "#12121f", border: "1px solid #2a2a45", borderRadius: "12px", padding: "14px 20px" }}>
-                        <div style={{ color: "#555", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Trip Finances</div>
+                      <div style={{ marginTop: "10px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 20px" }}>
+                        <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Trip Finances</div>
                         {(() => { const sym = getCurrencySymbol(selectedHoliday.currency); return (
                         <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginBottom: "12px" }}>
-                          <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `${sym}${Math.ceil(grandOutstanding)}`} color={grandOutstanding <= 0 ? "#00d4aa" : "#FFD93D"} />
+                          <Stat label="Outstanding" value={grandOutstanding <= 0 ? "✓ All paid" : `${sym}${Math.ceil(grandOutstanding)}`} color={grandOutstanding <= 0 ? "#10b981" : "#f59e0b"} />
                         </div>); })()}
                         {grandOutstanding > 0 && (
-                          <div style={{ height: "6px", background: "#1e1e3a", borderRadius: "3px" }}>
-                            <div style={{ height: "100%", borderRadius: "3px", width: `${Math.min(100, (grandPaid / grandTotal) * 100).toFixed(1)}%`, background: "linear-gradient(90deg, #00d4aa, #6c63ff)", transition: "width 0.4s" }} />
+                          <div style={{ height: "6px", background: "#e0f2fe", borderRadius: "3px" }}>
+                            <div style={{ height: "100%", borderRadius: "3px", width: `${Math.min(100, (grandPaid / grandTotal) * 100).toFixed(1)}%`, background: "linear-gradient(90deg, #10b981, #0ea5e9)", transition: "width 0.4s" }} />
                           </div>
                         )}
                         {ratesUpdatedAt && (
-                          <div style={{ marginTop: "8px", color: "#333", fontSize: "11px" }}>
+                          <div style={{ marginTop: "8px", color: "#cbd5e1", fontSize: "11px" }}>
                             Exchange rates: {new Date(ratesUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                           </div>
                         )}
@@ -1640,10 +1640,10 @@ export default function App({ user }) {
               <h3 style={modalTitle}>Rebook Holiday</h3>
               <button onClick={() => setRebookModal(null)} style={closeBtn}>✕</button>
             </div>
-            <p style={{ color: "#888", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
-              This will create a new copy of <strong style={{ color: "#fff" }}>{rebookModal.emoji} {rebookModal.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
+            <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
+              This will create a new copy of <strong style={{ color: "#0f172a" }}>{rebookModal.emoji} {rebookModal.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
             </p>
-            <div style={{ background: "#0e0e1f", border: "1px solid #2a2a45", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#555" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #2a2a45", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#94a3b8" }}>
               {(rebookModal.steps || []).length} step{(rebookModal.steps || []).length !== 1 ? "s" : ""} will be copied · All booking details cleared · Dates cleared
             </div>
             <div style={{ display: "flex", gap: "10px" }}>
@@ -1655,8 +1655,8 @@ export default function App({ user }) {
       )}
 
       {saveError && (
-        <div style={{ position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", background: "#ff4d66", color: "#fff", padding: "10px 20px", borderRadius: "10px", fontSize: "13px", zIndex: 2000 }}>
-          ⚠️ {saveError} <button onClick={() => setSaveError(null)} style={{ background: "none", border: "none", color: "#fff", marginLeft: "12px", cursor: "pointer" }}>✕</button>
+        <div style={{ position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", background: "#ef4444", color: "#0f172a", padding: "10px 20px", borderRadius: "10px", fontSize: "13px", zIndex: 2000 }}>
+          ⚠️ {saveError} <button onClick={() => setSaveError(null)} style={{ background: "none", border: "none", color: "#0f172a", marginLeft: "12px", cursor: "pointer" }}>✕</button>
         </div>
       )}
     </div>
@@ -1666,21 +1666,21 @@ export default function App({ user }) {
 function Stat({ label, value, color, small }) {
   return (
     <div>
-      <div style={{ color: "#444", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-      <div style={{ color: color || "#fff", fontSize: small ? "14px" : "20px", fontWeight: "700", marginTop: "2px", textTransform: small ? "capitalize" : "none" }}>{value}</div>
+      <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ color: color || "#0f172a", fontSize: small ? "14px" : "20px", fontWeight: "700", marginTop: "2px", textTransform: small ? "capitalize" : "none" }}>{value}</div>
     </div>
   );
 }
 
-const appShell    = { minHeight: "100vh", background: "#080814", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#fff" };
-const overlay     = { position: "fixed", inset: 0, background: "rgba(8,8,20,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, backdropFilter: "blur(6px)", padding: "20px" };
-const modal       = { background: "#12121f", border: "1px solid #2a2a45", borderRadius: "16px", padding: "28px", width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.7)" };
+const appShell    = { minHeight: "100vh", background: "#f0f9ff", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#0f172a" };
+const overlay     = { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, backdropFilter: "blur(8px)", padding: "20px" };
+const modal       = { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "28px", width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(14,165,233,0.12)" };
 const modalHeader = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" };
-const modalTitle  = { margin: 0, fontSize: "17px", color: "#fff" };
-const closeBtn    = { background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "20px", lineHeight: 1 };
-const labelStyle  = { display: "block", marginBottom: "14px", fontSize: "11px", color: "#555", textTransform: "uppercase", letterSpacing: "0.8px" };
-const inputStyle  = { display: "block", width: "100%", marginTop: "6px", padding: "10px 13px", background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "8px", color: "#fff", fontSize: "14px", outline: "none", boxSizing: "border-box" };
-const primaryBtn  = { padding: "10px 20px", background: "linear-gradient(135deg, #6c63ff, #a78bfa)", border: "none", borderRadius: "10px", color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap" };
-const secondaryBtn = { padding: "10px 16px", background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "10px", color: "#aaa", fontSize: "14px", cursor: "pointer", whiteSpace: "nowrap" };
+const modalTitle  = { margin: 0, fontSize: "17px", color: "#0f172a" };
+const closeBtn    = { background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "20px", lineHeight: 1 };
+const labelStyle  = { display: "block", marginBottom: "14px", fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px" };
+const inputStyle  = { display: "block", width: "100%", marginTop: "6px", padding: "10px 13px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#0f172a", fontSize: "14px", outline: "none", boxSizing: "border-box" };
+const primaryBtn  = { padding: "10px 20px", background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", border: "none", borderRadius: "10px", color: "#ffffff", fontSize: "14px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap" };
+const secondaryBtn = { padding: "10px 16px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", color: "#64748b", fontSize: "14px", cursor: "pointer", whiteSpace: "nowrap" };
 const toggleBtn   = { padding: "10px 12px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600" };
-const reorderBtn  = { background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: "9px", lineHeight: 1, padding: "2px 3px" };
+const reorderBtn  = { background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "9px", lineHeight: 1, padding: "2px 3px" };

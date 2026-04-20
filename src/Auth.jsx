@@ -47,7 +47,7 @@ export default function AuthScreen() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#080814",
+      minHeight: "100vh", background: "#f0f9ff",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "20px", fontFamily: "'DM Sans','Segoe UI',sans-serif"
     }}>
@@ -61,15 +61,15 @@ export default function AuthScreen() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ fontSize: "48px", marginBottom: "12px" }}>✈️</div>
-          <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "28px", color: "#fff", letterSpacing: "-0.5px" }}>
-            My <span style={{ color: "#6c63ff" }}>Holidays</span>
+          <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "28px", color: "#0f172a", letterSpacing: "-0.5px" }}>
+            My <span style={{ color: "#0ea5e9" }}>Holidays</span>
           </h1>
-          <p style={{ margin: "8px 0 0", color: "#444", fontSize: "14px" }}>Plan, track and remember every trip</p>
+          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "14px" }}>Plan, track and remember every trip</p>
         </div>
 
         {/* Card */}
-        <div style={{ background: "#12121f", border: "1px solid #2a2a45", borderRadius: "16px", padding: "28px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
-          <h2 style={{ margin: "0 0 24px", fontSize: "18px", color: "#fff", fontWeight: "600" }}>{titles[mode]}</h2>
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "28px", boxShadow: "0 24px 80px rgba(0,0,0,0.10)" }}>
+          <h2 style={{ margin: "0 0 24px", fontSize: "18px", color: "#0f172a", fontWeight: "600" }}>{titles[mode]}</h2>
 
           {mode === "signup" && (
             <label style={labelStyle}>
@@ -107,13 +107,13 @@ export default function AuthScreen() {
           )}
 
           {error && (
-            <div style={{ background: "#ff4d6622", border: "1px solid #ff4d6644", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#ff4d66", fontSize: "13px" }}>
+            <div style={{ background: "#ef444422", border: "1px solid #ff4d6644", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#ef4444", fontSize: "13px" }}>
               {error}
             </div>
           )}
 
           {message && (
-            <div style={{ background: "#00d4aa22", border: "1px solid #00d4aa44", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#00d4aa", fontSize: "13px" }}>
+            <div style={{ background: "#10b98122", border: "1px solid #00d4aa44", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#10b981", fontSize: "13px" }}>
               {message}
             </div>
           )}
@@ -123,8 +123,8 @@ export default function AuthScreen() {
             disabled={loading}
             style={{
               width: "100%", padding: "12px",
-              background: loading ? "#2a2a45" : "linear-gradient(135deg, #6c63ff, #a78bfa)",
-              border: "none", borderRadius: "10px", color: "#fff",
+              background: loading ? "#e2e8f0" : "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+              border: "none", borderRadius: "10px", color: "#0f172a",
               fontSize: "15px", fontWeight: "600", cursor: loading ? "wait" : "pointer",
               marginBottom: "16px"
             }}
@@ -138,7 +138,7 @@ export default function AuthScreen() {
               <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} style={linkBtn}>
                 Don't have an account? Sign up
               </button>
-              <button onClick={() => { setMode("reset"); setError(null); setMessage(null); }} style={{ ...linkBtn, color: "#444" }}>
+              <button onClick={() => { setMode("reset"); setError(null); setMessage(null); }} style={{ ...linkBtn, color: "#94a3b8" }}>
                 Forgot password?
               </button>
             </>)}
@@ -161,14 +161,14 @@ export default function AuthScreen() {
 
 const labelStyle = {
   display: "block", marginBottom: "16px",
-  fontSize: "11px", color: "#555", textTransform: "uppercase", letterSpacing: "0.8px"
+  fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px"
 };
 const inputStyle = {
   display: "block", width: "100%", marginTop: "6px", padding: "11px 14px",
-  background: "#1a1a2e", border: "1px solid #2a2a45", borderRadius: "8px",
-  color: "#fff", fontSize: "14px", outline: "none", boxSizing: "border-box"
+  background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "8px",
+  color: "#0f172a", fontSize: "14px", outline: "none", boxSizing: "border-box"
 };
 const linkBtn = {
-  background: "none", border: "none", color: "#6c63ff",
+  background: "none", border: "none", color: "#0ea5e9",
   cursor: "pointer", fontSize: "13px", padding: 0
 };
