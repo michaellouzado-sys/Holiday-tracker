@@ -1504,14 +1504,14 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.4"; // bump this whenever the instructions change
+const APP_VERSION = "1.5"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
     {
       icon: "✈️",
       title: "Creating a holiday",
-      text: "Tap + New Holiday to create a trip. Set the name, destination, travel dates and currency. You can have as many holidays as you like — past trips are kept so you can refer back to them."
+      text: "Tap + New Holiday to create a trip. Set the name, destination and travel dates. The currency you pick here is the display currency for the trip — all costs will be shown and totalled in this currency, even if individual bookings were paid in a different currency (the app converts automatically using live exchange rates)."
     },
     {
       icon: "📋",
@@ -1546,7 +1546,7 @@ function InstructionsModal({ onClose }) {
     {
       icon: "💰",
       title: "Finances",
-      text: "Enter a total price and amount paid on each booking step. Outstanding amounts are shown on the card. The holiday summary shows your total outstanding across all steps, with currency conversion if you've mixed currencies."
+      text: "Enter a total price and amount paid on each booking step. Each step has its own currency selector — use this when a booking was paid in local currency (e.g. a hotel paid in euros on a GBP trip). The holiday summary converts everything into the trip display currency using live exchange rates and shows your total outstanding balance."
     },
     {
       icon: "⭐",
@@ -1745,18 +1745,18 @@ export default function App({ user }) {
             </div>
             {view === "detail" && selectedHoliday && <p style={{ margin: "4px 0 0 30px", color: "#94a3b8", fontSize: "13px" }}>{selectedHoliday.destination && `📍 ${selectedHoliday.destination}`}{selectedHoliday.startDate && ` · ${formatDate(selectedHoliday.startDate)}${selectedHoliday.endDate ? ` → ${formatDate(selectedHoliday.endDate)}` : ""}`}</p>}
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {view === "detail" && selectedHoliday && (<>
-              <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944" }}>Rebook</button>
-              <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={secondaryBtn}>Edit</button>
-              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444" }}>Delete</button>
+              <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
+              <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
+              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
             </>)}
             {view === "list" && <>
-              <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
-              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9" }}>⭐ Suppliers</button>
-              <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd" }}>? Help</button>
+              <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
+              <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
+              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
             </>}
-            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#94a3b8" }} title={user.email}>Sign out</button>
+            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 10px", color: "#cbd5e1" }} title={user.email}>↪</button>
           </div>
         </div>
 
