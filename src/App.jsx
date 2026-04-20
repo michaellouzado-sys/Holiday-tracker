@@ -1438,10 +1438,10 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <div onClick={onOpen} style={{
+      <div onClick={e => { if (e.target.tagName === "A") return; onOpen(); }} style={{
         background: "#ffffff", border: `1px solid ${isBooked ? "#10b98144" : "#e2e8f0"}`,
         borderRadius: "14px", padding: "16px",
-        cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden", flex: 1
+        cursor: "pointer", transition: "all 0.2s", position: "relative", flex: 1
       }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#10b981" : "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98144" : "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
