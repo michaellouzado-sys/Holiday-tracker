@@ -296,7 +296,7 @@ function AddStepModal({ onAdd, onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
               {filtered.map((t, i) => (
                 <button key={i} onClick={() => onAdd({ id: generateId(), icon: t.icon, label: t.label })}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "10px", cursor: "pointer", color: "#334155", fontSize: "13px", textAlign: "left" }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", color: "#334155", fontSize: "13px", textAlign: "left" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0f172a"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#334155"; }}
                 ><span style={{ fontSize: "20px" }}>{t.icon}</span><span>{t.label}</span></button>
@@ -483,7 +483,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           <label htmlFor="photo-scan-input" style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
             padding: "11px", borderRadius: "10px", cursor: scanning ? "wait" : "pointer",
-            background: scanning ? "#f1f5f9" : "#e0f2fe", border: "1px dashed #6c63ff",
+            background: scanning ? "#f1f5f9" : "#e0f2fe", border: "1px dashed #0ea5e9",
             color: scanning ? "#64748b" : "#38bdf8", fontSize: "13px", fontWeight: "600",
           }}>
             {scanning ? <><span style={{ fontSize: "16px" }}>⏳</span> Scanning...</> : <><span style={{ fontSize: "16px" }}>📷</span> Scan from photo or screenshot</>}
@@ -584,11 +584,11 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           const paid  = parseFloat((form.amountPaid  || "").replace(/[^0-9.]/g, ""));
           const outstanding = !isNaN(total) && !isNaN(paid) ? total - paid : null;
           return (
-            <div style={{ background: "#f8fafc", border: "1px solid #2a2a45", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px 16px", marginBottom: "14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px" }}>Pricing</div>
                 <select value={form.stepCurrency} onChange={e => set("stepCurrency", e.target.value)}
-                  style={{ background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "6px", color: "#64748b", fontSize: "12px", padding: "4px 8px", cursor: "pointer" }}>
+                  style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "6px", color: "#64748b", fontSize: "12px", padding: "4px 8px", cursor: "pointer" }}>
                   {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
                 </select>
               </div>
@@ -729,7 +729,7 @@ function TimelineView({ holiday, onOpenBooking }) {
             <div style={{ flex: 1, height: "1px", background: "#e0f2fe" }} />
           </div>
           {/* Events for this date */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "16px", borderLeft: "2px solid #1e1e3a" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "16px", borderLeft: "2px solid #bae6fd" }}>
             {groups[dateKey].map(({ step, booking }, i) => {
               const isBooked = booking?.confirmed;
               const summary = getStepSummary(step, booking);
@@ -737,12 +737,12 @@ function TimelineView({ holiday, onOpenBooking }) {
               return (
                 <div key={step.id} onClick={() => onOpenBooking(step.id)}
                   style={{
-                    background: "#0f172a", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`,
+                    background: "#ffffff", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`,
                     borderRadius: "12px", padding: "12px 16px", cursor: "pointer",
                     display: "flex", alignItems: "flex-start", gap: "12px", transition: "all 0.15s",
                     marginLeft: "-1px"
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
                 >
                   <span style={{ fontSize: "22px", flexShrink: 0 }}>{step.icon}</span>
@@ -822,7 +822,7 @@ function ItineraryView({ holiday, onOpenBooking }) {
         return (
           <div key={dateStr} style={{ marginBottom: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
-              <div style={{ background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "8px", padding: "5px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
+              <div style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "5px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
                 <div style={{ color: "#0ea5e9", fontSize: "10px", fontWeight: "700", textTransform: "uppercase" }}>Day</div>
                 <div style={{ color: "#0f172a", fontSize: "18px", fontWeight: "700", lineHeight: 1 }}>{dayNum}</div>
               </div>
@@ -832,15 +832,15 @@ function ItineraryView({ holiday, onOpenBooking }) {
               </div>
             </div>
             {dayEvents.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingLeft: "16px", borderLeft: "2px solid #1e1e3a", marginLeft: "26px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingLeft: "16px", borderLeft: "2px solid #bae6fd", marginLeft: "26px" }}>
                 {dayEvents.map(({ step, booking }) => {
                   const isBooked = booking?.confirmed;
                   const time = getStepTime(step, booking);
                   const summary = getStepSummary(step, booking);
                   return (
                     <div key={step.id} onClick={() => onOpenBooking(step.id)}
-                      style={{ background: "#0f172a", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                      style={{ background: "#ffffff", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
                     >
                       <span style={{ fontSize: "20px" }}>{step.icon}</span>
@@ -871,7 +871,7 @@ function ItineraryView({ holiday, onOpenBooking }) {
             {undated.map(({ step, booking }) => (
               <div key={step.id} onClick={() => onOpenBooking(step.id)}
                 style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
               >
                 <span style={{ fontSize: "20px" }}>{step.icon}</span>
@@ -962,7 +962,7 @@ function PackingView({ holiday, onUpdate }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {cat.items.map(item => (
-              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#0f172a", border: "1px solid #1e1e3a", borderRadius: "8px", padding: "9px 12px" }}>
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "9px 12px" }}>
                 <button onClick={() => toggleItem(catIdx, item.id)} style={{
                   width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, cursor: "pointer",
                   background: item.checked ? "#10b981" : "transparent",
@@ -1151,12 +1151,12 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <div onClick={onOpen} style={{
-        background: "#0f172a", border: `1px solid ${isBooked ? "#10b98144" : "#e2e8f0"}`,
+        background: "#ffffff", border: `1px solid ${isBooked ? "#10b98144" : "#e2e8f0"}`,
         borderRadius: "14px", padding: "16px",
         cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden", flex: 1
       }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#10b981" : "#0ea5e9"; e.currentTarget.style.background = "#f8fafc"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98144" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = isBooked ? "#10b981" : "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98144" : "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
       >
         {isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#10b981", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ffffff", fontWeight: "700", borderBottomLeftRadius: "10px" }}>✓ BOOKED</div>}
         {!isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#ef444422", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ef4444", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
@@ -1228,12 +1228,12 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           disabled={isFirst}
           style={{
             flex: 1, padding: "7px", background: "#f8fafc",
-            border: "1px solid #1e1e3a", borderRadius: "8px",
+            border: "1px solid #e2e8f0", borderRadius: "8px",
             color: isFirst ? "#e2e8f0" : "#94a3b8", cursor: isFirst ? "default" : "pointer",
             fontSize: "14px", transition: "all 0.15s",
           }}
           onMouseEnter={e => { if (!isFirst) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = isFirst ? "#e2e8f0" : "#94a3b8"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.color = isFirst ? "#e2e8f0" : "#94a3b8"; }}
           title="Move up"
         >↑ Move up</button>
         <button
@@ -1241,12 +1241,12 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           disabled={isLast}
           style={{
             flex: 1, padding: "7px", background: "#f8fafc",
-            border: "1px solid #1e1e3a", borderRadius: "8px",
+            border: "1px solid #e2e8f0", borderRadius: "8px",
             color: isLast ? "#e2e8f0" : "#94a3b8", cursor: isLast ? "default" : "pointer",
             fontSize: "14px", transition: "all 0.15s",
           }}
           onMouseEnter={e => { if (!isLast) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = isLast ? "#e2e8f0" : "#94a3b8"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.color = isLast ? "#e2e8f0" : "#94a3b8"; }}
           title="Move down"
         >↓ Move down</button>
       </div>
@@ -1537,12 +1537,12 @@ export default function App({ user }) {
                     ))}
                   </div>
                 ) : (
-                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#cbd5e1", border: "1px dashed #1e1e38", borderRadius: "16px" }}>
+                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8", border: "1px dashed #bae6fd", borderRadius: "16px" }}>
                     <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
                     <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#94a3b8", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
                   </div>
                 )}
-                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#0f172a", border: "1px dashed #2a2a45", borderRadius: "12px", color: "#94a3b8", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
+                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#ffffff", border: "1px dashed #bae6fd", borderRadius: "12px", color: "#94a3b8", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0ea5e9"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}
                 ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
@@ -1643,7 +1643,7 @@ export default function App({ user }) {
             <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
               This will create a new copy of <strong style={{ color: "#0f172a" }}>{rebookModal.emoji} {rebookModal.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
             </p>
-            <div style={{ background: "#f8fafc", border: "1px solid #2a2a45", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#94a3b8" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#94a3b8" }}>
               {(rebookModal.steps || []).length} step{(rebookModal.steps || []).length !== 1 ? "s" : ""} will be copied · All booking details cleared · Dates cleared
             </div>
             <div style={{ display: "flex", gap: "10px" }}>
