@@ -62,9 +62,9 @@ export default function AuthScreen() {
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ fontSize: "48px", marginBottom: "12px" }}>✈️</div>
           <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "28px", color: "#0f172a", letterSpacing: "-0.5px" }}>
-            My <span style={{ color: "#0ea5e9" }}>Holidays</span>
+            <span style={{ color: "#0ea5e9" }}>all</span>booked
           </h1>
-          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "14px" }}>Plan, track and remember every trip</p>
+          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "14px" }}>Your holidays, perfectly organised</p>
         </div>
 
         {/* Card */}
