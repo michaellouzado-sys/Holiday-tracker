@@ -1606,7 +1606,7 @@ function InstructionsModal({ onClose }) {
       <div style={{ ...modal, maxWidth: "560px", marginTop: 0 }} onClick={e => e.stopPropagation()}>
         <div style={modalHeader}>
           <div>
-            <h2 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "22px", color: "#0f172a" }}>
+            <h2 style={{ margin: 0, fontFamily:"'Playfair Display' Georgia, serif", fontSize: "22px", color: "#0f172a" }}>
               How to use <span style={{ color: "#0ea5e9" }}>allbooked</span>
             </h2>
             <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "4px" }}>v{APP_VERSION}</div>
@@ -1780,7 +1780,7 @@ export default function App({ user }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               {view === "detail" && <button onClick={() => setView("list")} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "20px", padding: 0 }}>←</button>}
-              <h1 style={{ margin: 0, fontSize: "26px", fontFamily: "'Playfair Display', Georgia, serif", color: "#0f172a", letterSpacing: "-0.5px" }}>
+              <h1 style={{ margin: 0, fontSize: "26px", fontFamily:"'Playfair Display' Georgia, serif", color: "#0f172a", letterSpacing: "-0.5px" }}>
                 {view === "detail" && selectedHoliday ? <span>{selectedHoliday.emoji} {selectedHoliday.name}</span> : <><span style={{ color: "#0ea5e9" }}>all</span>booked</>}
               </h1>
             </div>
@@ -1812,7 +1812,7 @@ export default function App({ user }) {
           {showSuppliers && (
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px", marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "16px", color: "#0f172a" }}>⭐ Supplier Ratings</div>
+                <div style={{ fontFamily:"'Playfair Display' Georgia, serif", fontSize: "16px", color: "#0f172a" }}>⭐ Supplier Ratings</div>
                 <div style={{ color: "#94a3b8", fontSize: "12px" }}>Across all holidays</div>
               </div>
               <SupplierSummary holidays={holidays} />
@@ -1840,7 +1840,7 @@ export default function App({ user }) {
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", flexWrap: "wrap" }}>
                         <span style={{ fontSize: "22px" }}>{h.emoji}</span>
-                        <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "17px", color: "#0f172a" }}>{h.name}</span>
+                        <span style={{ fontFamily:"'Playfair Display' Georgia, serif", fontSize: "17px", color: "#0f172a" }}>{h.name}</span>
                         <span style={{ fontSize: "11px", padding: "2px 10px", borderRadius: "20px", textTransform: "uppercase", background: STATUS_COLORS[status] + "22", color: STATUS_COLORS[status], border: `1px solid ${STATUS_COLORS[status]}44` }}>{status}</span>
                       </div>
                       <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
@@ -1876,7 +1876,7 @@ export default function App({ user }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: "8px", alignSelf: "stretch" }}>
                       <div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div>
-                      <div style={{ fontSize: "10px", fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: "10px", fontFamily:"'Playfair Display' Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
                         <span style={{ color: "#0ea5e9" }}>all</span><span style={{ color: "#cbd5e1" }}>booked</span>
                       </div>
                     </div>
