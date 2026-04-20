@@ -208,13 +208,13 @@ const DEFAULT_PACKING = [
   { category: "Misc", items: ["Cash / cards", "Sunglasses", "Book / e-reader", "Reusable water bottle"] },
 ];
 // ─── Supabase ──────────────────────────────────────────────────────────────────
-async function loadFromSupabase() {
-  const { data, error } = await supabase.from("app_data").select("data").eq("id", SHARED_ROW_ID).maybeSingle();
+async function loadFromSupabase(userId) {
+  const { data, error } = await supabase.from("app_data").select("data").eq("id", userId).maybeSingle();
   if (error) throw error;
   return data?.data ?? { holidays: [] };
 }
-async function saveToSupabase(payload) {
-  const { error } = await supabase.from("app_data").upsert({ id: SHARED_ROW_ID, data: payload, updated_at: new Date().toISOString() });
+async function saveToSupabase(userId, payload) {
+  const { error } = await supabase.from("app_data").upsert({ id: userId, data: payload, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
 
@@ -1255,7 +1255,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 }
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
-export default function App() {
+export default function App({ user }) {
   const [holidays, setHolidays]         = useState([]);
   const [selectedId, setSelectedId]     = useState(null);
   const [view, setView]                 = useState("list");
@@ -1273,13 +1273,13 @@ export default function App() {
   const saveTimer = useRef(null);
 
   useEffect(() => {
-    loadFromSupabase().then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
+    loadFromSupabase(user.id).then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
   }, []);
 
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveToSupabase({ holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
+      saveToSupabase(user.id, { holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
     }, 600);
   }, []);
 
@@ -1409,6 +1409,7 @@ export default function App() {
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#fff" : "#aaa", background: showSuppliers ? "#1e1e3a" : "#1a1a2e" }}>⭐ Suppliers</button>
               <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
             </>}
+            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#444" }} title={user.email}>Sign out</button>
           </div>
         </div>
 
