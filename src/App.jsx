@@ -1884,6 +1884,7 @@ export default function App({ user }) {
               })}
             </div>
           )}
+          </div>
         </>)}
 
         {/* Detail view */}
