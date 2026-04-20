@@ -273,8 +273,8 @@ function AddStepModal({ onAdd, onClose }) {
   const filtered = STEP_TEMPLATES.filter(t => t.label.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div style={overlay}>
-      <div style={{ ...modal, maxWidth: "500px" }}>
+    <div style={overlay} onClick={saveAndClose}>
+      <div style={{ ...modal, maxWidth: "500px" }} onClick={e => e.stopPropagation()}>
         <div style={modalHeader}>
           <h3 style={modalTitle}>Add Booking Step</h3>
           <button onClick={onClose} style={closeBtn}>✕</button>
@@ -454,8 +454,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     : null;
 
   return (
-    <div style={overlay}>
-      <div style={{ ...modal, maxWidth: "500px" }}>
+    <div style={overlay} onClick={saveAndClose}>
+      <div style={{ ...modal, maxWidth: "500px" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={modalHeader}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -471,10 +471,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
               </h3>
             )}
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button onClick={saveAndClose} style={{ ...primaryBtn, padding: "8px 16px", fontSize: "13px" }}>Save & Close</button>
-            <button onClick={onClose} style={{ ...closeBtn, fontSize: "18px" }} title="Discard changes">✕</button>
-          </div>
+          <button onClick={saveAndClose} style={{ ...primaryBtn, padding: "8px 16px", fontSize: "13px" }}>Save & Close</button>
         </div>
 
         {/* Photo scan */}
