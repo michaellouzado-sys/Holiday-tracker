@@ -167,6 +167,17 @@ function getStepSummary(step, booking) {
 }
 
 // Build a sorted list of timeline events from a holiday
+// Step-type priority for same-day tiebreaking (lower = earlier in day)
+function stepTypePriority(step) {
+  if (isParking(step))  return 0; // leave car before anything
+  if (isTransfer(step)) return 1; // transfer to airport
+  if (isFlight(step))   return 2; // flights
+  if (isFerry(step) || isSailing(step)) return 3;
+  if (isCarHire(step))  return 4; // pick up car on arrival
+  if (isHotel(step) || isVilla(step)) return 5; // check in
+  return 6; // activities, insurance, currency etc
+}
+
 function buildTimeline(holiday) {
   const steps = holiday.steps || [];
   const events = [];
@@ -175,14 +186,24 @@ function buildTimeline(holiday) {
     const date = getStepDate(step, b);
     events.push({ step, booking: b, date, time: getStepTime(step, b) });
   });
-  // Sort: items with dates first (by date+time), then undated
+  // Sort: dated first, then by date+time, then by step-type priority as tiebreaker
   events.sort((a, b) => {
-    if (!a.date && !b.date) return 0;
+    if (!a.date && !b.date) return stepTypePriority(a.step) - stepTypePriority(b.step);
     if (!a.date) return 1;
     if (!b.date) return -1;
-    const da = a.date + (a.time || "00:00");
-    const db = b.date + (b.time || "00:00");
-    return da < db ? -1 : da > db ? 1 : 0;
+    // Same date — sort by time first, then step-type priority
+    if (a.date === b.date) {
+      const hasTimeA = !!a.time;
+      const hasTimeB = !!b.time;
+      if (hasTimeA && hasTimeB) {
+        if (a.time !== b.time) return a.time < b.time ? -1 : 1;
+        return stepTypePriority(a.step) - stepTypePriority(b.step);
+      }
+      if (hasTimeA) return -1; // timed steps before untimed
+      if (hasTimeB) return 1;
+      return stepTypePriority(a.step) - stepTypePriority(b.step);
+    }
+    return a.date < b.date ? -1 : 1;
   });
   return events;
 }
