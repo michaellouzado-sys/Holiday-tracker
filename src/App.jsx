@@ -8,8 +8,7 @@ const STEP_TEMPLATES = [
   { icon: "✈️", label: "Return Flights" },
   { icon: "🛫", label: "Internal Flight" },
   { icon: "🅿️", label: "Airport Parking" },
-  { icon: "🚕", label: "Taxi to Airport" },
-  { icon: "🚂", label: "Train to Airport" },
+  { icon: "🚕", label: "Transfers to/from Airport" },
   { icon: "🏨", label: "Hotel" },
   { icon: "🏠", label: "Villa / Apartment" },
   { icon: "🚗", label: "Car Hire" },
@@ -115,7 +114,7 @@ function isCarHire(step)  { return step.icon === "🚗" || /car hire|car rental/
 function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise|boat transfer/i.test(step.label); }
 function isSailing(step)  { return step.icon === "⛵" || /sailing/i.test(step.label); }
 function isParking(step)  { return step.icon === "🅿️" || /parking/i.test(step.label); }
-function isTransfer(step) { return step.icon === "🚌" || /transfer/i.test(step.label); }
+function isTransfer(step) { return step.icon === "🚌" || step.icon === "🚕" || /transfer/i.test(step.label); }
 
 
 // ─── Phase 2 helpers ───────────────────────────────────────────────────────────
@@ -128,7 +127,7 @@ function getStepDate(step, booking) {
   if (isHotel(step) || isVilla(step)) return booking.checkIn || null;
   if (isCarHire(step))  return booking.pickUpDate    || null;
   if (isParking(step))  return booking.parkingEntry ? booking.parkingEntry.slice(0,10) : null;
-  if (isTransfer(step)) return null; // transfers don't have a standalone date
+  if (isTransfer(step)) return booking.transferDate || null;
   return null;
 }
 
@@ -243,7 +242,7 @@ async function extractFromImage(base64Data, mediaType, stepType) {
     parking: `Extract all airport parking booking details from this image. Return ONLY a JSON object (use empty string if not found):
 {"provider":"company name","reference":"booking ref","carParkName":"car park name","terminalName":"e.g. Terminal 2","terminalTransfer":"e.g. shuttle bus","parkingEntry":"YYYY-MM-DDTHH:MM","parkingExit":"YYYY-MM-DDTHH:MM","dateBooked":"YYYY-MM-DD if visible","notes":"other info"}`,
     transfer: `Extract all transfer booking details from this image. Return ONLY a JSON object (use empty string if not found):
-{"provider":"company name","reference":"booking ref","pickupTime":"HH:MM 24h","pickupLocation":"e.g. hotel lobby","driverContact":"phone number","dateBooked":"YYYY-MM-DD if visible","notes":"passengers, vehicle type"}`,
+{"provider":"company name","reference":"booking ref","transferDate":"YYYY-MM-DD transfer date","pickupTime":"HH:MM 24h","pickupLocation":"e.g. hotel lobby","driverContact":"phone number","dateBooked":"YYYY-MM-DD if visible","notes":"passengers, vehicle type"}`,
     default: `Extract booking details from this image. Return ONLY a JSON object (use empty string if not found):
 {"provider":"company name","reference":"booking ref","dateBooked":"YYYY-MM-DD if visible","notes":"any useful details"}`,
   };
@@ -380,6 +379,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     parkingEntry:        booking?.parkingEntry        || "",
     parkingExit:         booking?.parkingExit         || "",
     // transfer
+    transferDate:        booking?.transferDate        || "",
     pickupTime:          booking?.pickupTime          || "",
     pickupLocation:      booking?.pickupLocation      || "",
     driverContact:       booking?.driverContact       || "",
@@ -486,7 +486,11 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             background: scanning ? "#f1f5f9" : "#e0f2fe", border: "1px dashed #0ea5e9",
             color: scanning ? "#64748b" : "#38bdf8", fontSize: "13px", fontWeight: "600",
           }}>
-            {scanning ? <><span style={{ fontSize: "16px" }}>⏳</span> Scanning...</> : <><span style={{ fontSize: "16px" }}>📷</span> Scan from photo or screenshot</>}
+            {scanning ? (
+              <><div style={{ width:"16px", height:"16px", borderRadius:"50%", flexShrink:0, border:"2px solid #bae6fd", borderTopColor:"#0ea5e9", animation:"spin 0.7s linear infinite", display:"inline-block" }} /> Scanning…</>
+            ) : (
+              <><span style={{ fontSize:"16px" }}>📷</span> Scan from photo or screenshot</>
+            )}
           </label>
           {scanPreview && !scanning && <div style={{ marginTop: "8px", borderRadius: "8px", overflow: "hidden", maxHeight: "80px", display: "flex", justifyContent: "center", background: "#f1f5f9" }}><img src={scanPreview} alt="Scanned" style={{ maxHeight: "80px", objectFit: "contain" }} /></div>}
           {scanError && <div style={{ marginTop: "6px", color: "#ef4444", fontSize: "12px" }}>⚠️ {scanError}</div>}
@@ -563,7 +567,10 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* ── Transfer fields ── */}
         {isTransferStep && (<>
-          <Row><HalfField k="pickupTime" label="Pickup Time" type="time" /></Row>
+          <Row>
+            <HalfField k="transferDate" label="Transfer Date" type="date" />
+            <HalfField k="pickupTime" label="Pickup Time" type="time" />
+          </Row>
           <Field k="pickupLocation" label="Pickup Location" placeholder="e.g. Hotel lobby, Arrivals Hall Gate B..." />
           <Field k="driverContact" label="Driver / Contact Number" placeholder="e.g. +44 7700 900123..." />
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
@@ -1195,7 +1202,8 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {isParking(step) && booking?.terminalName && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>{booking.terminalName}</div>}
 
           {/* Transfer */}
-          {isTransfer(step) && booking?.pickupTime && <div style={{ color: "#10b981", fontSize: "11px", marginTop: "4px" }}>⏰ {booking.pickupTime}</div>}
+          {isTransfer(step) && booking?.transferDate && <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>📅 {formatDate(booking.transferDate)}</div>}
+          {isTransfer(step) && booking?.pickupTime && <div style={{ color: "#10b981", fontSize: "11px", marginTop: "2px" }}>⏰ {booking.pickupTime}</div>}
           {isTransfer(step) && booking?.pickupLocation && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>{booking.pickupLocation}</div>}
 
           {(() => {
@@ -1406,8 +1414,8 @@ export default function App({ user }) {
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444" }}>Delete</button>
             </>)}
             {view === "list" && <>
-              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9" }}>⭐ Suppliers</button>
               <button onClick={() => setHolidayModal({})} style={primaryBtn}>+ New Holiday</button>
+              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9" }}>⭐ Suppliers</button>
             </>}
             <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 12px", color: "#94a3b8" }} title={user.email}>Sign out</button>
           </div>
