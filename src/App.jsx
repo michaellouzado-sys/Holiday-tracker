@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 
 const SHARED_ROW_ID = "shared";
@@ -327,6 +327,135 @@ function AddStepModal({ onAdd, onClose }) {
   );
 }
 
+
+// ─── Date Picker ───────────────────────────────────────────────────────────────
+// Custom calendar with explicit confirm tick — avoids native picker closing issues
+function DatePicker({ value, onChange, label, style: extraStyle }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+  const [viewYear, setViewYear] = useState(() => {
+    const d = value ? new Date(value) : new Date();
+    return d.getFullYear();
+  });
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = value ? new Date(value) : new Date();
+    return d.getMonth();
+  });
+
+  // Sync draft when value changes externally (e.g. photo scan)
+  const prevValue = React.useRef(value);
+  if (prevValue.current !== value) {
+    prevValue.current = value;
+    if (value) {
+      setDraft(value);
+      const d = new Date(value);
+      setViewYear(d.getFullYear());
+      setViewMonth(d.getMonth());
+    }
+  }
+
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const DAYS   = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+
+  function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+  function getFirstDayOfWeek(y, m) {
+    const d = new Date(y, m, 1).getDay();
+    return d === 0 ? 6 : d - 1; // Mon=0
+  }
+
+  function confirm() {
+    if (draft) onChange(draft);
+    setOpen(false);
+  }
+
+  function clear() {
+    setDraft("");
+    onChange("");
+    setOpen(false);
+  }
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  }
+
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
+  const firstDay    = getFirstDayOfWeek(viewYear, viewMonth);
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const displayValue = value
+    ? new Date(value + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+
+  return (
+    <div style={{ position: "relative", ...extraStyle }}>
+      {/* Trigger button */}
+      <button type="button" onClick={() => setOpen(o => !o)} style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        width: "100%", padding: "10px 13px", background: "#f8fafc",
+        border: `1px solid ${open ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px",
+        color: displayValue ? "#0f172a" : "#94a3b8", fontSize: "14px", cursor: "pointer",
+        textAlign: "left", marginTop: "6px"
+      }}>
+        <span>{displayValue || "Select date"}</span>
+        <span style={{ fontSize: "12px", color: "#94a3b8" }}>📅</span>
+      </button>
+
+      {/* Calendar dropdown */}
+      {open && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", left: 0,
+          background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px",
+          padding: "12px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)",
+          minWidth: "260px"
+        }}>
+          {/* Month navigation */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <button type="button" onClick={prevMonth} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#64748b", padding: "4px 8px" }}>‹</button>
+            <span style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a" }}>{MONTHS[viewMonth]} {viewYear}</span>
+            <button type="button" onClick={nextMonth} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#64748b", padding: "4px 8px" }}>›</button>
+          </div>
+
+          {/* Day headers */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", marginBottom: "4px" }}>
+            {DAYS.map(d => <div key={d} style={{ textAlign: "center", fontSize: "11px", color: "#94a3b8", fontWeight: "600", padding: "2px 0" }}>{d}</div>)}
+          </div>
+
+          {/* Day cells */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px" }}>
+            {cells.map((day, i) => {
+              if (!day) return <div key={i} />;
+              const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+              const isSelected = draft === dateStr;
+              const isToday = dateStr === new Date().toISOString().slice(0,10);
+              return (
+                <button key={i} type="button" onClick={() => setDraft(dateStr)} style={{
+                  padding: "6px 2px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px",
+                  background: isSelected ? "#0ea5e9" : isToday ? "#e0f2fe" : "transparent",
+                  color: isSelected ? "#ffffff" : isToday ? "#0ea5e9" : "#0f172a",
+                  fontWeight: isSelected || isToday ? "700" : "400"
+                }}>{day}</button>
+              );
+            })}
+          </div>
+
+          {/* Confirm / clear */}
+          <div style={{ display: "flex", gap: "8px", marginTop: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "10px" }}>
+            <button type="button" onClick={clear} style={{ flex: 1, padding: "7px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#94a3b8", fontSize: "13px", cursor: "pointer" }}>Clear</button>
+            <button type="button" onClick={confirm} style={{ flex: 2, padding: "7px", background: "#0ea5e9", border: "none", borderRadius: "8px", color: "#ffffff", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>✓ Confirm</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Booking Modal ─────────────────────────────────────────────────────────────
 function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClose, onRename }) {
   const isFlightStep   = isFlight(step);
@@ -447,6 +576,19 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
       <input type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} style={inputStyle} />
     </label>
   );
+  // Date fields use custom picker instead of native date input
+  const DateField = ({ k, label }) => (
+    <label style={labelStyle}>
+      <span>{label}</span>
+      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
+  const HalfDateField = ({ k, label }) => (
+    <label style={{ ...labelStyle, flex: 1 }}>
+      <span>{label}</span>
+      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
 
   // Calculate nights for hotel/villa
   const nights = isAccomm && form.checkIn && form.checkOut
@@ -512,7 +654,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {/* ── Flight fields ── */}
         {isFlightStep && (<>
           <Row><HalfField k="departureAirport" label="Departure Airport" placeholder="e.g. Manchester (MAN)" /><HalfField k="arrivalAirport" label="Arrival Airport" placeholder="e.g. Palermo (PMO)" /></Row>
-          <Row><HalfField k="flightDate" label="Flight Date" type="date" /><HalfField k="flightNumber" label="Flight Number" placeholder="e.g. FR1234" /></Row>
+          <Row><HalfDateField k="flightDate" label="Flight Date" /><HalfField k="flightNumber" label="Flight Number" placeholder="e.g. FR1234" /></Row>
           <Row><HalfField k="departureTime" label="Departure Time" type="time" /><HalfField k="arrivalTime" label="Arrival Time" type="time" /></Row>
           <Row><HalfField k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" /></Row>
         </>)}
@@ -520,8 +662,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {/* ── Ferry / Sailing fields ── */}
         {(isFerryStep || isSailingStep) && (<>
           <Row>
-            <HalfField k="ferryDate" label="Departure Date" type="date" />
-            {isSailingStep && <HalfField k="sailingReturnDate" label="Return Date" type="date" />}
+            <HalfDateField k="ferryDate" label="Departure Date" />
+            {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" />}
           </Row>
           <Row><HalfField k="ferryDepartTime" label="Departure Time" type="time" /><HalfField k="ferryArriveTime" label="Arrival Time" type="time" /></Row>
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
@@ -530,8 +672,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {/* ── Hotel / Villa fields ── */}
         {isAccomm && (<>
           <Row>
-            <HalfField k="checkIn" label="Check-in Date" type="date" />
-            <HalfField k="checkOut" label="Check-out Date" type="date" />
+            <HalfDateField k="checkIn" label="Check-in Date" />
+            <HalfDateField k="checkOut" label="Check-out Date" />
           </Row>
           {nights !== null && nights > 0 && (
             <div style={{ marginTop: "-8px", marginBottom: "14px", color: "#0ea5e9", fontSize: "12px" }}>
@@ -546,7 +688,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* ── Car Hire fields ── */}
         {isCarHireStep && (<>
-          <Row><HalfField k="pickUpDate" label="Pick-up Date" type="date" /><HalfField k="dropOffDate" label="Drop-off Date" type="date" /></Row>
+          <Row><HalfDateField k="pickUpDate" label="Pick-up Date" /><HalfDateField k="dropOffDate" label="Drop-off Date" /></Row>
           <Field k="pickUpLocation" label="Pick-up Location" placeholder="e.g. Airport desk T2, off-site depot..." />
           <Field k="carType" label="Car Type" placeholder="e.g. VW Golf, Fiat 500, Economy..." />
           <Field k="carExtras" label="Extras / Insurance" placeholder="e.g. Full insurance, child seat, satnav..." />
@@ -565,7 +707,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {/* ── Transfer fields ── */}
         {isTransferStep && (<>
           <Row>
-            <HalfField k="transferDate" label="Transfer Date" type="date" />
+            <HalfDateField k="transferDate" label="Transfer Date" />
             <HalfField k="pickupTime" label="Pickup Time" type="time" />
           </Row>
           <Field k="pickupLocation" label="Pickup Location" placeholder="e.g. Hotel lobby, Arrivals Hall Gate B..." />
@@ -579,7 +721,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         )}
 
         <Field k="provider" label={isFlightStep ? "Airline" : isCarHireStep ? "Car Hire Company" : isParkingStep ? "Car Park Company" : "Provider / Company"} placeholder="..." />
-        <Field k="dateBooked" label="Date Booked" type="date" />
+        <DateField k="dateBooked" label="Date Booked" />
 
         {/* Pricing */}
         {(() => {
@@ -617,7 +759,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
               {outstanding !== null && outstanding > 0 && (
                 <label style={{ ...labelStyle, marginTop: "12px", marginBottom: 0 }}>
                   <span>Payment Due Date</span>
-                  <input type="date" value={form.paymentDueDate} onChange={e => set("paymentDueDate", e.target.value)} style={inputStyle} />
+                  <DatePicker value={form.paymentDueDate} onChange={v => set("paymentDueDate", v)} />
                 </label>
               )}
             </div>
@@ -686,7 +828,7 @@ function HolidayModal({ holiday, onSave, onClose }) {
           {[{ k: "startDate", label: "Departure" }, { k: "endDate", label: "Return" }].map(({ k, label }) => (
             <label key={k} style={{ ...labelStyle, flex: 1 }}>
               <span>{label}</span>
-              <input type="date" value={form[k]} onChange={e => set(k, e.target.value)} style={inputStyle} />
+              <DatePicker value={form[k]} onChange={v => set(k, v)} />
             </label>
           ))}
         </div>
