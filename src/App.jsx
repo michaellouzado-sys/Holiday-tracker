@@ -1122,7 +1122,19 @@ function ItineraryView({ holiday, onOpenBooking }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingLeft: "16px", borderLeft: "2px solid #bae6fd", marginLeft: "26px" }}>
                 {dayEvents.map(({ step, booking }) => {
                   const isBooked = booking?.confirmed;
-                  const time = getStepTime(step, booking);
+                  // For multi-day bookings: show depart time on start day, arrive time on end day, nothing in between
+                  const startD = getStepDate(step, booking);
+                  const endD = getStepEndDate(step, booking);
+                  let time = null;
+                  if (!endD || dateStr === startD) {
+                    // Single-day or start day — show departure time
+                    time = getStepTime(step, booking);
+                  } else if (dateStr === endD) {
+                    // End day — show arrival time if available
+                    if (isFerry(step) || isSailing(step)) time = booking?.ferryArriveTime || null;
+                    else if (isFlight(step)) time = booking?.arrivalTime || null;
+                  }
+                  // Middle days show no time
                   const summary = getStepSummary(step, booking);
                   return (
                     <div key={step.id} onClick={() => onOpenBooking(step.id)}
