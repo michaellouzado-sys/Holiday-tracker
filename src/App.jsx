@@ -1578,7 +1578,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.6"; // bump this whenever the instructions change
+const APP_VERSION = "1.7"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
@@ -1590,7 +1590,7 @@ function InstructionsModal({ onClose }) {
     {
       icon: "📋",
       title: "Adding booking steps",
-      text: "Open a holiday and tap + Add Booking Step. Choose from the template list (flights, hotel, car hire, parking, transfers, ferry, sailing and more) or create a completely custom step with your own name and dates. Steps are tailored — flights show airports and times, hotels show check-in/out, car hire shows pick-up location, and so on."
+      text: "Open a holiday and use the blue + Add Step button (bottom right of the screen) to add booking steps. Choose from the template list — flights, hotel, car hire, parking, transfers, ferry, sailing and more — or create a custom step with your own name and dates. Steps are tailored to their type: flights show airports and times, hotels show check-in/out, and so on."
     },
     {
       icon: "📷",
@@ -1600,17 +1600,17 @@ function InstructionsModal({ onClose }) {
     {
       icon: "💾",
       title: "Saving details",
-      text: "Nothing saves until you tap Save & Close. This means you can edit freely without worrying about accidental saves. Dates and times use a custom picker — select a value then tap ✓ Confirm to set it."
+      text: "Nothing saves until you tap Save & Close. Edit freely without worrying about accidental saves. Dates and times use a custom picker — select a value then tap ✓ Confirm to set it."
     },
     {
       icon: "📅",
       title: "Itinerary",
-      text: "Switch to the Itinerary tab to see a day-by-day view of your trip from departure to return. Each booking appears on every day it covers — so a 7-night hotel shows on all 7 days. Steps without a date appear at the bottom under 'No date set'."
+      text: "The Itinerary tab shows a day-by-day view of your trip from departure to return. Multi-day bookings like hotels appear on every day they cover. Steps without a date appear at the bottom under 'No date set'. Use the 📅 Export button in the header to download the trip as a calendar file (.ics) for Apple Calendar, Google Calendar or Outlook."
     },
     {
       icon: "🎒",
       title: "Packing list",
-      text: "The Packing tab inside each holiday has a pre-built checklist you can customise. Tick items off as you pack, add your own items or categories, and remove anything that doesn't apply."
+      text: "The Packing tab has a pre-built checklist you can customise. Tick items off as you pack, add your own items or categories, and remove anything that doesn't apply. A progress bar shows how far through packing you are."
     },
     {
       icon: "✨",
@@ -1619,18 +1619,28 @@ function InstructionsModal({ onClose }) {
     },
     {
       icon: "💰",
-      title: "Finances",
-      text: "Enter a total price and amount paid on each booking step. Each step has its own currency selector — use this when a booking was paid in local currency (e.g. a hotel paid in euros on a GBP trip). The holiday summary converts everything into the trip display currency using live exchange rates and shows your total outstanding balance."
+      title: "Finances & payment reminders",
+      text: "Enter a total price and amount paid on each booking step. Each step has its own currency selector for bookings paid in local currency. The app converts everything into the trip display currency using live rates. If a payment has a due date set, a reminder appears on the home screen when it's within 30 days — turning red when within 7 days."
+    },
+    {
+      icon: "📊",
+      title: "Trip stats",
+      text: "The home screen shows a summary across all your holidays — upcoming trips, past trips, and number of destinations visited."
     },
     {
       icon: "⭐",
       title: "Supplier ratings",
-      text: "Rate any booking 👎 😐 👍 ⭐ after your trip. Tap Suppliers on the main screen to see a ranked summary of every provider you've used across all holidays — great for deciding who to rebook."
+      text: "Rate any booking 👎 😐 👍 ⭐ after your trip. Tap the ⭐ button on the main screen to see a ranked summary of every provider you've used across all holidays — great for deciding who to rebook."
     },
     {
       icon: "🔁",
       title: "Rebooking a trip",
-      text: "On any past holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
+      text: "On any holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
+    },
+    {
+      icon: "📱",
+      title: "Install as an app",
+      text: "On iPhone, tap the Share button in Safari then 'Add to Home Screen' to install allbooked as an app. It works offline once installed — your holiday data is always accessible even without internet."
     },
   ];
 
