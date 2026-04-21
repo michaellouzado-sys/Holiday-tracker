@@ -1713,6 +1713,57 @@ export default function App({ user }) {
     updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, memories: mems } : h));
   }
 
+  function exportToCalendar(holiday) {
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//allbooked//EN",
+      "CALSCALE:GREGORIAN",
+    ];
+    // Add holiday as an all-day event
+    if (holiday.startDate) {
+      const uid = `${holiday.id}-trip@allbooked.app`;
+      const start = holiday.startDate.replace(/-/g, "");
+      const end = holiday.endDate ? holiday.endDate.replace(/-/g, "") : start;
+      // DTEND for all-day is day after
+      const endDate = new Date(holiday.endDate || holiday.startDate);
+      endDate.setDate(endDate.getDate() + 1);
+      const endStr = endDate.toISOString().slice(0,10).replace(/-/g, "");
+      lines.push("BEGIN:VEVENT", `UID:${uid}`, `DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${endStr}`,
+        `SUMMARY:${holiday.emoji} ${holiday.name}${holiday.destination ? ` — ${holiday.destination}` : ""}`,
+        "END:VEVENT");
+    }
+    // Add each booked step as an event
+    (holiday.steps || []).forEach(step => {
+      const b = holiday.bookings?.[step.id];
+      if (!b) return;
+      const date = getStepDate(step, b);
+      if (!date) return;
+      const uid = `${step.id}@allbooked.app`;
+      const dateStr = date.replace(/-/g, "");
+      const time = getStepTime(step, b);
+      let dtstart, dtend;
+      if (time) {
+        const t = time.replace(":","") + "00";
+        dtstart = `DTSTART:${dateStr}T${t}`;
+        dtend = `DTEND:${dateStr}T${t}`;
+      } else {
+        dtstart = `DTSTART;VALUE=DATE:${dateStr}`;
+        dtend = `DTEND;VALUE=DATE:${dateStr}`;
+      }
+      const summary = `${step.icon} ${step.label}${b.provider ? ` — ${b.provider}` : ""}`;
+      const desc = [b.reference && `Ref: ${b.reference}`, b.notes].filter(Boolean).join("\n");
+      lines.push("BEGIN:VEVENT", `UID:${uid}`, dtstart, dtend, `SUMMARY:${summary}`,
+        desc && `DESCRIPTION:${desc}`, "END:VEVENT");
+    });
+    lines.push("END:VCALENDAR");
+    const blob = new Blob([lines.filter(Boolean).join("\r\n")], { type: "text/calendar" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${holiday.name.replace(/[^a-z0-9]/gi,"_")}.ics`;
+    a.click();
+  }
+
   function rebookHoliday(source) {
     // Create a new holiday pre-populated with same steps (cleared bookings)
     const newH = {
@@ -1821,6 +1872,7 @@ export default function App({ user }) {
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {view === "detail" && selectedHoliday && (<>
+              <button onClick={() => exportToCalendar(selectedHoliday)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#0ea5e9", borderColor: "#bae6fd" }}>📅 Export</button>
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
@@ -1851,6 +1903,62 @@ export default function App({ user }) {
               <SupplierSummary holidays={holidays} />
             </div>
           )}
+
+          {/* Trip stats strip */}
+          {holidays.length > 0 && (() => {
+            const pastHols = holidays.filter(h => getStatus(h) === "past");
+            const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
+            const destinations = [...new Set(holidays.filter(h => h.destination).map(h => h.destination.split(",")[0].trim()))];
+            const upcomingPayments = [];
+            const now = new Date();
+            holidays.forEach(h => {
+              (h.steps || []).forEach(s => {
+                const b = h.bookings?.[s.id] || {};
+                if (!b.paymentDueDate) return;
+                const due = new Date(b.paymentDueDate);
+                const daysUntil = Math.ceil((due - now) / 86400000);
+                const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+                const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
+                const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
+                if (daysUntil >= 0 && daysUntil <= 30 && outstanding > 0) {
+                  upcomingPayments.push({ holidayName: h.name, stepLabel: s.label, daysUntil, due: b.paymentDueDate, outstanding, currency: b.stepCurrency || h.currency || "GBP" });
+                }
+              });
+            });
+            upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
+            return (
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: upcomingPayments.length > 0 ? "12px" : "0" }}>
+                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#0ea5e9" }}>{upcomingHols.length}</div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Upcoming</div>
+                  </div>
+                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#10b981" }}>{pastHols.length}</div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
+                  </div>
+                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{destinations.length}</div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Destinations</div>
+                  </div>
+                </div>
+                {/* Payment reminders */}
+                {upcomingPayments.length > 0 && (
+                  <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
+                    {upcomingPayments.map((p, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
+                        <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
+                        <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
+                          {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {filteredHolidays.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
@@ -1967,11 +2075,29 @@ export default function App({ user }) {
                     <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#94a3b8", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
                   </div>
                 )}
-                <button onClick={() => setAddStepModal(true)} style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#ffffff", border: "1px dashed #bae6fd", borderRadius: "12px", color: "#94a3b8", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0ea5e9"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}
-                ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
+                {/* Floating Add Step button rendered outside scroll — see below */}
               </>)}
+
+              {/* Floating Add Step button — fixed to bottom right when on bookings tab */}
+              {detailTab === "bookings" && (
+                <button onClick={() => setAddStepModal(true)}
+                  style={{
+                    position: "fixed", bottom: "28px", right: "24px", zIndex: 500,
+                    width: "80px", height: "80px", borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+                    border: "none", cursor: "pointer", color: "#ffffff",
+                    fontSize: "12px", fontWeight: "700", lineHeight: "1.3",
+                    boxShadow: "0 4px 20px rgba(14,165,233,0.45)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: "2px", transition: "transform 0.15s, box-shadow 0.15s"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 28px rgba(14,165,233,0.55)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(14,165,233,0.45)"; }}
+                >
+                  <span style={{ fontSize: "22px", lineHeight: 1 }}>＋</span>
+                  <span>Add step</span>
+                </button>
+              )}
 
               {/* Itinerary tab */}
               {detailTab === "itinerary" && (
