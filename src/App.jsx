@@ -131,6 +131,16 @@ function getStepDate(step, booking) {
   return null;
 }
 
+// Returns the end date of a multi-day booking (hotel checkout, sailing return, car drop-off etc)
+function getStepEndDate(step, booking) {
+  if (!booking) return null;
+  if (isHotel(step) || isVilla(step)) return booking.checkOut || null;
+  if (isSailing(step)) return booking.sailingReturnDate || null;
+  if (isCarHire(step)) return booking.dropOffDate || null;
+  if (isParking(step)) return booking.parkingExit ? booking.parkingExit.slice(0,10) : null;
+  return null;
+}
+
 // Returns a short time string for timeline display
 function getStepTime(step, booking) {
   if (!booking) return null;
@@ -1087,7 +1097,14 @@ function ItineraryView({ holiday, onOpenBooking }) {
 
       {days.map((day, idx) => {
         const dateStr = day.toISOString().slice(0, 10);
-        const dayEvents = dated.filter(e => e.date === dateStr);
+        const dayEvents = dated.filter(e => {
+          if (!e.date) return false;
+          if (e.date === dateStr) return true;
+          // Also show multi-day bookings on every day they span
+          const endDate = getStepEndDate(e.step, e.booking);
+          if (endDate && e.date <= dateStr && endDate >= dateStr) return true;
+          return false;
+        });
         const dayNum = idx + 1;
         return (
           <div key={dateStr} style={{ marginBottom: "20px" }}>
@@ -1115,9 +1132,18 @@ function ItineraryView({ holiday, onOpenBooking }) {
                     >
                       <span style={{ fontSize: "20px" }}>{step.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                           <span style={{ color: "#0f172a", fontSize: "13px", fontWeight: "600" }}>{step.label}</span>
                           {time && <span style={{ color: "#10b981", fontSize: "12px" }}>{time}</span>}
+                          {(() => {
+                            const endDate = getStepEndDate(step, booking);
+                            if (!endDate || !booking) return null;
+                            const startD = getStepDate(step, booking);
+                            if (!startD || startD === dateStr) return null;
+                            const dayN = Math.round((new Date(dateStr) - new Date(startD)) / 86400000) + 1;
+                            const total = Math.round((new Date(endDate) - new Date(startD)) / 86400000);
+                            return <span style={{ color: "#94a3b8", fontSize: "11px" }}>Day {dayN} of {total}</span>;
+                          })()}
                         </div>
                         {summary && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
                       </div>
