@@ -581,6 +581,61 @@ function TimePicker({ value, onChange }) {
   );
 }
 
+
+// ─── Booking Form Field Components ─────────────────────────────────────────────
+// Defined outside BookingModal to prevent remounting on every keystroke
+function Field({ k, label, placeholder, type = "text", form, set }) {
+  return (
+    <label style={labelStyle}>
+      <span>{label}</span>
+      <input type={type} value={form[k] || ""} onChange={e => set(k, e.target.value)} placeholder={placeholder} style={inputStyle} />
+    </label>
+  );
+}
+function TextArea({ k, label, placeholder, rows = 2, form, set }) {
+  return (
+    <label style={labelStyle}>
+      <span>{label}</span>
+      <textarea value={form[k] || ""} onChange={e => set(k, e.target.value)} placeholder={placeholder} rows={rows} style={{ ...inputStyle, resize: "vertical" }} />
+    </label>
+  );
+}
+function Row({ children }) {
+  return <div style={{ display: "flex", gap: "12px" }}>{children}</div>;
+}
+function HalfField({ k, label, placeholder, type = "text", form, set }) {
+  return (
+    <label style={{ ...labelStyle, flex: 1 }}>
+      <span>{label}</span>
+      <input type={type} value={form[k] || ""} onChange={e => set(k, e.target.value)} placeholder={placeholder} style={inputStyle} />
+    </label>
+  );
+}
+function DateField({ k, label, form, set }) {
+  return (
+    <label style={labelStyle}>
+      <span>{label}</span>
+      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
+}
+function HalfDateField({ k, label, form, set }) {
+  return (
+    <label style={{ ...labelStyle, flex: 1 }}>
+      <span>{label}</span>
+      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
+}
+function HalfTimeField({ k, label, form, set }) {
+  return (
+    <label style={{ ...labelStyle, flex: 1 }}>
+      <span>{label}</span>
+      <TimePicker value={form[k]} onChange={v => set(k, v)} />
+    </label>
+  );
+}
+
 // ─── Booking Modal ─────────────────────────────────────────────────────────────
 function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClose, onRename }) {
   const isFlightStep   = isFlight(step);
@@ -682,45 +737,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     }
   };
 
-  const Field = ({ k, label, placeholder, type = "text" }) => (
-    <label style={labelStyle}>
-      <span>{label}</span>
-      <input type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} style={inputStyle} />
-    </label>
-  );
-  const TextArea = ({ k, label, placeholder, rows = 2 }) => (
-    <label style={labelStyle}>
-      <span>{label}</span>
-      <textarea value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} rows={rows} style={{ ...inputStyle, resize: "vertical" }} />
-    </label>
-  );
-  const Row = ({ children }) => <div style={{ display: "flex", gap: "12px" }}>{children}</div>;
-  const HalfField = ({ k, label, placeholder, type = "text" }) => (
-    <label style={{ ...labelStyle, flex: 1 }}>
-      <span>{label}</span>
-      <input type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} style={inputStyle} />
-    </label>
-  );
-  // Date fields use custom picker instead of native date input
-  const DateField = ({ k, label }) => (
-    <label style={labelStyle}>
-      <span>{label}</span>
-      <DatePicker value={form[k]} onChange={v => set(k, v)} />
-    </label>
-  );
-  const HalfDateField = ({ k, label }) => (
-    <label style={{ ...labelStyle, flex: 1 }}>
-      <span>{label}</span>
-      <DatePicker value={form[k]} onChange={v => set(k, v)} />
-    </label>
-  );
-  // Time fields use custom picker
-  const HalfTimeField = ({ k, label }) => (
-    <label style={{ ...labelStyle, flex: 1 }}>
-      <span>{label}</span>
-      <TimePicker value={form[k]} onChange={v => set(k, v)} />
-    </label>
-  );
+  // Field helpers defined outside BookingModal — see below
 
   // Calculate nights for hotel/villa
   const nights = isAccomm && form.checkIn && form.checkOut
@@ -785,75 +802,75 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* ── Flight fields ── */}
         {isFlightStep && (<>
-          <Row><HalfField k="departureAirport" label="Departure Airport" placeholder="e.g. Manchester (MAN)" /><HalfField k="arrivalAirport" label="Arrival Airport" placeholder="e.g. Palermo (PMO)" /></Row>
-          <Row><HalfDateField k="flightDate" label="Flight Date" /><HalfField k="flightNumber" label="Flight Number" placeholder="e.g. FR1234" /></Row>
-          <Row><HalfTimeField k="departureTime" label="Departure Time" /><HalfTimeField k="arrivalTime" label="Arrival Time" /></Row>
-          <Row><HalfField k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" /></Row>
+          <Row><HalfField k="departureAirport" label="Departure Airport" placeholder="e.g. Manchester (MAN)" form={form} set={set} /><HalfField k="arrivalAirport" label="Arrival Airport" placeholder="e.g. Palermo (PMO)" form={form} set={set} /></Row>
+          <Row><HalfDateField k="flightDate" label="Flight Date" form={form} set={set} /><HalfField k="flightNumber" label="Flight Number" placeholder="e.g. FR1234" form={form} set={set} /></Row>
+          <Row><HalfTimeField k="departureTime" label="Departure Time" form={form} set={set} /><HalfTimeField k="arrivalTime" label="Arrival Time" form={form} set={set} /></Row>
+          <Row><HalfField k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} /></Row>
         </>)}
 
         {/* ── Ferry / Sailing fields ── */}
         {(isFerryStep || isSailingStep) && (<>
           <Row>
-            <HalfDateField k="ferryDate" label="Departure Date" />
-            {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" />}
+            <HalfDateField k="ferryDate" label="Departure Date" form={form} set={set} />
+            {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" form={form} set={set} />}
           </Row>
-          <Row><HalfTimeField k="ferryDepartTime" label="Departure Time" /><HalfTimeField k="ferryArriveTime" label="Arrival Time" /></Row>
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Row><HalfTimeField k="ferryDepartTime" label="Departure Time" form={form} set={set} /><HalfTimeField k="ferryArriveTime" label="Arrival Time" form={form} set={set} /></Row>
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         </>)}
 
         {/* ── Hotel / Villa fields ── */}
         {isAccomm && (<>
           <Row>
-            <HalfDateField k="checkIn" label="Check-in Date" />
-            <HalfDateField k="checkOut" label="Check-out Date" />
+            <HalfDateField k="checkIn" label="Check-in Date" form={form} set={set} />
+            <HalfDateField k="checkOut" label="Check-out Date" form={form} set={set} />
           </Row>
           {nights !== null && nights > 0 && (
             <div style={{ marginTop: "-8px", marginBottom: "14px", color: "#0ea5e9", fontSize: "12px" }}>
               {nights} night{nights !== 1 ? "s" : ""}
             </div>
           )}
-          <Field k="propertyAddress" label="Address" placeholder="e.g. Via Roma 12, Palermo..." />
-          <Field k="wifiPassword" label="WiFi Password" placeholder="e.g. SunnyDays2024..." />
-          <TextArea k="checkInInstructions" label="Check-in Instructions" placeholder="e.g. Key in lockbox, code 1234. Check-in from 3pm..." />
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Field k="propertyAddress" label="Address" placeholder="e.g. Via Roma 12, Palermo..." form={form} set={set} />
+          <Field k="wifiPassword" label="WiFi Password" placeholder="e.g. SunnyDays2024..." form={form} set={set} />
+          <TextArea k="checkInInstructions" label="Check-in Instructions" placeholder="e.g. Key in lockbox, code 1234. Check-in from 3pm..." form={form} set={set} />
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         </>)}
 
         {/* ── Car Hire fields ── */}
         {isCarHireStep && (<>
-          <Row><HalfDateField k="pickUpDate" label="Pick-up Date" /><HalfDateField k="dropOffDate" label="Drop-off Date" /></Row>
-          <Field k="pickUpLocation" label="Pick-up Location" placeholder="e.g. Airport desk T2, off-site depot..." />
-          <Field k="carType" label="Car Type" placeholder="e.g. VW Golf, Fiat 500, Economy..." />
-          <Field k="carExtras" label="Extras / Insurance" placeholder="e.g. Full insurance, child seat, satnav..." />
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Row><HalfDateField k="pickUpDate" label="Pick-up Date" form={form} set={set} /><HalfDateField k="dropOffDate" label="Drop-off Date" form={form} set={set} /></Row>
+          <Field k="pickUpLocation" label="Pick-up Location" placeholder="e.g. Airport desk T2, off-site depot..." form={form} set={set} />
+          <Field k="carType" label="Car Type" placeholder="e.g. VW Golf, Fiat 500, Economy..." form={form} set={set} />
+          <Field k="carExtras" label="Extras / Insurance" placeholder="e.g. Full insurance, child seat, satnav..." form={form} set={set} />
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         </>)}
 
         {/* ── Parking fields ── */}
         {isParkingStep && (<>
-          <Field k="carParkName" label="Car Park Name" placeholder="e.g. Purple Parking T2, JetParks 1..." />
-          <Field k="terminalName" label="Terminal" placeholder="e.g. Terminal 2" />
-          <Field k="terminalTransfer" label="Transfer to Terminal" placeholder="e.g. Shuttle bus every 15 mins, 5 min walk..." />
-          <Row><HalfField k="parkingEntry" label="Entry Date / Time" type="datetime-local" /><HalfField k="parkingExit" label="Exit Date / Time" type="datetime-local" /></Row>
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Field k="carParkName" label="Car Park Name" placeholder="e.g. Purple Parking T2, JetParks 1..." form={form} set={set} />
+          <Field k="terminalName" label="Terminal" placeholder="e.g. Terminal 2" form={form} set={set} />
+          <Field k="terminalTransfer" label="Transfer to Terminal" placeholder="e.g. Shuttle bus every 15 mins, 5 min walk..." form={form} set={set} />
+          <Row><HalfField k="parkingEntry" label="Entry Date / Time" type="datetime-local" form={form} set={set} /><HalfField k="parkingExit" label="Exit Date / Time" type="datetime-local" form={form} set={set} /></Row>
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         </>)}
 
         {/* ── Transfer fields ── */}
         {isTransferStep && (<>
           <Row>
-            <HalfDateField k="transferDate" label="Transfer Date" />
-            <HalfTimeField k="pickupTime" label="Pickup Time" />
+            <HalfDateField k="transferDate" label="Transfer Date" form={form} set={set} />
+            <HalfTimeField k="pickupTime" label="Pickup Time" form={form} set={set} />
           </Row>
-          <Field k="pickupLocation" label="Pickup / Departure Point" placeholder="e.g. Hotel lobby, Manchester Piccadilly, Terminal 2..." />
-          <Field k="driverContact" label="Driver / Operator Contact" placeholder="e.g. +44 7700 900123, National Rail 03457 48 49 50..." />
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Field k="pickupLocation" label="Pickup / Departure Point" placeholder="e.g. Hotel lobby, Manchester Piccadilly, Terminal 2..." form={form} set={set} />
+          <Field k="driverContact" label="Driver / Operator Contact" placeholder="e.g. +44 7700 900123, National Rail 03457 48 49 50..." form={form} set={set} />
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         </>)}
 
         {/* ── Common fields (non-typed steps get reference here) ── */}
         {!isFlightStep && !isFerryStep && !isSailingStep && !isAccomm && !isCarHireStep && !isParkingStep && !isTransferStep && (
-          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" />
+          <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
         )}
 
-        <Field k="provider" label={isFlightStep ? "Airline" : isCarHireStep ? "Car Hire Company" : isParkingStep ? "Car Park Company" : "Provider / Company"} placeholder="..." />
-        <DateField k="dateBooked" label="Date Booked" />
+        <Field k="provider" label={isFlightStep ? "Airline" : isCarHireStep ? "Car Hire Company" : isParkingStep ? "Car Park Company" : "Provider / Company"} placeholder="..." form={form} set={set} />
+        <DateField k="dateBooked" label="Date Booked" form={form} set={set} />
 
         {/* Pricing */}
         {(() => {
@@ -898,7 +915,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
           );
         })()}
 
-        <TextArea k="notes" label="Notes" placeholder="Any additional details..." rows={3} />
+        <TextArea k="notes" label="Notes" placeholder="Any additional details..." rows={3} form={form} set={set} />
 
         {/* Rating */}
         <label style={labelStyle}>
