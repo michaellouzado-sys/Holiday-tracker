@@ -1011,7 +1011,7 @@ function TimelineView({ holiday, onOpenBooking }) {
                     marginLeft: "-1px"
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
                 >
                   <span style={{ fontSize: "22px", flexShrink: 0 }}>{step.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1111,7 +1111,7 @@ function ItineraryView({ holiday, onOpenBooking }) {
                     <div key={step.id} onClick={() => onOpenBooking(step.id)}
                       style={{ background: "#ffffff", border: `1px solid ${isBooked ? "#10b98133" : "#e2e8f0"}`, borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98133" : "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
                     >
                       <span style={{ fontSize: "20px" }}>{step.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1142,7 +1142,7 @@ function ItineraryView({ holiday, onOpenBooking }) {
               <div key={step.id} onClick={() => onOpenBooking(step.id)}
                 style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#0f172a"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
               >
                 <span style={{ fontSize: "20px" }}>{step.icon}</span>
                 <span style={{ color: "#64748b", fontSize: "13px" }}>{step.label}</span>
