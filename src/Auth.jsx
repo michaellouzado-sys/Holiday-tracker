@@ -48,23 +48,24 @@ export default function AuthScreen() {
   return (
     <div style={{
       minHeight: "100vh", background: "#f0f9ff",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "20px", fontFamily: "'DM Sans','Segoe UI',sans-serif"
+      display: "flex", alignItems: "flex-start", justifyContent: "center",
+      overflowY: "auto", padding: "24px 20px 40px",
+      fontFamily: "'DM Sans','Segoe UI',sans-serif"
     }}>
       {/* Background glows */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, #6c63ff15 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: "-100px", left: "-100px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, #00d4aa10 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, #0ea5e920 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: "-100px", left: "-100px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, #10b98115 0%, transparent 70%)" }} />
       </div>
 
-      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "400px" }}>
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "400px", paddingTop: "20px" }}>
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "48px", marginBottom: "12px" }}>✈️</div>
-          <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "28px", color: "#0f172a", letterSpacing: "-0.5px" }}>
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ fontSize: "40px", marginBottom: "10px" }}>✈️</div>
+          <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontSize: "26px", color: "#0f172a", letterSpacing: "-0.5px" }}>
             <span style={{ color: "#0ea5e9" }}>all</span>booked
           </h1>
-          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "14px" }}>Your holidays, perfectly organised</p>
+          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "13px" }}>Your holidays, perfectly organised</p>
         </div>
 
         {/* Card */}
@@ -124,7 +125,7 @@ export default function AuthScreen() {
             style={{
               width: "100%", padding: "12px",
               background: loading ? "#e2e8f0" : "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-              border: "none", borderRadius: "10px", color: "#0f172a",
+              border: "none", borderRadius: "10px", color: "#ffffff",
               fontSize: "15px", fontWeight: "600", cursor: loading ? "wait" : "pointer",
               marginBottom: "16px"
             }}
@@ -165,7 +166,7 @@ const labelStyle = {
 };
 const inputStyle = {
   display: "block", width: "100%", marginTop: "6px", padding: "11px 14px",
-  background: "#f1f5f9", border: "1px solid #2a2a45", borderRadius: "8px",
+  background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "8px",
   color: "#0f172a", fontSize: "14px", outline: "none", boxSizing: "border-box"
 };
 const linkBtn = {
