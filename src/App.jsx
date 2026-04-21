@@ -1743,12 +1743,13 @@ export default function App({ user }) {
         `SUMMARY:${holiday.emoji} ${holiday.name}${holiday.destination ? ` — ${holiday.destination}` : ""}`,
         "END:VEVENT");
     }
-    // Add each step as an event — use typed date, custom date, or fall back to holiday start
+    // Add each step as an event — every step gets exported, using best available date
     (holiday.steps || []).forEach(step => {
       const b = holiday.bookings?.[step.id] || {};
-      // Use typed date first, then custom date, then holiday start date
-      const date = getStepDate(step, b) || b.customStartDate || holiday.startDate;
-      if (!date) return;
+      // Use typed date first, then custom date, then holiday start date as fallback
+      const date = getStepDate(step, b) || b.customStartDate || holiday.startDate || null;
+      // Always include — if truly no date available, skip gracefully but log
+      if (!date) { console.log("No date for step:", step.label); return; }
       const uid = `${step.id}@allbooked.app`;
       const dateStr = date.replace(/-/g, "");
       const time = getStepTime(step, b);
@@ -1768,11 +1769,16 @@ export default function App({ user }) {
           : (() => { const d = new Date(date); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10).replace(/-/g,""); })();
         dtend = `DTEND;VALUE=DATE:${endStr}`;
       }
-      const summary = `${step.icon} ${step.label}${b.provider ? ` — ${b.provider}` : ""}`;
+      const summary = `${step.label}${b.provider ? ` — ${b.provider}` : ""}`;
       const descParts = [b.reference && `Ref: ${b.reference}`, b.notes].filter(Boolean);
-      const desc = descParts.length ? descParts.join("\\n") : null;
-      lines.push("BEGIN:VEVENT", `UID:${uid}`, dtstart, dtend, `SUMMARY:${summary}`,
-        desc && `DESCRIPTION:${desc}`, "END:VEVENT");
+      const descStr = descParts.map(s => String(s).replace(/\r?\n/g, "\\n")).join("\\n");
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${uid}`);
+      lines.push(dtstart);
+      lines.push(dtend);
+      lines.push(`SUMMARY:${summary.replace(/\r?\n/g, " ")}`);
+      if (descStr) lines.push(`DESCRIPTION:${descStr}`);
+      lines.push("END:VEVENT");
     });
     lines.push("END:VCALENDAR");
     const blob = new Blob([lines.filter(Boolean).join("\r\n")], { type: "text/calendar" });
