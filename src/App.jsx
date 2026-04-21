@@ -1140,9 +1140,14 @@ function ItineraryView({ holiday, onOpenBooking }) {
                             if (!endDate || !booking) return null;
                             const startD = getStepDate(step, booking);
                             if (!startD || startD === dateStr) return null;
+                            const isAccomStep = isHotel(step) || isVilla(step);
+                            // For hotels: total = nights, dayN = which night
+                            // For others: total = days, dayN = which day
+                            const totalDays = Math.round((new Date(endDate) - new Date(startD)) / 86400000);
+                            if (totalDays <= 1) return null; // don't show for single-night stays
                             const dayN = Math.round((new Date(dateStr) - new Date(startD)) / 86400000) + 1;
-                            const total = Math.round((new Date(endDate) - new Date(startD)) / 86400000);
-                            return <span style={{ color: "#94a3b8", fontSize: "11px" }}>Day {dayN} of {total}</span>;
+                            const unit = isAccomStep ? "Night" : "Day";
+                            return <span style={{ color: "#94a3b8", fontSize: "11px" }}>{unit} {dayN} of {totalDays}</span>;
                           })()}
                         </div>
                         {summary && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
