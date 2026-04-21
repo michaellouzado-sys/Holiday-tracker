@@ -1573,7 +1573,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.5"; // bump this whenever the instructions change
+const APP_VERSION = "1.6"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
@@ -1599,8 +1599,8 @@ function InstructionsModal({ onClose }) {
     },
     {
       icon: "📅",
-      title: "Timeline & Itinerary",
-      text: "Inside each holiday, switch to the Timeline tab to see all bookings sorted chronologically. The Itinerary tab shows a day-by-day view from departure to return. Bookings automatically slot into the right day based on their dates."
+      title: "Itinerary",
+      text: "Switch to the Itinerary tab to see a day-by-day view of your trip from departure to return. Each booking appears on every day it covers — so a 7-night hotel shows on all 7 days. Steps without a date appear at the bottom under 'No date set'."
     },
     {
       icon: "🎒",
@@ -1926,8 +1926,7 @@ export default function App({ user }) {
               <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#f8fafc", borderRadius: "10px", padding: "4px" }}>
                 {[
                   { id: "bookings",   label: "Bookings",  icon: "📋" },
-                  { id: "timeline",   label: "Timeline",  icon: "📅" },
-                  { id: "itinerary",  label: "Itinerary", icon: "🗺️" },
+                  { id: "itinerary",  label: "Itinerary", icon: "📅" },
                   { id: "packing",    label: "Packing",   icon: "🎒" },
                   { id: "memories",   label: "Memories",  icon: "✨" },
                 ].map(tab => (
@@ -1968,11 +1967,6 @@ export default function App({ user }) {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#94a3b8"; }}
                 ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
               </>)}
-
-              {/* Timeline tab */}
-              {detailTab === "timeline" && (
-                <TimelineView holiday={selectedHoliday} onOpenBooking={stepId => setBookingModal({ stepId })} />
-              )}
 
               {/* Itinerary tab */}
               {detailTab === "itinerary" && (
