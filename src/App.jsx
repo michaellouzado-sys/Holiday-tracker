@@ -17,7 +17,7 @@ const STEP_TEMPLATES = [
   { icon: "📋", label: "Visa / ETA" },
   { icon: "💱", label: "Currency" },
   { icon: "🎭", label: "Activities / Tours" },
-  { icon: "🚢", label: "Ferry / Boat Transfer" },
+  { icon: "🚢", label: "Ferry" },
   { icon: "⛵", label: "Sailing Trip" },
   { icon: "🎫", label: "Theme Park Tickets" },
   { icon: "🍽️", label: "Restaurant Reservation" },
@@ -111,7 +111,7 @@ function isFlight(step)   { return ["✈️","🛫"].includes(step.icon) || /fli
 function isHotel(step)    { return step.icon === "🏨" || /hotel/i.test(step.label); }
 function isVilla(step)    { return step.icon === "🏠" || /villa|apartment/i.test(step.label); }
 function isCarHire(step)  { return step.icon === "🚗" || /car hire|car rental/i.test(step.label); }
-function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise|boat transfer/i.test(step.label); }
+function isFerry(step)    { return step.icon === "🚢" || /ferry|cruise/i.test(step.label); }
 function isSailing(step)  { return step.icon === "⛵" || /sailing/i.test(step.label); }
 function isParking(step)  { return step.icon === "🅿️" || /parking/i.test(step.label); }
 function isTransfer(step) { return ["🚌","🚕","🚂","🚆","🚇"].includes(step.icon) || /transfer|taxi|train|rail|tube|metro|shuttle|bus|coach/i.test(step.label); }
