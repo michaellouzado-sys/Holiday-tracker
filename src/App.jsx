@@ -12,7 +12,7 @@ const STEP_TEMPLATES = [
   { icon: "🏨", label: "Hotel" },
   { icon: "🏠", label: "Villa / Apartment" },
   { icon: "🚗", label: "Car Hire" },
-  { icon: "🚌", label: "Airport Transfer" },
+  { icon: "🚌", label: "Other Transfer" },
   { icon: "🛡️", label: "Travel Insurance" },
   { icon: "📋", label: "Visa / ETA" },
   { icon: "💱", label: "Currency" },
@@ -239,13 +239,14 @@ const DEFAULT_PACKING = [
 ];
 // ─── Supabase ──────────────────────────────────────────────────────────────────
 // ─── Email address management ──────────────────────────────────────────────────
-async function getOrCreateEmailAddress(userId) {
-  // Check if user already has an address
+async function getOrCreateEmailAddress(userId, user) {
   const { data } = await supabase.from("user_email_addresses").select("address").eq("user_id", userId).maybeSingle();
   if (data?.address) return data.address;
-  // Generate a new unique address: first part of email + random hash
-  const hash = Math.random().toString(36).slice(2, 8);
-  const address = `bookings-${hash}`;
+  // Build address from user's name: "Mike Louzado" → "mike-louzado-abc123"
+  const fullName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "traveller";
+  const slug = fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 20);
+  const hash = Math.random().toString(36).slice(2, 6);
+  const address = `${slug}-${hash}`;
   await supabase.from("user_email_addresses").insert({ user_id: userId, address });
   return address;
 }
@@ -393,16 +394,16 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
   });
 
   // Sync draft when value changes externally (e.g. photo scan)
-  const prevValue = React.useRef(value);
-  if (prevValue.current !== value) {
-    prevValue.current = value;
-    if (value) {
+  // Use useEffect to avoid interfering with open/close state during renders
+  useEffect(() => {
+    if (value && value !== draft) {
       setDraft(value);
       const d = new Date(value);
       setViewYear(d.getFullYear());
       setViewMonth(d.getMonth());
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const DAYS   = ["Mo","Tu","We","Th","Fr","Sa","Su"];
@@ -414,11 +415,10 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
   }
 
   function confirm() {
+    setOpen(false);
     if (draft) {
-      setOpen(false);  // close first, then notify parent
-      onChange(draft);
-    } else {
-      setOpen(false);
+      // Use setTimeout to ensure open=false renders before parent re-renders
+      setTimeout(() => onChange(draft), 0);
     }
   }
 
@@ -674,7 +674,8 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
-    confirmed:           booking?.confirmed           || false,
+    confirmed:           booking?.confirmed ?? false,
+    bookOnDay:           booking?.bookOnDay           || false,
     provider:            booking?.provider            || "",
     reference:           booking?.reference           || "",
     notes:               booking?.notes               || "",
@@ -811,15 +812,25 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {/* Status */}
         <label style={labelStyle}>
           <span>Status</span>
-          <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-            {[true, false].map(v => (
-              <button key={String(v)} onClick={() => set("confirmed", v)} style={{
-                ...toggleBtn, flex: 1,
-                background: form.confirmed === v ? (v ? "#10b98122" : "#ef444422") : "#f1f5f9",
-                border: `1px solid ${form.confirmed === v ? (v ? "#10b981" : "#ef4444") : "#e2e8f0"}`,
-                color: form.confirmed === v ? (v ? "#10b981" : "#ef4444") : "#64748b"
-              }}>{v ? "✓ Booked" : "○ Not Booked"}</button>
-            ))}
+          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <button onClick={() => { set("confirmed", true); set("bookOnDay", false); }} style={{
+              ...toggleBtn, flex: 1,
+              background: form.confirmed ? "#10b98122" : "#f1f5f9",
+              border: `1px solid ${form.confirmed ? "#10b981" : "#e2e8f0"}`,
+              color: form.confirmed ? "#10b981" : "#64748b", fontSize: "12px"
+            }}>✓ Booked</button>
+            <button onClick={() => { set("confirmed", false); set("bookOnDay", true); }} style={{
+              ...toggleBtn, flex: 1,
+              background: form.bookOnDay && !form.confirmed ? "#f59e0b22" : "#f1f5f9",
+              border: `1px solid ${form.bookOnDay && !form.confirmed ? "#f59e0b" : "#e2e8f0"}`,
+              color: form.bookOnDay && !form.confirmed ? "#f59e0b" : "#64748b", fontSize: "12px"
+            }}>📅 On the day</button>
+            <button onClick={() => { set("confirmed", false); set("bookOnDay", false); }} style={{
+              ...toggleBtn, flex: 1,
+              background: !form.confirmed && !form.bookOnDay ? "#ef444422" : "#f1f5f9",
+              border: `1px solid ${!form.confirmed && !form.bookOnDay ? "#ef4444" : "#e2e8f0"}`,
+              color: !form.confirmed && !form.bookOnDay ? "#ef4444" : "#64748b", fontSize: "12px"
+            }}>✗ Not Booked</button>
           </div>
         </label>
 
@@ -1533,7 +1544,8 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
         onMouseLeave={e => { e.currentTarget.style.borderColor = isBooked ? "#10b98144" : "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
       >
         {isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#10b981", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ffffff", fontWeight: "700", borderBottomLeftRadius: "10px" }}>✓ BOOKED</div>}
-        {!isBooked && <div style={{ position: "absolute", top: 0, right: 0, background: "#ef444422", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ef4444", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
+        {!isBooked && booking?.bookOnDay && <div style={{ position: "absolute", top: 0, right: 0, background: "#f59e0b22", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#f59e0b", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #f59e0b33", borderTop: "none", borderRight: "none" }}>📅 ON THE DAY</div>}
+        {!isBooked && !booking?.bookOnDay && <div style={{ position: "absolute", top: 0, right: 0, background: "#ef444422", padding: "3px 10px 3px 12px", fontSize: "10px", color: "#ef4444", fontWeight: "700", borderBottomLeftRadius: "10px", border: "1px solid #ff4d6633", borderTop: "none", borderRight: "none" }}>✗ NOT BOOKED</div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span style={{ fontSize: "24px" }}>{step.icon}</span>
           {booking?.rating != null && <span style={{ fontSize: "15px", marginTop: "2px" }}>{rating?.emoji}</span>}
@@ -1631,7 +1643,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.7"; // bump this whenever the instructions change
+const APP_VERSION = "1.8"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
@@ -1643,7 +1655,7 @@ function InstructionsModal({ onClose }) {
     {
       icon: "📋",
       title: "Adding booking steps",
-      text: "Open a holiday and use the blue + Add Step button (bottom right of the screen) to add booking steps. Choose from the template list — flights, hotel, car hire, parking, transfers, ferry, sailing and more — or create a custom step with your own name and dates. Steps are tailored to their type: flights show airports and times, hotels show check-in/out, and so on."
+      text: "Open a holiday and use the blue + Add Step button (bottom right of the screen) to add booking steps. Choose from the template list or create a custom step. Each step has three statuses: ✓ Booked (confirmed), 📅 On the day (intentionally not pre-booked), or ✗ Not Booked (still to do). Only unbooked steps count towards the completion percentage — on-the-day steps are excluded."
     },
     {
       icon: "📷",
@@ -1689,6 +1701,11 @@ function InstructionsModal({ onClose }) {
       icon: "🔁",
       title: "Rebooking a trip",
       text: "On any holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
+    },
+    {
+      icon: "📧",
+      title: "Email forwarding",
+      text: "Each account has a unique forwarding address shown at the top of the home screen. Forward any booking confirmation email to it and the app will automatically extract the details and add the step to the matching holiday. Emails that can't be matched appear in the 📧 inbox button."
     },
     {
       icon: "📱",
@@ -1755,7 +1772,7 @@ export default function App({ user }) {
 
   useEffect(() => {
     loadFromSupabase(user.id).then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
-    getOrCreateEmailAddress(user.id).then(setEmailAddress).catch(console.error);
+    getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
   }, []);
 
@@ -1925,7 +1942,12 @@ export default function App({ user }) {
 
   function completionCount(h) {
     const steps = h.steps || [];
-    return { confirmed: steps.filter(s => h.bookings?.[s.id]?.confirmed).length, total: steps.length };
+    const countable = steps.filter(s => !h.bookings?.[s.id]?.bookOnDay);
+    return {
+      confirmed: countable.filter(s => h.bookings?.[s.id]?.confirmed).length,
+      total: countable.length,
+      onDay: steps.filter(s => h.bookings?.[s.id]?.bookOnDay).length,
+    };
   }
 
   const filteredHolidays = holidays.filter(h => filterStatus === "all" || getStatus(h) === filterStatus);
@@ -2096,6 +2118,10 @@ export default function App({ user }) {
                         {h.destination && <span>📍 {h.destination}</span>}
                         {h.startDate && <span>📅 {formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</span>}
                         <span style={{ color: "#cbd5e1" }}>{total} step{total !== 1 ? "s" : ""}</span>
+                        {(() => {
+                          const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
+                          return unbooked > 0 ? <span style={{ color: "#ef4444", fontWeight: "600" }}>✗ {unbooked} not booked</span> : null;
+                        })()}
                       </div>
                       {total > 0 ? (<>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#10b981" : "#0ea5e9" }}>{pct}%</span></div>
