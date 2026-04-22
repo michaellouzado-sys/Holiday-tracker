@@ -1648,7 +1648,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.8"; // bump this whenever the instructions change
+const APP_VERSION = "1.9"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
@@ -1664,8 +1664,8 @@ function InstructionsModal({ onClose }) {
     },
     {
       icon: "📷",
-      title: "Scanning confirmations",
-      text: "Inside any booking step, tap Scan from photo or screenshot. Take a photo of your confirmation email or upload a screenshot — the app reads it automatically and fills in the details. Works for all step types."
+      title: "Getting details into the app — two easy options",
+      text: "Option A — Scan: inside any booking step tap Scan from photo or screenshot, take a photo of your confirmation email or upload a screenshot and the app fills in the details automatically. Option B — Forward: each account has a unique email address shown at the top of the home screen. Forward any booking confirmation to it and the app adds the step to the matching holiday automatically. Emails that can't be matched appear in the 📧 inbox button."
     },
     {
       icon: "💾",
@@ -1706,11 +1706,6 @@ function InstructionsModal({ onClose }) {
       icon: "🔁",
       title: "Rebooking a trip",
       text: "On any holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
-    },
-    {
-      icon: "📧",
-      title: "Email forwarding",
-      text: "Each account has a unique forwarding address shown at the top of the home screen. Forward any booking confirmation email to it and the app will automatically extract the details and add the step to the matching holiday. Emails that can't be matched appear in the 📧 inbox button."
     },
     {
       icon: "📱",
