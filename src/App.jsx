@@ -522,21 +522,25 @@ function TimePicker({ value, onChange }) {
   const [draftH, setDraftH] = useState(() => value ? value.slice(0,2) : "");
   const [draftM, setDraftM] = useState(() => value ? value.slice(3,5) : "");
 
-  // Sync when value changes externally (photo scan)
-  const prevValue = React.useRef(value);
-  if (prevValue.current !== value) {
-    prevValue.current = value;
-    if (value) { setDraftH(value.slice(0,2)); setDraftM(value.slice(3,5)); }
-  }
+  // Sync when value changes externally (photo scan) — in useEffect to avoid render interference
+  useEffect(() => {
+    if (value && (value.slice(0,2) !== draftH || value.slice(3,5) !== draftM)) {
+      setDraftH(value.slice(0,2));
+      setDraftM(value.slice(3,5));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const hours   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2,"0"));
   const minutes = ["00","05","10","15","20","25","30","35","40","45","50","55"];
 
   function confirm() {
-    if (draftH !== "" && draftM !== "") onChange(`${draftH}:${draftM}`);
     setOpen(false);
+    if (draftH !== "" && draftM !== "") {
+      setTimeout(() => onChange(`${draftH}:${draftM}`), 0);
+    }
   }
-  function clear() { onChange(""); setOpen(false); }
+  function clear() { setOpen(false); setTimeout(() => onChange(""), 0); }
 
   const displayValue = value || "";
 
@@ -1221,7 +1225,8 @@ function ItineraryView({ holiday, onOpenBooking }) {
                         </div>
                         {summary && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</div>}
                       </div>
-                      {!isBooked && <span style={{ color: "#ef4444", fontSize: "10px", whiteSpace: "nowrap" }}>not booked</span>}
+                      {!isBooked && booking?.bookOnDay && <span style={{ color: "#f59e0b", fontSize: "10px", whiteSpace: "nowrap" }}>📅 on the day</span>}
+                      {!isBooked && !booking?.bookOnDay && <span style={{ color: "#ef4444", fontSize: "10px", whiteSpace: "nowrap" }}>not booked</span>}
                     </div>
                   );
                 })}
@@ -1765,6 +1770,7 @@ export default function App({ user }) {
   const [emailAddress, setEmailAddress] = useState(null);
   const [pendingEmails, setPendingEmails] = useState([]);
   const [showEmailInbox, setShowEmailInbox] = useState(false);
+  const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
@@ -1976,7 +1982,16 @@ export default function App({ user }) {
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {view === "detail" && selectedHoliday && (<>
-              <button onClick={() => exportToCalendar(selectedHoliday)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#0ea5e9", borderColor: "#bae6fd" }}>📅 Export</button>
+              <button onClick={() => {
+                const steps = selectedHoliday.steps || [];
+                const unbooked = steps.filter(s => !selectedHoliday.bookings?.[s.id]?.confirmed && !selectedHoliday.bookings?.[s.id]?.bookOnDay).length;
+                const noDate = steps.filter(s => !getStepDate(selectedHoliday.steps.find(st => st.id === s.id), selectedHoliday.bookings?.[s.id]) && !selectedHoliday.bookings?.[s.id]?.customStartDate).length;
+                if (unbooked > 0 || noDate > 0) {
+                  setExportWarning({ unbooked, noDate, holiday: selectedHoliday });
+                } else {
+                  exportToCalendar(selectedHoliday);
+                }
+              }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#0ea5e9", borderColor: "#bae6fd" }}>📅 Export</button>
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
@@ -2323,6 +2338,33 @@ export default function App({ user }) {
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
 
       {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
+
+      {exportWarning && (
+        <div style={overlay} onClick={() => setExportWarning(null)}>
+          <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <h3 style={modalTitle}>⚠️ Before you export</h3>
+              <button onClick={() => setExportWarning(null)} style={closeBtn}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+              {exportWarning.unbooked > 0 && (
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#b91c1c" }}>
+                  ✗ <strong>{exportWarning.unbooked} step{exportWarning.unbooked !== 1 ? "s" : ""} not yet booked</strong> — these will still be exported but may not reflect final details.
+                </div>
+              )}
+              {exportWarning.noDate > 0 && (
+                <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#92400e" }}>
+                  📅 <strong>{exportWarning.noDate} step{exportWarning.noDate !== 1 ? "s" : ""} have no date set</strong> — these will be placed on the holiday departure date in your calendar.
+                </div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={() => setExportWarning(null)} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
+              <button onClick={() => { exportToCalendar(exportWarning.holiday); setExportWarning(null); }} style={{ ...primaryBtn, flex: 2 }}>Export anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pending email inbox */}
       {showEmailInbox && (
