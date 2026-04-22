@@ -392,6 +392,7 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
     return d.getMonth();
   });
   const isConfirming = useRef(false);
+  const suppressNextToggle = useRef(false);
 
   // Sync draft when value changes externally (e.g. photo scan)
   // Skip sync if we just confirmed to avoid reopening
@@ -420,10 +421,12 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
       isConfirming.current = true;
       onChange(draft);
     }
+    suppressNextToggle.current = true;
     setOpen(false);
   }
 
   function clear() {
+    suppressNextToggle.current = true;
     setDraft("");
     onChange("");
     setOpen(false);
@@ -451,7 +454,10 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
   return (
     <div style={{ position: "relative", ...extraStyle }}>
       {/* Trigger button */}
-      <button type="button" onClick={() => setOpen(o => !o)} style={{
+      <button type="button" onClick={() => {
+        if (suppressNextToggle.current) { suppressNextToggle.current = false; return; }
+        setOpen(o => !o);
+      }} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         width: "100%", padding: "10px 13px", background: "#f8fafc",
         border: `1px solid ${open ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px",
@@ -537,21 +543,30 @@ function TimePicker({ value, onChange }) {
   const minutes = ["00","05","10","15","20","25","30","35","40","45","50","55"];
 
   const isConfirmingT = useRef(false);
+  const suppressNextToggleT = useRef(false);
 
   function confirm() {
     if (draftH !== "" && draftM !== "") {
       isConfirmingT.current = true;
       onChange(`${draftH}:${draftM}`);
     }
+    suppressNextToggleT.current = true;
     setOpen(false);
   }
-  function clear() { onChange(""); setOpen(false); }
+  function clear() {
+    suppressNextToggleT.current = true;
+    onChange("");
+    setOpen(false);
+  }
 
   const displayValue = value || "";
 
   return (
     <div style={{ position: "relative" }}>
-      <button type="button" onClick={() => setOpen(o => !o)} style={{
+      <button type="button" onClick={() => {
+        if (suppressNextToggleT.current) { suppressNextToggleT.current = false; return; }
+        setOpen(o => !o);
+      }} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         width: "100%", padding: "10px 13px", background: "#f8fafc",
         border: `1px solid ${open ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px",
