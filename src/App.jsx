@@ -380,7 +380,6 @@ function AddStepModal({ onAdd, onClose }) {
 
 
 // ─── Date Picker ───────────────────────────────────────────────────────────────
-// Custom calendar with explicit confirm tick — avoids native picker closing issues
 function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value || "");
@@ -392,10 +391,12 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
     const d = value ? new Date(value) : new Date();
     return d.getMonth();
   });
+  const isConfirming = useRef(false);
 
   // Sync draft when value changes externally (e.g. photo scan)
-  // Use useEffect to avoid interfering with open/close state during renders
+  // Skip sync if we just confirmed to avoid reopening
   useEffect(() => {
+    if (isConfirming.current) { isConfirming.current = false; return; }
     if (value && value !== draft) {
       setDraft(value);
       const d = new Date(value);
@@ -415,11 +416,11 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
   }
 
   function confirm() {
-    setOpen(false);
     if (draft) {
-      // Use setTimeout to ensure open=false renders before parent re-renders
-      setTimeout(() => onChange(draft), 0);
+      isConfirming.current = true;
+      onChange(draft);
     }
+    setOpen(false);
   }
 
   function clear() {
@@ -524,6 +525,7 @@ function TimePicker({ value, onChange }) {
 
   // Sync when value changes externally (photo scan) — in useEffect to avoid render interference
   useEffect(() => {
+    if (isConfirmingT.current) { isConfirmingT.current = false; return; }
     if (value && (value.slice(0,2) !== draftH || value.slice(3,5) !== draftM)) {
       setDraftH(value.slice(0,2));
       setDraftM(value.slice(3,5));
@@ -534,13 +536,16 @@ function TimePicker({ value, onChange }) {
   const hours   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2,"0"));
   const minutes = ["00","05","10","15","20","25","30","35","40","45","50","55"];
 
+  const isConfirmingT = useRef(false);
+
   function confirm() {
-    setOpen(false);
     if (draftH !== "" && draftM !== "") {
-      setTimeout(() => onChange(`${draftH}:${draftM}`), 0);
+      isConfirmingT.current = true;
+      onChange(`${draftH}:${draftM}`);
     }
+    setOpen(false);
   }
-  function clear() { setOpen(false); setTimeout(() => onChange(""), 0); }
+  function clear() { onChange(""); setOpen(false); }
 
   const displayValue = value || "";
 
