@@ -1665,7 +1665,7 @@ function InstructionsModal({ onClose }) {
     {
       icon: "📷",
       title: "Getting details into the app — two easy options",
-      text: "Option A — Scan: inside any booking step tap Scan from photo or screenshot, take a photo of your confirmation email or upload a screenshot and the app fills in the details automatically. Option B — Forward: each account has a unique email address shown at the top of the home screen. Forward any booking confirmation to it and the app adds the step to the matching holiday automatically. Emails that can't be matched appear in the 📧 inbox button."
+      text: "Option A — Scan: inside any booking step tap Scan from photo or screenshot, take a photo of your confirmation email or upload a screenshot and the app fills in the details automatically.\n\nOption B — Forward: each account has a unique email address shown at the top of the home screen. Forward any booking confirmation to it and the app adds the step to the matching holiday automatically. Emails that can't be matched appear in the 📧 inbox button."
     },
     {
       icon: "💾",
@@ -1733,7 +1733,7 @@ function InstructionsModal({ onClose }) {
               <span style={{ fontSize: "24px", flexShrink: 0 }}>{s.icon}</span>
               <div>
                 <div style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a", marginBottom: "4px" }}>{s.title}</div>
-                <div style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.6" }}>{s.text}</div>
+                <div style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.6", whiteSpace: "pre-line" }}>{s.text}</div>
               </div>
             </div>
           ))}
