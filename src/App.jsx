@@ -1940,7 +1940,7 @@ export default function App({ user }) {
               <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
             </>}
-            <button onClick={() => supabase.auth.signOut()} style={{ ...secondaryBtn, fontSize: "12px", padding: "8px 10px", color: "#cbd5e1" }} title={user.email}>↪</button>
+
           </div>
         </div>
 
@@ -2093,6 +2093,16 @@ export default function App({ user }) {
             </div>
           )}
         </>)}
+
+        {/* Sign out — bottom of list view only */}
+        {view === "list" && (
+          <div style={{ textAlign: "center", marginTop: "32px", paddingBottom: "16px" }}>
+            <button onClick={() => supabase.auth.signOut()}
+              style={{ background: "none", border: "none", color: "#cbd5e1", fontSize: "13px", cursor: "pointer", padding: "8px 16px" }}
+              title={user.email}
+            >Sign out</button>
+          </div>
+        )}
 
         {/* Detail view */}
         {view === "detail" && selectedHoliday && (() => {
