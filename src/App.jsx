@@ -445,7 +445,7 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
       {/* Calendar dropdown */}
       {open && (
         <div onClick={e => e.stopPropagation()} style={{
-          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", left: 0,
+          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", right: 0,
           background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px",
           padding: "12px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)",
           minWidth: "260px"
@@ -531,7 +531,7 @@ function TimePicker({ value, onChange }) {
 
       {open && (
         <div onClick={e => e.stopPropagation()} style={{
-          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", left: 0,
+          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", right: 0,
           background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px",
           padding: "12px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)",
           minWidth: "220px"
