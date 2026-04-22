@@ -381,7 +381,7 @@ function AddStepModal({ onAdd, onClose }) {
 
 // ─── Date Picker ───────────────────────────────────────────────────────────────
 // Custom calendar with explicit confirm tick — avoids native picker closing issues
-function DatePicker({ value, onChange, label, style: extraStyle }) {
+function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value || "");
   const [viewYear, setViewYear] = useState(() => {
@@ -488,13 +488,18 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
               const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
               const isSelected = draft === dateStr;
               const isToday = dateStr === new Date().toISOString().slice(0,10);
+              const isDisabled = minDate && dateStr < minDate;
               return (
-                <button key={i} type="button" onClick={() => setDraft(dateStr)} style={{
-                  padding: "6px 2px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px",
-                  background: isSelected ? "#0ea5e9" : isToday ? "#e0f2fe" : "transparent",
-                  color: isSelected ? "#ffffff" : isToday ? "#0ea5e9" : "#0f172a",
-                  fontWeight: isSelected || isToday ? "700" : "400"
-                }}>{day}</button>
+                <button key={i} type="button"
+                  onClick={() => !isDisabled && setDraft(dateStr)}
+                  style={{
+                    padding: "6px 2px", borderRadius: "6px", border: "none",
+                    cursor: isDisabled ? "default" : "pointer", fontSize: "13px",
+                    background: isSelected ? "#0ea5e9" : isToday ? "#e0f2fe" : "transparent",
+                    color: isDisabled ? "#e2e8f0" : isSelected ? "#ffffff" : isToday ? "#0ea5e9" : "#0f172a",
+                    fontWeight: isSelected || isToday ? "700" : "400",
+                    opacity: isDisabled ? 0.4 : 1,
+                  }}>{day}</button>
               );
             })}
           </div>
@@ -634,19 +639,19 @@ function HalfField({ k, label, placeholder, type = "text", form, set }) {
     </label>
   );
 }
-function DateField({ k, label, form, set }) {
+function DateField({ k, label, form, set, minDate }) {
   return (
     <label style={labelStyle}>
       <span>{label}</span>
-      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+      <DatePicker value={form[k]} onChange={v => set(k, v)} minDate={minDate} />
     </label>
   );
 }
-function HalfDateField({ k, label, form, set }) {
+function HalfDateField({ k, label, form, set, minDate }) {
   return (
     <label style={{ ...labelStyle, flex: 1 }}>
       <span>{label}</span>
-      <DatePicker value={form[k]} onChange={v => set(k, v)} />
+      <DatePicker value={form[k]} onChange={v => set(k, v)} minDate={minDate} />
     </label>
   );
 }
@@ -846,7 +851,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {(isFerryStep || isSailingStep) && (<>
           <Row>
             <HalfDateField k="ferryDate" label="Departure Date" form={form} set={set} />
-            {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" form={form} set={set} />}
+            {isSailingStep && <HalfDateField k="sailingReturnDate" label="Return Date" form={form} set={set} minDate={form.ferryDate} />}
           </Row>
           <Row><HalfTimeField k="ferryDepartTime" label="Departure Time" form={form} set={set} /><HalfTimeField k="ferryArriveTime" label="Arrival Time" form={form} set={set} /></Row>
           <Field k="reference" label="Booking Reference" placeholder="e.g. ABC123XY" form={form} set={set} />
@@ -856,7 +861,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
         {isAccomm && (<>
           <Row>
             <HalfDateField k="checkIn" label="Check-in Date" form={form} set={set} />
-            <HalfDateField k="checkOut" label="Check-out Date" form={form} set={set} />
+            <HalfDateField k="checkOut" label="Check-out Date" form={form} set={set} minDate={form.checkIn} />
           </Row>
           {nights !== null && nights > 0 && (
             <div style={{ marginTop: "-8px", marginBottom: "14px", color: "#0ea5e9", fontSize: "12px" }}>
@@ -871,7 +876,7 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
 
         {/* ── Car Hire fields ── */}
         {isCarHireStep && (<>
-          <Row><HalfDateField k="pickUpDate" label="Pick-up Date" form={form} set={set} /><HalfDateField k="dropOffDate" label="Drop-off Date" form={form} set={set} /></Row>
+          <Row><HalfDateField k="pickUpDate" label="Pick-up Date" form={form} set={set} /><HalfDateField k="dropOffDate" label="Drop-off Date" form={form} set={set} minDate={form.pickUpDate} /></Row>
           <Field k="pickUpLocation" label="Pick-up Location" placeholder="e.g. Airport desk T2, off-site depot..." form={form} set={set} />
           <Field k="carType" label="Car Type" placeholder="e.g. VW Golf, Fiat 500, Economy..." form={form} set={set} />
           <Field k="carExtras" label="Extras / Insurance" placeholder="e.g. Full insurance, child seat, satnav..." form={form} set={set} />
@@ -1011,7 +1016,7 @@ function HolidayModal({ holiday, onSave, onClose }) {
           {[{ k: "startDate", label: "Departure" }, { k: "endDate", label: "Return" }].map(({ k, label }) => (
             <label key={k} style={{ ...labelStyle, flex: 1 }}>
               <span>{label}</span>
-              <DatePicker value={form[k]} onChange={v => set(k, v)} />
+              <DatePicker value={form[k]} onChange={v => set(k, v)} minDate={k === "endDate" ? form.startDate : undefined} />
             </label>
           ))}
         </div>
