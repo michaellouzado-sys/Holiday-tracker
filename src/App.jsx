@@ -2254,10 +2254,15 @@ export default function App({ user }) {
                     <p style={{ fontSize: "15px", lineHeight: "1.6" }}>No booking steps yet.<br /><span style={{ color: "#94a3b8", fontSize: "13px" }}>Add just the steps that apply to this trip.</span></p>
                   </div>
                 )}
-                {/* Floating Add Step button rendered outside scroll — see below */}
+                {/* Static Add Step button — always visible at bottom of bookings tab */}
+                <button onClick={() => setAddStepModal(true)}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", width: "100%", marginTop: "14px", padding: "13px", background: "#ffffff", border: "1px dashed #bae6fd", borderRadius: "12px", color: "#94a3b8", fontSize: "14px", cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.color = "#0ea5e9"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#bae6fd"; e.currentTarget.style.color = "#94a3b8"; }}
+                ><span style={{ fontSize: "18px" }}>＋</span> Add Booking Step</button>
               </>)}
 
-              {/* Floating Add Step button — fixed to bottom right when on bookings tab */}
+              {/* Floating Add Step button — for mobile, fixed to bottom right */}
               {detailTab === "bookings" && (
                 <button onClick={() => setAddStepModal(true)}
                   style={{
