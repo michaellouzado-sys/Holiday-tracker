@@ -1087,9 +1087,10 @@ function ItineraryView({ holiday, onOpenBooking }) {
   }
 
   // Build day-by-day from startDate to endDate
-  // Auto-swap if dates are entered the wrong way round
-  let start = new Date(holiday.startDate);
-  let end   = holiday.endDate ? new Date(holiday.endDate) : new Date(holiday.startDate);
+  // Parse at noon local time to avoid timezone-related day shifts
+  const parseLocalDate = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d, 12); };
+  let start = parseLocalDate(holiday.startDate);
+  let end   = holiday.endDate ? parseLocalDate(holiday.endDate) : parseLocalDate(holiday.startDate);
   if (end < start) { const tmp = start; start = end; end = tmp; }
   const days  = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
