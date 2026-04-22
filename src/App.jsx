@@ -1659,7 +1659,7 @@ function InstructionsModal({ onClose }) {
     {
       icon: "📊",
       title: "Trip stats",
-      text: "The home screen shows a summary across all your holidays — upcoming trips, past trips, and number of destinations visited."
+      text: "The home screen shows a summary across all your holidays — upcoming trips, past trips, and countries visited (based on past holidays with a destination set)."
     },
     {
       icon: "⭐",
@@ -1966,7 +1966,15 @@ export default function App({ user }) {
           {holidays.length > 0 && (() => {
             const pastHols = holidays.filter(h => getStatus(h) === "past");
             const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
-            const destinations = [...new Set(holidays.filter(h => h.destination).map(h => h.destination.split(",")[0].trim()))];
+            // Extract country from destination (last item after comma, e.g. "Athens, Greece" → "Greece")
+            const countries = [...new Set(
+              holidays
+                .filter(h => h.destination && getStatus(h) === "past")
+                .map(h => {
+                  const parts = h.destination.split(",").map(s => s.trim());
+                  return parts[parts.length - 1]; // take last part as country
+                })
+            )];
             const upcomingPayments = [];
             const now = new Date();
             holidays.forEach(h => {
@@ -1996,8 +2004,8 @@ export default function App({ user }) {
                     <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
                   </div>
                   <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{destinations.length}</div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Destinations</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{countries.length}</div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Countries visited</div>
                   </div>
                 </div>
                 {/* Payment reminders */}
