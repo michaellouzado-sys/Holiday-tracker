@@ -238,6 +238,25 @@ const DEFAULT_PACKING = [
   { category: "Misc", items: ["Cash / cards", "Sunglasses", "Book / e-reader", "Reusable water bottle"] },
 ];
 // ─── Supabase ──────────────────────────────────────────────────────────────────
+// ─── Email address management ──────────────────────────────────────────────────
+async function getOrCreateEmailAddress(userId) {
+  // Check if user already has an address
+  const { data } = await supabase.from("user_email_addresses").select("address").eq("user_id", userId).maybeSingle();
+  if (data?.address) return data.address;
+  // Generate a new unique address: first part of email + random hash
+  const hash = Math.random().toString(36).slice(2, 8);
+  const address = `bookings-${hash}`;
+  await supabase.from("user_email_addresses").insert({ user_id: userId, address });
+  return address;
+}
+
+async function getPendingEmails(userId) {
+  const { data } = await supabase.from("pending_emails")
+    .select("*").eq("user_id", userId).eq("dismissed", false)
+    .order("received_at", { ascending: false }).limit(20);
+  return data || [];
+}
+
 async function loadFromSupabase(userId) {
   const { data, error } = await supabase.from("app_data").select("data").eq("id", userId).maybeSingle();
   if (error) throw error;
@@ -1726,6 +1745,9 @@ export default function App({ user }) {
     catch { return true; }
   }); // holiday to rebook from // bookings | timeline | itinerary | packing
   const [loaded, setLoaded]             = useState(false);
+  const [emailAddress, setEmailAddress] = useState(null);
+  const [pendingEmails, setPendingEmails] = useState([]);
+  const [showEmailInbox, setShowEmailInbox] = useState(false);
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
@@ -1733,6 +1755,8 @@ export default function App({ user }) {
 
   useEffect(() => {
     loadFromSupabase(user.id).then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
+    getOrCreateEmailAddress(user.id).then(setEmailAddress).catch(console.error);
+    getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
   }, []);
 
   const persist = useCallback(async (hs) => {
@@ -1939,6 +1963,11 @@ export default function App({ user }) {
               <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
               <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
+              {pendingEmails.length > 0 && (
+                <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#f59e0b", borderColor: "#fde68a", position: "relative" }}>
+                  📧 {pendingEmails.length}
+                </button>
+              )}
             </>}
 
           </div>
@@ -1959,6 +1988,19 @@ export default function App({ user }) {
                 <div style={{ color: "#94a3b8", fontSize: "12px" }}>Across all holidays</div>
               </div>
               <SupplierSummary holidays={holidays} />
+            </div>
+          )}
+
+          {/* Email forwarding address */}
+          {emailAddress && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "18px" }}>📧</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "2px" }}>Forward booking confirmations to</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "#0ea5e9", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emailAddress}@in.allbooked.app</div>
+              </div>
+              <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }}
+                style={{ ...secondaryBtn, fontSize: "12px", padding: "6px 12px", flexShrink: 0 }}>Copy</button>
             </div>
           )}
 
@@ -2255,6 +2297,38 @@ export default function App({ user }) {
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
 
       {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
+
+      {/* Pending email inbox */}
+      {showEmailInbox && (
+        <div style={overlay} onClick={() => setShowEmailInbox(false)}>
+          <div style={{ ...modal, maxWidth: "520px" }} onClick={e => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <h3 style={modalTitle}>📧 Unmatched emails</h3>
+              <button onClick={() => setShowEmailInbox(false)} style={closeBtn}>✕</button>
+            </div>
+            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
+              These booking confirmations couldn't be matched to a holiday automatically. Check the dates on your holidays match the booking dates.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {pendingEmails.map(email => (
+                <div key={email.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#0f172a" }}>{email.subject || "(no subject)"}</div>
+                    <button onClick={async () => {
+                      await supabase.from("pending_emails").update({ dismissed: true }).eq("id", email.id);
+                      setPendingEmails(prev => prev.filter(e => e.id !== email.id));
+                    }} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>✕</button>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>From: {email.from_address} · {new Date(email.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+                  {email.extracted?.provider && <div style={{ fontSize: "12px", color: "#0ea5e9" }}>{email.extracted.provider}{email.extracted.reference ? ` · Ref: ${email.extracted.reference}` : ""}</div>}
+                  {email.extracted?.date && <div style={{ fontSize: "12px", color: "#94a3b8" }}>Date: {email.extracted.date}</div>}
+                </div>
+              ))}
+              {pendingEmails.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px" }}>No unmatched emails</div>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rebook modal */}
       {rebookModal && (
