@@ -395,8 +395,12 @@ function DatePicker({ value, onChange, label, style: extraStyle }) {
   }
 
   function confirm() {
-    if (draft) onChange(draft);
-    setOpen(false);
+    if (draft) {
+      setOpen(false);  // close first, then notify parent
+      onChange(draft);
+    } else {
+      setOpen(false);
+    }
   }
 
   function clear() {
