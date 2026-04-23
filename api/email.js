@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -6,6 +7,7 @@ const supabase = createClient(
 );
 
 const DOMAIN = "in.allbooked.app";
+const resendClient = new Resend(process.env.RESEND_API_KEY);
 
 function log(step, data) {
   console.log(`[email-webhook] ${step}:`, JSON.stringify(data, null, 2));
@@ -82,55 +84,46 @@ export default async function handler(req, res) {
     const fromAddress = typeof fromRaw === "object" ? fromRaw.email : (fromRaw || "");
     const subject = data.subject || payload.subject || "";
     const emailId = data.email_id || data.id;
-    const resendKey = process.env.RESEND_API_KEY;
-
-    // Resend webhook metadata only — must fetch body and attachments separately
+    // Resend webhook metadata only — use SDK to fetch body and attachments
     let bodyText = "";
     let pdfBase64 = null;
 
-    if (emailId && resendKey) {
-      // Fetch email body
+    if (emailId) {
+      // Fetch email body using Resend SDK
       log("FETCHING_EMAIL_BODY", emailId);
       try {
-        const emailResp = await fetch(`https://api.resend.com/v1/received-emails/${emailId}`, {
-          headers: { "Authorization": `Bearer ${resendKey}` }
-        });
-        const emailData = await emailResp.json();
-        log("EMAIL_FETCH_STATUS", emailResp.status);
-        log("EMAIL_FETCH_KEYS", Object.keys(emailData));
-        const rawHtml = emailData.html || "";
-        const rawText = emailData.text || "";
-        bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
-        log("EMAIL_BODY_LENGTH", bodyText.length);
-
-        // Fetch attachments if body still empty
-        if (!bodyText.trim() && data.attachments?.length > 0) {
-          log("FETCHING_ATTACHMENTS", data.attachments.map(a => a.filename));
-          for (const att of data.attachments) {
-            if (att.filename?.toLowerCase().endsWith(".pdf")) {
-              try {
-                const attResp = await fetch(
-                  `https://api.resend.com/v1/received-emails/${emailId}/attachments/${att.id}`,
-                  { headers: { "Authorization": `Bearer ${resendKey}` } }
-                );
-                log("ATTACHMENT_FETCH_STATUS", attResp.status);
-                const attData = await attResp.json();
-                log("ATTACHMENT_KEYS", Object.keys(attData));
-                if (attData.download_url) {
-                  const pdfResp = await fetch(attData.download_url);
-                  const pdfBuf = await pdfResp.arrayBuffer();
-                  pdfBase64 = Buffer.from(pdfBuf).toString("base64");
-                  log("PDF_DOWNLOADED_BYTES", pdfBuf.byteLength);
-                  break;
-                }
-              } catch (e) {
-                log("ATTACHMENT_ERROR", e.message);
-              }
-            }
-          }
+        const { data: emailContent, error: emailErr } = await resendClient.emails.receiving.get(emailId);
+        log("EMAIL_FETCH_RESULT", { hasData: !!emailContent, error: emailErr?.message });
+        if (emailContent) {
+          log("EMAIL_CONTENT_KEYS", Object.keys(emailContent));
+          const rawHtml = emailContent.html || "";
+          const rawText = emailContent.text || "";
+          bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
+          log("EMAIL_BODY_LENGTH", bodyText.length);
         }
       } catch (e) {
         log("EMAIL_FETCH_ERROR", e.message);
+      }
+
+      // Fetch PDF attachments if body is empty
+      if (!bodyText.trim() && data.attachments?.length > 0) {
+        log("FETCHING_ATTACHMENTS", data.attachments.map(a => a.filename));
+        try {
+          const { data: attachments, error: attListErr } = await resendClient.emails.receiving.attachments.list({ emailId });
+          log("ATTACHMENTS_LIST_RESULT", { count: attachments?.length, error: attListErr?.message });
+          for (const att of (attachments || [])) {
+            if (att.filename?.toLowerCase().endsWith(".pdf") && att.download_url) {
+              log("DOWNLOADING_PDF", att.filename);
+              const pdfResp = await fetch(att.download_url);
+              const pdfBuf = await pdfResp.arrayBuffer();
+              pdfBase64 = Buffer.from(pdfBuf).toString("base64");
+              log("PDF_DOWNLOADED_BYTES", pdfBuf.byteLength);
+              break;
+            }
+          }
+        } catch (e) {
+          log("ATTACHMENTS_ERROR", e.message);
+        }
       }
     }
 
