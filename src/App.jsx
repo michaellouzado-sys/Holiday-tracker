@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 
 const SHARED_ROW_ID = "shared";
+const FREE_HOLIDAY_LIMIT = 1; // Free tier: max active holidays
 
 const STEP_TEMPLATES = [
   { icon: "✈️", label: "Outbound Flights" },
@@ -1806,6 +1807,8 @@ export default function App({ user }) {
   const [emailAddress, setEmailAddress] = useState(null);
   const [pendingEmails, setPendingEmails] = useState([]);
   const [showEmailInbox, setShowEmailInbox] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
   const [matchingEmail, setMatchingEmail] = useState(null); // pending email being matched to a holiday
   const [saveError, setSaveError]       = useState(null);
@@ -1814,7 +1817,10 @@ export default function App({ user }) {
   const saveTimer = useRef(null);
 
   useEffect(() => {
-    loadFromSupabase(user.id).then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
+    loadFromSupabase(user.id).then(d => {
+      setHolidays(d.holidays || []);
+      setIsPro(d.isPro || false);
+    }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
     // Poll for new data every 30 seconds — picks up emails added by webhook
@@ -1835,6 +1841,12 @@ export default function App({ user }) {
   }, []);
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
+
+  async function grantPro(grant) {
+    setIsPro(grant);
+    const current = await loadFromSupabase(user.id);
+    await saveToSupabase(user.id, { ...current, isPro: grant, holidays: current.holidays || [] });
+  }
 
   function dismissInstructions() {
     try { localStorage.setItem("allbooked_seen_v" + APP_VERSION, "1"); } catch {}
@@ -2102,7 +2114,14 @@ export default function App({ user }) {
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
             </>)}
             {view === "list" && <>
-              <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
+              <button onClick={() => {
+                const activeHols = holidays.filter(h => getStatus(h) !== "past").length;
+                if (!isPro && activeHols >= FREE_HOLIDAY_LIMIT) {
+                  setShowUpgradeModal(true);
+                } else {
+                  setHolidayModal({});
+                }
+              }} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
               <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
               <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: pendingEmails.length > 0 ? "#f59e0b" : "#94a3b8", borderColor: pendingEmails.length > 0 ? "#fde68a" : "#e2e8f0" }}>
@@ -2128,6 +2147,23 @@ export default function App({ user }) {
                 <div style={{ color: "#94a3b8", fontSize: "12px" }}>Across all holidays</div>
               </div>
               <SupplierSummary holidays={holidays} />
+            </div>
+          )}
+
+          {/* Pro status banner */}
+          {!isPro && (
+            <div onClick={() => setShowUpgradeModal(true)} style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>Free plan · 1 holiday</div>
+                <div style={{ fontSize: "12px", color: "#e0f2fe", marginTop: "2px" }}>Upgrade to Pro for unlimited holidays & sharing</div>
+              </div>
+              <div style={{ background: "#ffffff", color: "#0ea5e9", fontSize: "12px", fontWeight: "700", padding: "6px 12px", borderRadius: "8px", whiteSpace: "nowrap" }}>£2.99/mo →</div>
+            </div>
+          )}
+          {isPro && (
+            <div style={{ background: "#10b98111", border: "1px solid #10b98133", borderRadius: "12px", padding: "10px 16px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px" }}>⭐</span>
+              <span style={{ fontSize: "13px", color: "#10b981", fontWeight: "600" }}>allbooked Pro</span>
             </div>
           )}
 
@@ -2212,7 +2248,14 @@ export default function App({ user }) {
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌍</div>
               <p style={{ fontSize: "16px" }}>No holidays yet. Add your first trip!</p>
-              <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, marginTop: "16px" }}>+ Add Holiday</button>
+              <button onClick={() => {
+                const activeHols = holidays.filter(h => getStatus(h) !== "past").length;
+                if (!isPro && activeHols >= FREE_HOLIDAY_LIMIT) {
+                  setShowUpgradeModal(true);
+                } else {
+                  setHolidayModal({});
+                }
+              }} style={{ ...primaryBtn, marginTop: "16px" }}>+ Add Holiday</button>
             </div>
           ) : (
             <div style={{ display: "grid", gap: "14px" }}>
@@ -2455,6 +2498,55 @@ export default function App({ user }) {
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
 
       {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
+
+      {/* Upgrade to Pro modal */}
+      {showUpgradeModal && (
+        <div style={overlay} onClick={() => setShowUpgradeModal(false)}>
+          <div style={{ ...modal, maxWidth: "400px" }} onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
+              <div style={{ fontSize: "48px", marginBottom: "12px" }}>⭐</div>
+              <h2 style={{ margin: "0 0 8px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: "24px", color: "#0f172a" }}>
+                <span style={{ color: "#0ea5e9" }}>all</span>booked Pro
+              </h2>
+              <p style={{ margin: "0 0 24px", color: "#64748b", fontSize: "14px" }}>Unlock unlimited holidays and share trips with travel companions.</p>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginBottom: "20px", textAlign: "left" }}>
+                <div style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>What you get</div>
+                {["✓  Unlimited holidays", "✓  Share holidays with travel companions", "✓  Everything in the free plan included"].map(t => (
+                  <div key={t} style={{ fontSize: "14px", color: "#0f172a", marginBottom: "8px" }}>{t}</div>
+                ))}
+              </div>
+              <div style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "16px", marginBottom: "12px" }}>
+                <div style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff" }}>£2.99<span style={{ fontSize: "14px", fontWeight: "400" }}>/month</span></div>
+                <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Cancel anytime</div>
+              </div>
+              <button onClick={() => {
+                // TODO: Replace with RevenueCat purchase flow when iOS app is ready
+                // For now, show coming soon message
+                alert("In-app purchases will be available when allbooked launches on the App Store. Stay tuned!");
+              }} style={{ ...primaryBtn, width: "100%", padding: "14px", fontSize: "15px", marginBottom: "12px" }}>
+                Upgrade to Pro
+              </button>
+              <button onClick={() => setShowUpgradeModal(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "13px" }}>
+                Maybe later
+              </button>
+              <div style={{ marginTop: "16px", fontSize: "11px", color: "#cbd5e1" }}>
+                Already have Pro? <button onClick={async () => {
+                  // TODO: Replace with RevenueCat restore when iOS ready
+                  // For now allow admin grant via special flow
+                  const code = prompt("Enter your Pro access code:");
+                  if (code === "ALLBOOKED-PRO") {
+                    await grantPro(true);
+                    setShowUpgradeModal(false);
+                    alert("Pro access activated!");
+                  } else if (code) {
+                    alert("Invalid code.");
+                  }
+                }} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "11px", padding: 0 }}>Restore or enter access code</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {exportWarning && (
         <div style={overlay} onClick={() => setExportWarning(null)}>
