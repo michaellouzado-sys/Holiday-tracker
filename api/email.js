@@ -340,29 +340,22 @@ async function extractBookingFromEmail(subject, body) {
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, "")
     // Replace block elements with newlines to preserve structure
-    .replace(/<\/(div|tr|td|th|p|li|br|h[1-6])>/gi, "
-")
-    .replace(/<br\s*\/?>/gi, "
-")
+    .replace(/<\/(div|tr|td|th|p|li|br|h[1-6])>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     // Decode common HTML entities
     .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/&pound;/g, "£").replace(/&euro;/g, "€")
     // Collapse whitespace but keep newlines
-    .replace(/[ 	]{3,}/g, "  ")
-    .replace(/
-{4,}/g, "
-
-")
+    .replace(/[ \t]{3,}/g, "  ")
+    .replace(/\n{4,}/g, "\n\n")
     .trim();
 
   // Extract the most information-dense section (first 6000 chars of cleaned text)
   // Focus on the middle of the email which usually has the booking details
   const bodyForExtraction = cleanBody.length > 6000
-    ? cleanBody.slice(0, 3000) + "
-...
-" + cleanBody.slice(Math.floor(cleanBody.length / 2) - 1000, Math.floor(cleanBody.length / 2) + 2000)
+    ? cleanBody.slice(0, 3000) + "\n...\n" + cleanBody.slice(Math.floor(cleanBody.length / 2) - 1000, Math.floor(cleanBody.length / 2) + 2000)
     : cleanBody;
 
   const prompt = `You are an expert at extracting structured travel booking data from confirmation emails.
@@ -375,16 +368,60 @@ ${bodyForExtraction}
 ---
 
 INSTRUCTIONS:
-- Search the ENTIRE text carefully — key data like flight numbers and airports often appears in multiple formats
-- For flights: look for patterns like "BA256", "FR 1234", "EZY8765" — usually near departure/arrival info
-- For airports: look for 3-letter IATA codes in brackets like (LHR), (ATH), (CFU), or city names near times
-- For times: look for patterns like "10:45", "14:00", "21:15" near date information
-- For hotels: check-in/out dates are often written as "18 Jul 2026" or "18/07/2026"
-- For references: look for "Booking ref", "PNR", "Confirmation", "Reference" followed by alphanumeric codes
-- For prices: look for £, €, $ followed by numbers, or "Total" / "Amount paid"
-- Dates MUST be in YYYY-MM-DD format — convert "18 Jul 2026" to "2026-07-18"
-- Times MUST be HH:MM 24-hour format — convert "2:45pm" to "14:45"
+First identify the booking type from the subject and content, then extract all relevant fields.
+
+GENERAL RULES:
+- Search the ENTIRE text — key data often appears in multiple places
+- Dates MUST be YYYY-MM-DD — convert "18 Jul 2026" → "2026-07-18", "18/07/26" → "2026-07-18"
+- Times MUST be HH:MM 24hr — convert "2:45pm" → "14:45", "10:45am" → "10:45"
+- References: look for "Booking ref", "PNR", "Confirmation no.", "Reservation" followed by alphanumeric codes
+- Prices: look for £/€/$ amounts near "Total", "Amount charged", "Grand total", "You paid"
 - Return ONLY valid JSON, no explanation, no markdown code blocks
+
+FLIGHT emails (stepType: "flight"):
+- Flight number: 2-letter airline code + digits e.g. "BA256", "EZY8765", "FR1234", "A3284"
+- Airports: city names or 3-letter IATA codes e.g. (LHR), (ATH), (CFU) — often in route format "LHR → ATH"
+- Times: near "Departs", "Arrives", "Departure", "Arrival" or in a flight summary table
+- Multiple flights: extract the OUTBOUND flight details into flight fields
+
+HOTEL/VILLA emails (stepType: "hotel" or "villa"):
+- Check-in/out: look for "Check-in", "Arrival", "Check-out", "Departure" dates
+- Address: look for full street address, often near hotel name
+- Room type: look for "Room type", "Room category" — put in notes
+- Board basis: look for "Breakfast included", "Half board", "All inclusive" — put in notes
+
+FERRY emails (stepType: "ferry"):
+- Route: look for port names e.g. "Dover → Calais", "Portsmouth to Santander"
+- Departure port → departureAirport field, arrival port → arrivalAirport field
+- Vehicle details: put registration, vehicle type in notes
+- Cabin type: put in notes
+
+SAILING/CHARTER emails (stepType: "sailing"):
+- Vessel name: put in notes
+- Departure and return dates
+- Marina/port name → use departureAirport field for departure port
+
+CAR HIRE emails (stepType: "carHire"):
+- Pick-up and drop-off: look for "Collection", "Pick-up", "Return" with dates and locations
+- Car type/category: look for "Vehicle", "Car class", "Model"
+- Extras: insurance, child seat, GPS — put in notes
+
+PARKING emails (stepType: "parking"):
+- Car park name: look for the specific car park brand/name
+- Terminal: look for "Terminal 1/2/3/4/5", "T1", "T2" etc.
+- Entry/exit: look for exact date AND time for both entry and exit
+- Format: "2026-07-10T09:30" (combine date and time)
+
+TRANSFER/TAXI emails (stepType: "transfer"):
+- Pickup time and location: look for "Pick-up", "Collection" time and address
+- Drop-off: destination address
+- Vehicle type: put in notes
+
+RESTAURANT emails (stepType: "custom"):
+- Date and time: reservation date and time → use "date" and put time in notes
+- Party size: number of guests → put in notes
+- Special requests: dietary requirements, occasion → put in notes
+- Restaurant name → provider field
 
 Return this exact JSON structure (empty string "" for any field not found):
 {
