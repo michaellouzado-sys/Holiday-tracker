@@ -2018,6 +2018,11 @@ export default function App({ user }) {
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {view === "detail" && selectedHoliday && (<>
+              {pendingEmails.length > 0 && (
+                <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#f59e0b", borderColor: "#fde68a" }}>
+                  📧 {pendingEmails.length}
+                </button>
+              )}
               <button onClick={() => {
                 const steps = selectedHoliday.steps || [];
                 const unbooked = steps.filter(s => !selectedHoliday.bookings?.[s.id]?.confirmed && !selectedHoliday.bookings?.[s.id]?.bookOnDay).length;
