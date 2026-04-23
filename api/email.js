@@ -82,34 +82,73 @@ export default async function handler(req, res) {
     const fromAddress = typeof fromRaw === "object" ? fromRaw.email : (fromRaw || "");
     const subject = data.subject || payload.subject || "";
     const emailId = data.email_id || data.id;
+    const resendKey = process.env.RESEND_API_KEY;
 
-    // Resend webhook doesn't include body — fetch full email using the email_id
-    let bodyText = data.text || data.html?.replace(/<[^>]+>/g, " ") || "";
-    if (!bodyText.trim() && emailId && process.env.RESEND_API_KEY) {
-      log("FETCHING_FULL_EMAIL", emailId);
+    // Resend webhook metadata only — must fetch body and attachments separately
+    let bodyText = "";
+    let pdfBase64 = null;
+
+    if (emailId && resendKey) {
+      // Fetch email body
+      log("FETCHING_EMAIL_BODY", emailId);
       try {
-        const emailResp = await fetch(`https://api.resend.com/emails/${emailId}`, {
-          headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}` }
+        const emailResp = await fetch(`https://api.resend.com/v1/received-emails/${emailId}`, {
+          headers: { "Authorization": `Bearer ${resendKey}` }
         });
         const emailData = await emailResp.json();
-        log("FULL_EMAIL_KEYS", Object.keys(emailData));
+        log("EMAIL_FETCH_STATUS", emailResp.status);
+        log("EMAIL_FETCH_KEYS", Object.keys(emailData));
         const rawHtml = emailData.html || "";
         const rawText = emailData.text || "";
         bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
-        log("FULL_EMAIL_BODY_LENGTH", bodyText.length);
+        log("EMAIL_BODY_LENGTH", bodyText.length);
+
+        // Fetch attachments if body still empty
+        if (!bodyText.trim() && data.attachments?.length > 0) {
+          log("FETCHING_ATTACHMENTS", data.attachments.map(a => a.filename));
+          for (const att of data.attachments) {
+            if (att.filename?.toLowerCase().endsWith(".pdf")) {
+              try {
+                const attResp = await fetch(
+                  `https://api.resend.com/v1/received-emails/${emailId}/attachments/${att.id}`,
+                  { headers: { "Authorization": `Bearer ${resendKey}` } }
+                );
+                log("ATTACHMENT_FETCH_STATUS", attResp.status);
+                const attData = await attResp.json();
+                log("ATTACHMENT_KEYS", Object.keys(attData));
+                if (attData.download_url) {
+                  const pdfResp = await fetch(attData.download_url);
+                  const pdfBuf = await pdfResp.arrayBuffer();
+                  pdfBase64 = Buffer.from(pdfBuf).toString("base64");
+                  log("PDF_DOWNLOADED_BYTES", pdfBuf.byteLength);
+                  break;
+                }
+              } catch (e) {
+                log("ATTACHMENT_ERROR", e.message);
+              }
+            }
+          }
+        }
       } catch (e) {
-        log("FETCH_EMAIL_ERROR", e.message);
+        log("EMAIL_FETCH_ERROR", e.message);
       }
     }
 
     log("EMAIL_CONTENT_DETAIL", {
       from: fromAddress, subject,
       bodyLength: bodyText.length,
+      hasPdf: !!pdfBase64,
       emailId
     });
     // ── 4. Extract with Claude ───────────────────────────────────────────────
-    log("CLAUDE_EXTRACTION", `extracting from body (${bodyText.length} chars)...`);
-    const extracted = await extractBookingFromEmail(subject, bodyText);
+    let extracted;
+    if (!bodyText.trim() && pdfBase64) {
+      log("CLAUDE_EXTRACTION", "extracting from PDF attachment...");
+      extracted = await extractBookingFromPDF(pdfBase64, subject);
+    } else {
+      log("CLAUDE_EXTRACTION", `extracting from body (${bodyText.length} chars)...`);
+      extracted = await extractBookingFromEmail(subject, bodyText);
+    }
     log("CLAUDE_EXTRACTED", extracted);
 
     // ── 5. Load holidays ──────────────────────────────────────────────────────
