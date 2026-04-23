@@ -91,30 +91,20 @@ export default async function handler(req, res) {
       bodyLength: bodyText.length,
       dataKeys: Object.keys(data)
     });
-    // ── 3b. Try to extract text from PDF attachments if body is empty ────────
-    let finalBodyText = bodyText;
-    if (!finalBodyText.trim() && data.attachments?.length > 0) {
-      log("PDF_ATTACHMENTS", data.attachments.map(a => ({ name: a.filename, type: a.content_type, size: a.size })));
-      for (const attachment of data.attachments) {
-        if (attachment.content_type === "application/pdf" && attachment.content) {
-          try {
-            // Send PDF to Claude directly as base64
-            const pdfText = await extractTextFromPDF(attachment.content, subject);
-            if (pdfText) {
-              finalBodyText = pdfText;
-              log("PDF_EXTRACTED_LENGTH", finalBodyText.length);
-              break;
-            }
-          } catch (e) {
-            log("PDF_ERROR", e.message);
-          }
-        }
-      }
-    }
+    // ── 3b. Try PDF attachments if body is empty ─────────────────────────────
+    let extracted;
+    const hasPDF = data.attachments?.some(a => a.content_type === "application/pdf" && a.content);
 
-    // ── 4. Extract with Claude ────────────────────────────────────────────────
-    log("CLAUDE_EXTRACTION", "starting...");
-    const extracted = await extractBookingFromEmail(subject, finalBodyText);
+    if (!bodyText.trim() && hasPDF) {
+      const pdfAttachment = data.attachments.find(a => a.content_type === "application/pdf" && a.content);
+      log("PDF_ATTACHMENT", { name: pdfAttachment.filename });
+      log("CLAUDE_EXTRACTION", "extracting from PDF...");
+      extracted = await extractBookingFromPDF(pdfAttachment.content, subject);
+    } else {
+      // ── 4. Extract with Claude ──────────────────────────────────────────────
+      log("CLAUDE_EXTRACTION", "extracting from body...");
+      extracted = await extractBookingFromEmail(subject, bodyText);
+    }
     log("CLAUDE_EXTRACTED", extracted);
 
     // ── 5. Load holidays ──────────────────────────────────────────────────────
@@ -243,8 +233,8 @@ export default async function handler(req, res) {
   }
 }
 
-async function extractTextFromPDF(base64Content, subject) {
-  // Send PDF to Claude as a document to extract text
+async function extractBookingFromPDF(base64Content, subject) {
+  // Extract booking details directly from PDF in a single Claude call
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -255,7 +245,7 @@ async function extractTextFromPDF(base64Content, subject) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
+        max_tokens: 1000,
         messages: [{
           role: "user",
           content: [
@@ -263,15 +253,46 @@ async function extractTextFromPDF(base64Content, subject) {
               type: "document",
               source: { type: "base64", media_type: "application/pdf", data: base64Content }
             },
-            { type: "text", text: "Extract all text content from this booking confirmation PDF. Return just the raw text, no formatting." }
+            { type: "text", text: `Extract travel booking details from this confirmation PDF and return ONLY a JSON object:
+{
+  "stepType": "flight|hotel|villa|carHire|ferry|sailing|parking|transfer|custom",
+  "provider": "company or airline name",
+  "reference": "booking reference or PNR",
+  "date": "YYYY-MM-DD primary date",
+  "totalPrice": "numeric amount e.g. 450.00",
+  "currency": "3-letter code e.g. GBP",
+  "notes": "fare class, cabin, extras",
+  "flightDate": "YYYY-MM-DD",
+  "departureAirport": "name and IATA e.g. Athens (ATH)",
+  "arrivalAirport": "name and IATA e.g. Corfu (CFU)",
+  "departureTime": "HH:MM",
+  "arrivalTime": "HH:MM",
+  "flightNumber": "e.g. A3284",
+  "checkIn": "YYYY-MM-DD",
+  "checkOut": "YYYY-MM-DD",
+  "propertyAddress": "",
+  "pickUpDate": "YYYY-MM-DD",
+  "dropOffDate": "YYYY-MM-DD",
+  "pickUpLocation": "",
+  "carType": "",
+  "ferryDate": "YYYY-MM-DD",
+  "returnDate": "YYYY-MM-DD",
+  "pickupTime": "HH:MM",
+  "pickupLocation": "",
+  "carParkName": "",
+  "terminalName": "",
+  "parkingEntry": "",
+  "parkingExit": ""
+}` }
           ]
         }]
       }),
     });
     const data = await response.json();
-    return data.content?.[0]?.text || "";
+    const text = data.content?.[0]?.text || "{}";
+    return JSON.parse(text.replace(/```json|```/g, "").trim());
   } catch (e) {
-    return "";
+    return {};
   }
 }
 

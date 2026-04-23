@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/email.js": {
+      "maxDuration": 30
+    },
+    "api/scan.js": {
+      "maxDuration": 30
+    }
+  }
+}

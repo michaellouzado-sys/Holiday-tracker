@@ -1817,6 +1817,11 @@ export default function App({ user }) {
     loadFromSupabase(user.id).then(d => setHolidays(d.holidays || [])).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
+    // Poll for new pending emails every 30 seconds
+    const emailPoll = setInterval(() => {
+      getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
+    }, 30000);
+    return () => clearInterval(emailPoll);
   }, []);
 
   const persist = useCallback(async (hs) => {
