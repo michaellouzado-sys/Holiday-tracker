@@ -77,34 +77,39 @@ export default async function handler(req, res) {
     const userId = addrRow.user_id;
     log("USER_ID", userId);
 
-    // ── 3. Get email content ──────────────────────────────────────────────────
+    // ── 3. Get email content ─────────────────────────────────────────────────
     const fromRaw = data.from || payload.from;
     const fromAddress = typeof fromRaw === "object" ? fromRaw.email : (fromRaw || "");
     const subject = data.subject || payload.subject || "";
-    // Body can be in data.text, data.html, or nested deeper
-    const rawHtml = data.html || data.body_html || payload.html || "";
-    const rawText = data.text || data.body_text || data.plain || payload.text || payload.plain || "";
-    const bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
-    log("EMAIL_CONTENT_DETAIL", { 
-      from: fromAddress, subject, 
-      hasText: !!rawText, hasHtml: !!rawHtml,
-      bodyLength: bodyText.length,
-      dataKeys: Object.keys(data)
-    });
-    // ── 3b. Try PDF attachments if body is empty ─────────────────────────────
-    let extracted;
-    const hasPDF = data.attachments?.some(a => a.content_type === "application/pdf" && a.content);
+    const emailId = data.email_id || data.id;
 
-    if (!bodyText.trim() && hasPDF) {
-      const pdfAttachment = data.attachments.find(a => a.content_type === "application/pdf" && a.content);
-      log("PDF_ATTACHMENT", { name: pdfAttachment.filename });
-      log("CLAUDE_EXTRACTION", "extracting from PDF...");
-      extracted = await extractBookingFromPDF(pdfAttachment.content, subject);
-    } else {
-      // ── 4. Extract with Claude ──────────────────────────────────────────────
-      log("CLAUDE_EXTRACTION", "extracting from body...");
-      extracted = await extractBookingFromEmail(subject, bodyText);
+    // Resend webhook doesn't include body — fetch full email using the email_id
+    let bodyText = data.text || data.html?.replace(/<[^>]+>/g, " ") || "";
+    if (!bodyText.trim() && emailId && process.env.RESEND_API_KEY) {
+      log("FETCHING_FULL_EMAIL", emailId);
+      try {
+        const emailResp = await fetch(`https://api.resend.com/emails/${emailId}`, {
+          headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}` }
+        });
+        const emailData = await emailResp.json();
+        log("FULL_EMAIL_KEYS", Object.keys(emailData));
+        const rawHtml = emailData.html || "";
+        const rawText = emailData.text || "";
+        bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
+        log("FULL_EMAIL_BODY_LENGTH", bodyText.length);
+      } catch (e) {
+        log("FETCH_EMAIL_ERROR", e.message);
+      }
     }
+
+    log("EMAIL_CONTENT_DETAIL", {
+      from: fromAddress, subject,
+      bodyLength: bodyText.length,
+      emailId
+    });
+    // ── 4. Extract with Claude ───────────────────────────────────────────────
+    log("CLAUDE_EXTRACTION", `extracting from body (${bodyText.length} chars)...`);
+    const extracted = await extractBookingFromEmail(subject, bodyText);
     log("CLAUDE_EXTRACTED", extracted);
 
     // ── 5. Load holidays ──────────────────────────────────────────────────────
