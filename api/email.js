@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Service role client — bypasses RLS so we can look up users and write pending emails
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -8,89 +7,115 @@ const supabase = createClient(
 
 const DOMAIN = "in.allbooked.app";
 
+function log(step, data) {
+  console.log(`[email-webhook] ${step}:`, JSON.stringify(data, null, 2));
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  log("RAW_PAYLOAD_KEYS", Object.keys(req.body || {}));
+  log("RAW_TO", req.body?.to);
+  log("RAW_FROM", req.body?.from);
+  log("RAW_SUBJECT", req.body?.subject);
+  log("BODY_TEXT_LENGTH", (req.body?.text || req.body?.plain || "").length);
+  log("BODY_HTML_LENGTH", (req.body?.html || "").length);
+
   try {
     const payload = req.body;
 
-    // ── 1. Extract the recipient address ─────────────────────────────────────
-    // Resend sends 'to' as array or string
+    // ── 1. Extract recipient address ─────────────────────────────────────────
     const toRaw = Array.isArray(payload.to) ? payload.to[0] : payload.to;
     const toAddress = typeof toRaw === "object" ? toRaw.email : toRaw;
+    log("RESOLVED_TO", toAddress);
 
     if (!toAddress || !toAddress.includes(`@${DOMAIN}`)) {
-      console.log("Not an allbooked address:", toAddress);
-      return res.status(200).json({ ok: true });
+      log("SKIP", `Not an allbooked address: ${toAddress}`);
+      return res.status(200).json({ ok: true, skip: "not_allbooked_address" });
     }
 
     const addressPrefix = toAddress.split("@")[0].toLowerCase();
+    log("ADDRESS_PREFIX", addressPrefix);
 
-    // ── 2. Look up which user owns this address ───────────────────────────────
+    // ── 2. Look up user ───────────────────────────────────────────────────────
     const { data: addrRow, error: addrErr } = await supabase
       .from("user_email_addresses")
       .select("user_id")
       .eq("address", addressPrefix)
       .maybeSingle();
 
+    log("ADDRESS_LOOKUP", { found: !!addrRow, error: addrErr?.message });
+
     if (addrErr || !addrRow) {
-      console.log("No user found for address:", addressPrefix);
-      return res.status(200).json({ ok: true });
+      log("SKIP", `No user found for address prefix: ${addressPrefix}`);
+      return res.status(200).json({ ok: true, skip: "no_user_for_address" });
     }
 
     const userId = addrRow.user_id;
+    log("USER_ID", userId);
 
     // ── 3. Get email content ──────────────────────────────────────────────────
     const fromAddress = typeof payload.from === "object" ? payload.from.email : payload.from;
     const subject = payload.subject || "";
     const bodyText = payload.text || payload.plain || payload.html?.replace(/<[^>]+>/g, " ") || "";
+    log("EMAIL_CONTENT", { from: fromAddress, subject, bodyLength: bodyText.length });
 
-    // ── 4. Send to Claude to extract booking details ──────────────────────────
+    // ── 4. Extract with Claude ────────────────────────────────────────────────
+    log("CLAUDE_EXTRACTION", "starting...");
     const extracted = await extractBookingFromEmail(subject, bodyText);
+    log("CLAUDE_EXTRACTED", extracted);
 
-    // ── 5. Load user's holidays ───────────────────────────────────────────────
-    const { data: appData } = await supabase
+    // ── 5. Load holidays ──────────────────────────────────────────────────────
+    const { data: appData, error: dataErr } = await supabase
       .from("app_data")
       .select("data")
       .eq("id", userId)
       .maybeSingle();
 
-    const holidays = appData?.data?.holidays || [];
+    log("HOLIDAYS_LOAD", { found: !!appData, error: dataErr?.message });
 
-    // ── 6. Try to match to a holiday by date ─────────────────────────────────
+    const holidays = appData?.data?.holidays || [];
+    log("HOLIDAYS_COUNT", holidays.length);
+    log("HOLIDAYS_DATES", holidays.map(h => ({ name: h.name, start: h.startDate, end: h.endDate })));
+
+    // ── 6. Match to holiday ───────────────────────────────────────────────────
     const bookingDate = extracted.date || extracted.checkIn || extracted.departureDate ||
       extracted.flightDate || extracted.ferryDate || extracted.pickUpDate;
+
+    log("BOOKING_DATE", bookingDate);
 
     let matchedHoliday = null;
     if (bookingDate) {
       const d = new Date(bookingDate);
-      matchedHoliday = holidays.find(h => {
-        if (!h.startDate) return false;
+      holidays.forEach(h => {
+        if (!h.startDate) return;
         const start = new Date(h.startDate);
         const end = h.endDate ? new Date(h.endDate) : start;
-        // Match if booking date is within 7 days before or during the holiday
         const windowStart = new Date(start);
         windowStart.setDate(windowStart.getDate() - 7);
-        return d >= windowStart && d <= end;
+        const matches = d >= windowStart && d <= end;
+        log("HOLIDAY_MATCH_CHECK", { holiday: h.name, bookingDate, windowStart: windowStart.toISOString().slice(0,10), end: end.toISOString().slice(0,10), matches });
+        if (matches && !matchedHoliday) matchedHoliday = h;
       });
     }
 
+    log("MATCHED_HOLIDAY", matchedHoliday?.name || "none");
+
     if (!matchedHoliday) {
-      // ── 7a. No match — save to pending inbox ─────────────────────────────
-      await supabase.from("pending_emails").insert({
+      const { error: insertErr } = await supabase.from("pending_emails").insert({
         user_id: userId,
         from_address: fromAddress,
         subject,
         body_text: bodyText.slice(0, 5000),
         extracted,
       });
-      console.log("No holiday match — saved to pending inbox");
-      return res.status(200).json({ ok: true, matched: false });
+      log("PENDING_INSERT", { error: insertErr?.message || "ok" });
+      return res.status(200).json({ ok: true, matched: false, bookingDate, holidays: holidays.length });
     }
 
-    // ── 7b. Match found — add or update step ─────────────────────────────────
+    // ── 7. Add step to holiday ────────────────────────────────────────────────
     const stepType = extracted.stepType || "custom";
     const stepTemplates = {
       flight: { icon: "✈️", label: "Flight" },
@@ -105,59 +130,45 @@ export default async function handler(req, res) {
     };
 
     const template = stepTemplates[stepType] || stepTemplates.custom;
+    log("STEP_TYPE", { stepType, template });
 
-    // Build booking data from extracted fields
     const bookingData = {
       confirmed: true,
       provider: extracted.provider || "",
       reference: extracted.reference || "",
       notes: extracted.notes || `Imported from email: ${subject}`,
       dateBooked: extracted.dateBooked || "",
-      // Flight fields
       flightDate: extracted.flightDate || extracted.date || "",
       departureAirport: extracted.departureAirport || "",
       arrivalAirport: extracted.arrivalAirport || "",
       departureTime: extracted.departureTime || "",
       arrivalTime: extracted.arrivalTime || "",
       flightNumber: extracted.flightNumber || "",
-      // Hotel/Villa fields
       checkIn: extracted.checkIn || "",
       checkOut: extracted.checkOut || "",
       propertyAddress: extracted.propertyAddress || "",
-      // Car hire fields
       pickUpDate: extracted.pickUpDate || "",
       dropOffDate: extracted.dropOffDate || "",
       pickUpLocation: extracted.pickUpLocation || "",
       carType: extracted.carType || "",
-      // Ferry/Sailing fields
       ferryDate: extracted.ferryDate || extracted.date || "",
       ferryDepartTime: extracted.departureTime || "",
       ferryArriveTime: extracted.arrivalTime || "",
       sailingReturnDate: extracted.returnDate || "",
-      // Transfer fields
       transferDate: extracted.date || "",
       pickupTime: extracted.pickupTime || "",
       pickupLocation: extracted.pickupLocation || "",
-      // Parking fields
       carParkName: extracted.carParkName || "",
       terminalName: extracted.terminalName || "",
       parkingEntry: extracted.parkingEntry || "",
       parkingExit: extracted.parkingExit || "",
-      // Pricing
       totalPrice: extracted.totalPrice || "",
       stepCurrency: extracted.currency || "GBP",
     };
 
-    // Generate a new step ID
     const stepId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const newStep = { id: stepId, icon: template.icon, label: template.label };
 
-    const newStep = {
-      id: stepId,
-      icon: template.icon,
-      label: template.label,
-    };
-
-    // Update the holiday with the new step and booking
     const updatedHolidays = holidays.map(h => {
       if (h.id !== matchedHoliday.id) return h;
       return {
@@ -167,20 +178,21 @@ export default async function handler(req, res) {
       };
     });
 
-    await supabase
+    const { error: upsertErr } = await supabase
       .from("app_data")
       .upsert({ id: userId, data: { holidays: updatedHolidays }, updated_at: new Date().toISOString() });
 
-    console.log(`Added ${stepType} step to holiday "${matchedHoliday.name}" for user ${userId}`);
+    log("UPSERT", { error: upsertErr?.message || "ok" });
+    log("SUCCESS", { holiday: matchedHoliday.name, stepType, stepId });
+
     return res.status(200).json({ ok: true, matched: true, holiday: matchedHoliday.name, stepType });
 
   } catch (err) {
-    console.error("Email webhook error:", err);
-    return res.status(200).json({ ok: true, error: err.message }); // always 200 to Resend
+    log("ERROR", { message: err.message, stack: err.stack });
+    return res.status(200).json({ ok: true, error: err.message });
   }
 }
 
-// ── Claude extraction ─────────────────────────────────────────────────────────
 async function extractBookingFromEmail(subject, body) {
   const prompt = `You are extracting travel booking details from a confirmation email.
 
@@ -238,10 +250,12 @@ Extract all booking details and return ONLY a JSON object with these fields (use
     });
 
     const data = await response.json();
+    log("CLAUDE_RESPONSE_STATUS", response.status);
     const text = data.content?.[0]?.text || "{}";
+    log("CLAUDE_RAW_TEXT", text.slice(0, 500));
     return JSON.parse(text.replace(/```json|```/g, "").trim());
   } catch (e) {
-    console.error("Claude extraction failed:", e);
+    log("CLAUDE_ERROR", e.message);
     return {};
   }
 }
