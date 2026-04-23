@@ -1689,7 +1689,7 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
 
 
 // ─── Instructions Modal ────────────────────────────────────────────────────────
-const APP_VERSION = "1.9"; // bump this whenever the instructions change
+const APP_VERSION = "2.0"; // bump this whenever the instructions change
 
 function InstructionsModal({ onClose }) {
   const sections = [
@@ -1701,42 +1701,42 @@ function InstructionsModal({ onClose }) {
     {
       icon: "📋",
       title: "Adding booking steps",
-      text: "Open a holiday and use the blue + Add Step button (bottom right of the screen) to add booking steps. Choose from the template list or create a custom step. Each step has three statuses: ✓ Booked (confirmed), 📅 On the day (intentionally not pre-booked), or ✗ Not Booked (still to do). Only unbooked steps count towards the completion percentage — on-the-day steps are excluded."
+      text: "Open a holiday and use the blue + Add Step button (bottom right of the Bookings tab) to add steps. Choose from the template list — flights, hotel, car hire, parking, transfers, ferry, sailing, restaurant and more — or create a custom step with your own name and dates. Steps are sorted automatically by date. Each step has three statuses: ✓ Booked, 📅 On the day (not pre-booked, excluded from the completion count), or ✗ Not Booked. The home screen shows a red count of unbooked steps on each holiday."
     },
     {
       icon: "📷",
       title: "Getting details into the app — two easy options",
-      text: "Option A — Scan: inside any booking step tap Scan from photo or screenshot, take a photo of your confirmation email or upload a screenshot and the app fills in the details automatically.\n\nOption B — Forward: each account has a unique email address shown at the top of the home screen. Forward any booking confirmation to it and the app adds the step to the matching holiday automatically. Emails that can't be matched appear in the 📧 inbox button."
+      text: "Option A — Scan: inside any booking step tap Scan from photo or screenshot, take a photo of your confirmation email or upload a screenshot and the app fills in the details automatically.\n\nOption B — Forward: each account has a unique email address shown at the top of the home screen. Forward any booking confirmation email to it and the app automatically extracts the details and adds the step to the matching holiday. New bookings appear within 30 seconds without needing to refresh. Emails that can't be matched to a holiday appear in the 📧 inbox button — tap it to assign them manually."
     },
     {
       icon: "💾",
       title: "Saving details",
-      text: "Nothing saves until you tap Save & Close. Edit freely without worrying about accidental saves. Dates and times use a custom picker — select a value then tap ✓ Confirm to set it."
+      text: "Nothing saves until you tap Save & Close. Edit freely without worrying about accidental saves. Dates use a calendar picker and times use a scroll picker — select a value then tap ✓ Confirm to set it. End dates cannot be set before start dates."
     },
     {
       icon: "📅",
       title: "Itinerary",
-      text: "The Itinerary tab shows a day-by-day view of your trip from departure to return. Multi-day bookings like hotels appear on every day they cover. Steps without a date appear at the bottom under 'No date set'. Use the 📅 Export button in the header to download the trip as a calendar file (.ics) for Apple Calendar, Google Calendar or Outlook."
+      text: "The Itinerary tab shows a day-by-day view of your trip from departure to return. Multi-day bookings like hotels and sailing trips appear on every day they cover, with a Night/Day counter. Steps marked 'On the day' show in amber. Steps without a date appear at the bottom. Use the 📅 Export button to download as a calendar file (.ics) for Apple Calendar, Google Calendar or Outlook — you'll be warned if any steps are unbooked or undated."
     },
     {
       icon: "🎒",
       title: "Packing list",
-      text: "The Packing tab has a pre-built checklist you can customise. Tick items off as you pack, add your own items or categories, and remove anything that doesn't apply. A progress bar shows how far through packing you are."
+      text: "The Packing tab has a pre-built checklist you can customise. Tick items off as you pack, add your own items or categories, and remove anything that doesn't apply."
     },
     {
       icon: "✨",
       title: "Memories",
-      text: "After your trip, use the Memories tab to add highlights — a great meal, a funny moment, a view you want to remember. Past holidays become a travel journal."
+      text: "After your trip, use the Memories tab to add highlights — a great meal, a funny moment, a view you want to remember. Tap any emoji to insert it directly into your note. Past holidays become a travel journal."
     },
     {
       icon: "💰",
       title: "Finances & payment reminders",
-      text: "Enter a total price and amount paid on each booking step. Each step has its own currency selector for bookings paid in local currency. The app converts everything into the trip display currency using live rates. If a payment has a due date set, a reminder appears on the home screen when it's within 30 days — turning red when within 7 days."
+      text: "Enter a total price and amount paid on each booking step. Each step has its own currency selector for bookings paid in local currency. The app converts everything into the trip display currency using live exchange rates. If a payment has a due date set, a reminder appears on the home screen when it's within 30 days — turning red when within 7 days."
     },
     {
       icon: "📊",
       title: "Trip stats",
-      text: "The home screen shows a summary across all your holidays — upcoming trips, past trips, and countries visited (based on past holidays with a destination set)."
+      text: "The home screen shows a live summary — upcoming trips, past trips, and countries visited. Payment reminders also appear here when a due date is within 30 days."
     },
     {
       icon: "⭐",
@@ -1746,12 +1746,12 @@ function InstructionsModal({ onClose }) {
     {
       icon: "🔁",
       title: "Rebooking a trip",
-      text: "On any holiday, tap Rebook to create a new copy with the same steps but cleared details. Perfect for annual trips or returning to the same destination."
+      text: "On any holiday, tap Rebook to create a new copy with the same steps but cleared booking details. Perfect for annual trips or returning to the same destination."
     },
     {
       icon: "📱",
       title: "Install as an app",
-      text: "On iPhone, tap the Share button in Safari then 'Add to Home Screen' to install allbooked as an app. It works offline once installed — your holiday data is always accessible even without internet."
+      text: "On iPhone, tap the Share button in Safari then 'Add to Home Screen' to install allbooked as a full-screen app. It works offline once installed — your holiday data is always accessible even without internet."
     },
   ];
 
