@@ -2319,13 +2319,22 @@ export default function App({ user }) {
               {detailTab === "bookings" && (<>
                 {steps.length > 0 ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(255px, 1fr))", gap: "12px" }}>
-                    {steps.map((step, idx) => (
+                    {[...steps].sort((a, b) => {
+                        const bA = selectedHoliday.bookings?.[a.id] || {};
+                        const bB = selectedHoliday.bookings?.[b.id] || {};
+                        const dA = getStepDate(a, bA) || bA.customStartDate || "";
+                        const dB = getStepDate(b, bB) || bB.customStartDate || "";
+                        if (!dA && !dB) return 0;
+                        if (!dA) return 1;  // undated go to bottom
+                        if (!dB) return -1;
+                        return dA < dB ? -1 : dA > dB ? 1 : 0;
+                      }).map((step, idx, arr) => (
                       <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
                         currency={selectedHoliday.currency || "GBP"}
                         onOpen={() => setBookingModal({ stepId: step.id })}
                         onMoveUp={() => moveStep(step.id, -1)}
                         onMoveDown={() => moveStep(step.id, 1)}
-                        isFirst={idx === 0} isLast={idx === steps.length - 1} />
+                        isFirst={idx === 0} isLast={idx === arr.length - 1} />
                     ))}
                   </div>
                 ) : (
