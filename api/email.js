@@ -334,50 +334,82 @@ async function extractBookingFromPDF(base64Content, subject) {
 }
 
 async function extractBookingFromEmail(subject, body) {
-  // Strip HTML tags and clean up whitespace for better extraction
+  // Aggressive HTML cleaning — remove non-content sections then strip all tags
   const cleanBody = body
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, "")
+    // Replace block elements with newlines to preserve structure
+    .replace(/<\/(div|tr|td|th|p|li|br|h[1-6])>/gi, "
+")
+    .replace(/<br\s*\/?>/gi, "
+")
     .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s{3,}/g, "  ")
+    // Decode common HTML entities
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&pound;/g, "£").replace(/&euro;/g, "€")
+    // Collapse whitespace but keep newlines
+    .replace(/[ 	]{3,}/g, "  ")
+    .replace(/
+{4,}/g, "
+
+")
     .trim();
 
-  const prompt = `You are extracting travel booking details from a confirmation email. Search carefully through ALL the text — data may appear in tables, lists or scattered across the email.
+  // Extract the most information-dense section (first 6000 chars of cleaned text)
+  // Focus on the middle of the email which usually has the booking details
+  const bodyForExtraction = cleanBody.length > 6000
+    ? cleanBody.slice(0, 3000) + "
+...
+" + cleanBody.slice(Math.floor(cleanBody.length / 2) - 1000, Math.floor(cleanBody.length / 2) + 2000)
+    : cleanBody;
 
-Subject: ${subject}
+  const prompt = `You are an expert at extracting structured travel booking data from confirmation emails.
 
-Email content:
-${cleanBody.slice(0, 4000)}
+Email subject: ${subject}
 
-Extract every detail you can find and return ONLY a JSON object. For any field you cannot find, use empty string "". Do not guess — only extract what is explicitly stated.
+Email content (HTML stripped):
+---
+${bodyForExtraction}
+---
+
+INSTRUCTIONS:
+- Search the ENTIRE text carefully — key data like flight numbers and airports often appears in multiple formats
+- For flights: look for patterns like "BA256", "FR 1234", "EZY8765" — usually near departure/arrival info
+- For airports: look for 3-letter IATA codes in brackets like (LHR), (ATH), (CFU), or city names near times
+- For times: look for patterns like "10:45", "14:00", "21:15" near date information
+- For hotels: check-in/out dates are often written as "18 Jul 2026" or "18/07/2026"
+- For references: look for "Booking ref", "PNR", "Confirmation", "Reference" followed by alphanumeric codes
+- For prices: look for £, €, $ followed by numbers, or "Total" / "Amount paid"
+- Dates MUST be in YYYY-MM-DD format — convert "18 Jul 2026" to "2026-07-18"
+- Times MUST be HH:MM 24-hour format — convert "2:45pm" to "14:45"
+- Return ONLY valid JSON, no explanation, no markdown code blocks
+
+Return this exact JSON structure (empty string "" for any field not found):
 {
   "stepType": "flight|hotel|villa|carHire|ferry|sailing|parking|transfer|custom",
-  "provider": "airline, hotel or company name",
-  "reference": "booking reference, PNR or confirmation number",
+  "provider": "airline or company name e.g. British Airways, easyJet, Hilton",
+  "reference": "booking reference or PNR e.g. XPRIAN, ABC123",
   "date": "YYYY-MM-DD primary travel date",
-  "dateBooked": "YYYY-MM-DD date booking was made",
-  "totalPrice": "total cost as number e.g. 450.00",
-  "currency": "3-letter code e.g. GBP EUR USD",
-  "notes": "cabin class, seat, baggage allowance, meal, special requests, important conditions",
-  "flightDate": "YYYY-MM-DD departure date",
-  "departureAirport": "full name and IATA code e.g. London Heathrow (LHR)",
-  "arrivalAirport": "full name and IATA code e.g. Athens Eleftherios Venizelos (ATH)",
-  "departureTime": "HH:MM 24hr",
-  "arrivalTime": "HH:MM 24hr",
-  "flightNumber": "e.g. BA256 or FR1234",
-  "checkIn": "YYYY-MM-DD hotel check-in date",
-  "checkOut": "YYYY-MM-DD hotel check-out date",
-  "propertyAddress": "full street address of hotel or villa",
-  "pickUpDate": "YYYY-MM-DD car hire pickup date",
-  "dropOffDate": "YYYY-MM-DD car hire drop-off date",
-  "pickUpLocation": "car hire pickup location",
-  "carType": "car model or category e.g. VW Golf, Economy",
-  "ferryDate": "YYYY-MM-DD ferry departure date",
+  "dateBooked": "YYYY-MM-DD date the booking was made",
+  "totalPrice": "numeric amount only e.g. 245.50",
+  "currency": "GBP|EUR|USD|TRY etc",
+  "notes": "seat numbers, cabin class, baggage allowance, meal preference, important conditions",
+  "flightDate": "YYYY-MM-DD",
+  "departureAirport": "Airport name (IATA) e.g. London Heathrow (LHR)",
+  "arrivalAirport": "Airport name (IATA) e.g. Corfu Ioannis Kapodistrias (CFU)",
+  "departureTime": "HH:MM",
+  "arrivalTime": "HH:MM",
+  "flightNumber": "e.g. BA256 — look for 2-letter airline code followed by digits",
+  "checkIn": "YYYY-MM-DD hotel check-in",
+  "checkOut": "YYYY-MM-DD hotel check-out",
+  "propertyAddress": "full address",
+  "pickUpDate": "YYYY-MM-DD",
+  "dropOffDate": "YYYY-MM-DD",
+  "pickUpLocation": "location",
+  "carType": "e.g. VW Golf, Economy, SUV",
+  "ferryDate": "YYYY-MM-DD",
   "returnDate": "YYYY-MM-DD return date for sailing or ferry",
   "pickupTime": "HH:MM transfer pickup time",
   "pickupLocation": "transfer pickup address or location",
