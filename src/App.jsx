@@ -241,6 +241,35 @@ const DEFAULT_PACKING = [
 ];
 // ─── Supabase ──────────────────────────────────────────────────────────────────
 // ─── Email address management ──────────────────────────────────────────────────
+// ─── Sharing helpers ──────────────────────────────────────────────────────────
+async function loadSharedWithMe(user) {
+  // Get share records for my email
+  const { data } = await supabase
+    .from("holiday_shares")
+    .select("*")
+    .eq("shared_with_email", user.email)
+    .eq("status", "accepted");
+  if (!data?.length) return [];
+
+  // For each accepted share, load the owner's holiday data
+  const results = [];
+  for (const share of data) {
+    const { data: ownerData } = await supabase
+      .from("app_data").select("data").eq("id", share.owner_id).maybeSingle();
+    const holiday = ownerData?.data?.holidays?.find(h => h.id === share.holiday_id);
+    if (holiday) results.push({ ...holiday, _shared: true, _shareId: share.id, _ownerId: share.owner_id });
+  }
+  return results;
+}
+
+async function loadMyShares(userId) {
+  const { data } = await supabase
+    .from("holiday_shares")
+    .select("*")
+    .eq("owner_id", userId);
+  return data || [];
+}
+
 async function getOrCreateEmailAddress(userId, user) {
   const { data } = await supabase.from("user_email_addresses").select("address").eq("user_id", userId).maybeSingle();
   if (data?.address) return data.address;
@@ -1809,6 +1838,13 @@ export default function App({ user }) {
   const [showEmailInbox, setShowEmailInbox] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState(null);
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [sharedHolidays, setSharedHolidays] = useState([]); // holidays shared WITH me
+  const [myShares, setMyShares] = useState([]); // holidays I have shared
   const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
   const [matchingEmail, setMatchingEmail] = useState(null); // pending email being matched to a holiday
   const [saveError, setSaveError]       = useState(null);
@@ -1823,12 +1859,17 @@ export default function App({ user }) {
     }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
+    // Load shares on mount
+    loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
+    loadMyShares(user.id).then(setMyShares).catch(console.error);
+
     // Poll for new data every 30 seconds — picks up emails added by webhook
     const poll = setInterval(() => {
       getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
       loadFromSupabase(user.id).then(d => {
         if (d.holidays) setHolidays(d.holidays);
       }).catch(console.error);
+      loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
     }, 30000);
     return () => clearInterval(poll);
   }, []);
@@ -1841,6 +1882,40 @@ export default function App({ user }) {
   }, []);
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
+
+  async function shareHoliday(holiday, email) {
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      // Check if already shared with this email
+      const existing = myShares.find(s => s.holiday_id === holiday.id && s.shared_with_email === email.toLowerCase());
+      if (existing) {
+        setShareError("Already shared with this email address.");
+        setShareLoading(false);
+        return;
+      }
+      const { error } = await supabase.from("holiday_shares").insert({
+        holiday_id: holiday.id,
+        owner_id: user.id,
+        shared_with_email: email.toLowerCase(),
+        status: "accepted", // auto-accept for now — invitation flow can come later
+        accepted_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      setMyShares(await loadMyShares(user.id));
+      setShareSuccess(true);
+      setShareEmail("");
+    } catch (e) {
+      setShareError(e.message || "Failed to share. Check the email address is correct.");
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  async function removeShare(shareId) {
+    await supabase.from("holiday_shares").delete().eq("id", shareId);
+    setMyShares(await loadMyShares(user.id));
+  }
 
   async function grantPro(grant) {
     setIsPro(grant);
@@ -2109,6 +2184,9 @@ export default function App({ user }) {
                   exportToCalendar(selectedHoliday);
                 }
               }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#0ea5e9", borderColor: "#bae6fd" }}>📅 Export</button>
+              {isPro && (
+                <button onClick={() => { setShowShareModal(true); setShareSuccess(false); setShareError(null); }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#10b981", borderColor: "#10b98144" }}>👥 Share</button>
+              )}
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
@@ -2243,6 +2321,32 @@ export default function App({ user }) {
               </div>
             );
           })()}
+
+          {/* Shared with me */}
+          {sharedHolidays.length > 0 && (
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Shared with me</div>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {sharedHolidays.map(h => {
+                  const status = getStatus(h);
+                  return (
+                    <div key={h._shareId} onClick={() => { setSelectedId(h.id); setView("detail"); }}
+                      style={{ background: "#ffffff", border: "1px solid #10b98133", borderRadius: "16px", padding: "16px 20px", cursor: "pointer", transition: "border-color 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#10b981"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "#10b98133"}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "20px" }}>{h.emoji}</span>
+                        <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "16px", color: "#0f172a" }}>{h.name}</span>
+                        <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: "#10b98122", color: "#10b981", border: "1px solid #10b98144" }}>👥 shared</span>
+                      </div>
+                      {h.destination && <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>📍 {h.destination}{h.startDate ? ` · ${formatDate(h.startDate)}` : ""}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {filteredHolidays.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
@@ -2498,6 +2602,56 @@ export default function App({ user }) {
       {holidayModal !== null && <HolidayModal holiday={holidayModal.holiday} onSave={saveHoliday} onClose={() => setHolidayModal(null)} />}
 
       {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
+
+      {/* Share holiday modal */}
+      {showShareModal && selectedHoliday && (
+        <div style={overlay} onClick={() => setShowShareModal(false)}>
+          <div style={{ ...modal, maxWidth: "440px" }} onClick={e => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <h3 style={modalTitle}>👥 Share {selectedHoliday.emoji} {selectedHoliday.name}</h3>
+              <button onClick={() => setShowShareModal(false)} style={closeBtn}>✕</button>
+            </div>
+            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
+              Enter the email address of someone with an allbooked account. They'll see this holiday in their app.
+            </p>
+            {!shareSuccess ? (
+              <>
+                <label style={labelStyle}>
+                  <span>Email address</span>
+                  <input type="email" value={shareEmail} onChange={e => setShareEmail(e.target.value)}
+                    placeholder="friend@example.com" style={inputStyle}
+                    onKeyDown={e => e.key === "Enter" && shareEmail.trim() && shareHoliday(selectedHoliday, shareEmail.trim())} />
+                </label>
+                {shareError && <div style={{ color: "#ef4444", fontSize: "13px", marginBottom: "12px" }}>{shareError}</div>}
+                <button onClick={() => shareHoliday(selectedHoliday, shareEmail.trim())}
+                  disabled={!shareEmail.trim() || shareLoading}
+                  style={{ ...primaryBtn, width: "100%", opacity: (!shareEmail.trim() || shareLoading) ? 0.5 : 1 }}>
+                  {shareLoading ? "Sharing..." : "Share holiday"}
+                </button>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: "40px", marginBottom: "12px" }}>✅</div>
+                <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "8px" }}>Holiday shared!</div>
+                <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>{shareEmail} can now see this holiday in their allbooked app.</div>
+                <button onClick={() => { setShareSuccess(false); setShareEmail(""); }} style={{ ...secondaryBtn }}>Share with someone else</button>
+              </div>
+            )}
+            {/* Existing shares */}
+            {myShares.filter(s => s.holiday_id === selectedHoliday.id).length > 0 && (
+              <div style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+                <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Shared with</div>
+                {myShares.filter(s => s.holiday_id === selectedHoliday.id).map(s => (
+                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ fontSize: "13px", color: "#0f172a" }}>{s.shared_with_email}</span>
+                    <button onClick={() => removeShare(s.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Upgrade to Pro modal */}
       {showUpgradeModal && (
