@@ -27,12 +27,33 @@ export default async function handler(req, res) {
     const payload = req.body;
 
     // ── 1. Extract recipient address ─────────────────────────────────────────
-    const toRaw = Array.isArray(payload.to) ? payload.to[0] : payload.to;
-    const toAddress = typeof toRaw === "object" ? toRaw.email : toRaw;
-    log("RESOLVED_TO", toAddress);
+    // Resend inbound webhook wraps payload in payload.data for email.received events
+    const data = payload.data || payload;
+    log("DATA_KEYS", Object.keys(data));
 
-    if (!toAddress || !toAddress.includes(`@${DOMAIN}`)) {
-      log("SKIP", `Not an allbooked address: ${toAddress}`);
+    // Search all possible locations for the allbooked address
+    const findAllbookedAddress = (obj) => {
+      if (!obj) return null;
+      const toField = obj.to;
+      const candidates = Array.isArray(toField) ? toField : [toField];
+      for (const c of candidates) {
+        const addr = typeof c === "object" ? c?.email : c;
+        if (addr && addr.includes(`@${DOMAIN}`)) return addr;
+      }
+      return null;
+    };
+
+    // Try top-level, data-wrapped, and headers
+    const toAddress = findAllbookedAddress(payload) ||
+                      findAllbookedAddress(data) ||
+                      findAllbookedAddress(data.headers) ||
+                      null;
+
+    log("RESOLVED_TO", toAddress);
+    log("ALL_TO_FIELDS", { top: payload.to, data: data.to, headers: data.headers?.to });
+
+    if (!toAddress) {
+      log("SKIP", `No allbooked address found in payload`);
       return res.status(200).json({ ok: true, skip: "not_allbooked_address" });
     }
 
@@ -57,9 +78,11 @@ export default async function handler(req, res) {
     log("USER_ID", userId);
 
     // ── 3. Get email content ──────────────────────────────────────────────────
-    const fromAddress = typeof payload.from === "object" ? payload.from.email : payload.from;
-    const subject = payload.subject || "";
-    const bodyText = payload.text || payload.plain || payload.html?.replace(/<[^>]+>/g, " ") || "";
+    const fromRaw = data.from || payload.from;
+    const fromAddress = typeof fromRaw === "object" ? fromRaw.email : fromRaw;
+    const subject = data.subject || payload.subject || "";
+    const bodyText = data.text || data.plain || payload.text || payload.plain ||
+                     (data.html || payload.html || "").replace(/<[^>]+>/g, " ") || "";
     log("EMAIL_CONTENT", { from: fromAddress, subject, bodyLength: bodyText.length });
 
     // ── 4. Extract with Claude ────────────────────────────────────────────────
