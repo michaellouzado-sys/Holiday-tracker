@@ -79,12 +79,18 @@ export default async function handler(req, res) {
 
     // ── 3. Get email content ──────────────────────────────────────────────────
     const fromRaw = data.from || payload.from;
-    const fromAddress = typeof fromRaw === "object" ? fromRaw.email : fromRaw;
+    const fromAddress = typeof fromRaw === "object" ? fromRaw.email : (fromRaw || "");
     const subject = data.subject || payload.subject || "";
-    const bodyText = data.text || data.plain || payload.text || payload.plain ||
-                     (data.html || payload.html || "").replace(/<[^>]+>/g, " ") || "";
-    log("EMAIL_CONTENT", { from: fromAddress, subject, bodyLength: bodyText.length });
-
+    // Body can be in data.text, data.html, or nested deeper
+    const rawHtml = data.html || data.body_html || payload.html || "";
+    const rawText = data.text || data.body_text || data.plain || payload.text || payload.plain || "";
+    const bodyText = rawText || rawHtml.replace(/<[^>]+>/g, " ") || "";
+    log("EMAIL_CONTENT_DETAIL", { 
+      from: fromAddress, subject, 
+      hasText: !!rawText, hasHtml: !!rawHtml,
+      bodyLength: bodyText.length,
+      dataKeys: Object.keys(data)
+    });
     // ── 4. Extract with Claude ────────────────────────────────────────────────
     log("CLAUDE_EXTRACTION", "starting...");
     const extracted = await extractBookingFromEmail(subject, bodyText);
@@ -262,7 +268,7 @@ Extract all booking details and return ONLY a JSON object with these fields (use
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.VITE_ANTHROPIC_API_KEY,
+        "x-api-key": process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
