@@ -239,7 +239,8 @@ export default async function handler(req, res) {
       terminalName: extracted.terminalName || "",
       parkingEntry: extracted.parkingEntry || "",
       parkingExit: extracted.parkingExit || "",
-      totalPrice: extracted.totalPrice || "",
+      totalPrice: "",  // Don't auto-populate price — user should verify and enter manually
+      amountPaid: "",
       stepCurrency: extracted.currency || "GBP",
     };
 
