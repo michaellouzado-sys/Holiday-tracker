@@ -128,7 +128,8 @@ function getStepDate(step, booking) {
   if (isCarHire(step))  return booking.pickUpDate    || null;
   if (isParking(step))  return booking.parkingEntry ? booking.parkingEntry.slice(0,10) : null;
   if (isTransfer(step)) return booking.transferDate || null;
-  return null;
+  // All other steps (restaurant, activities, custom etc) use customStartDate
+  return booking.customStartDate || null;
 }
 
 // Returns the end date of a multi-day booking (hotel checkout, sailing return, car drop-off etc)
@@ -1484,6 +1485,20 @@ function MemoriesView({ holiday, onUpdate }) {
   const [newEmoji, setNewEmoji] = useState("✨");
   const MEMORY_EMOJIS = ["✨","🌅","🍕","🏖️","🎉","😂","😍","🥂","🚶","🌊","🏔️","🎭","🍷","📸","🤩","💃","🌺","🎶","⚡","🌙"];
 
+  const textRef = React.useRef(null);
+
+  function insertEmoji(e) {
+    setNewEmoji(e);
+    const el = textRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? newText.length;
+    const end = el.selectionEnd ?? newText.length;
+    const updated = newText.slice(0, start) + e + newText.slice(end);
+    setNewText(updated);
+    // Restore cursor after emoji
+    setTimeout(() => { el.focus(); el.setSelectionRange(start + e.length, start + e.length); }, 0);
+  }
+
   function addMemory() {
     if (!newText.trim()) return;
     onUpdate([...memories, { id: generateId(), emoji: newEmoji, text: newText.trim(), date: new Date().toISOString().slice(0,10) }]);
@@ -1499,13 +1514,14 @@ function MemoriesView({ holiday, onUpdate }) {
       {/* Add memory */}
       <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "16px 18px", marginBottom: "20px" }}>
         <div style={{ color: "#94a3b8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>Add a memory</div>
+        <div style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "8px" }}>Tap an emoji to insert it into your note:</div>
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
           {MEMORY_EMOJIS.map(e => (
-            <button key={e} onClick={() => setNewEmoji(e)} style={{ width: "34px", height: "34px", fontSize: "16px", background: newEmoji === e ? "#e0f2fe" : "#f1f5f9", border: `1px solid ${newEmoji === e ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px", cursor: "pointer" }}>{e}</button>
+            <button key={e} onClick={() => insertEmoji(e)} style={{ width: "34px", height: "34px", fontSize: "16px", background: newEmoji === e ? "#e0f2fe" : "#f1f5f9", border: `1px solid ${newEmoji === e ? "#0ea5e9" : "#e2e8f0"}`, borderRadius: "8px", cursor: "pointer" }} title="Insert emoji">{e}</button>
           ))}
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="What made this trip special? A moment, a meal, a laugh..." rows={2}
+          <textarea ref={textRef} value={newText} onChange={e => setNewText(e.target.value)} placeholder="What made this trip special? A moment, a meal, a laugh..." rows={2}
             style={{ ...inputStyle, marginTop: 0, flex: 1, resize: "none" }}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), addMemory())} />
           <button onClick={addMemory} style={{ ...primaryBtn, alignSelf: "flex-end" }}>Add</button>
@@ -2020,11 +2036,9 @@ export default function App({ user }) {
               <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
               <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
               <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
-              {pendingEmails.length > 0 && (
-                <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#f59e0b", borderColor: "#fde68a", position: "relative" }}>
-                  📧 {pendingEmails.length}
-                </button>
-              )}
+              <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: pendingEmails.length > 0 ? "#f59e0b" : "#94a3b8", borderColor: pendingEmails.length > 0 ? "#fde68a" : "#e2e8f0" }}>
+                📧{pendingEmails.length > 0 ? ` ${pendingEmails.length}` : ""}
+              </button>
             </>}
 
           </div>
