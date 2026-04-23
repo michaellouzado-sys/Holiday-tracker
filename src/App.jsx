@@ -1807,6 +1807,7 @@ export default function App({ user }) {
   const [pendingEmails, setPendingEmails] = useState([]);
   const [showEmailInbox, setShowEmailInbox] = useState(false);
   const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
+  const [matchingEmail, setMatchingEmail] = useState(null); // pending email being matched to a holiday
   const [saveError, setSaveError]       = useState(null);
   const [rates, setRates]               = useState(null);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
@@ -1903,6 +1904,61 @@ export default function App({ user }) {
     a.href = URL.createObjectURL(blob);
     a.download = `${holiday.name.replace(/[^a-z0-9]/gi,"_")}.ics`;
     a.click();
+  }
+
+  async function addEmailToHoliday(email, holidayId) {
+    const holiday = holidays.find(h => h.id === holidayId);
+    if (!holiday) return;
+    const ex = email.extracted || {};
+    const stepType = ex.stepType || "custom";
+    const stepTemplates = {
+      flight: { icon: "✈️", label: "Flight" },
+      hotel: { icon: "🏨", label: "Hotel" },
+      villa: { icon: "🏠", label: "Villa / Apartment" },
+      carHire: { icon: "🚗", label: "Car Hire" },
+      ferry: { icon: "🚢", label: "Ferry" },
+      sailing: { icon: "⛵", label: "Sailing Trip" },
+      parking: { icon: "🅿️", label: "Airport Parking" },
+      transfer: { icon: "🚕", label: "Transfer" },
+      custom: { icon: "📋", label: ex.provider || email.subject?.slice(0, 30) || "Booking" },
+    };
+    const template = stepTemplates[stepType] || stepTemplates.custom;
+    const stepId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const newStep = { id: stepId, icon: template.icon, label: template.label };
+    const bookingData = {
+      confirmed: true,
+      provider: ex.provider || "",
+      reference: ex.reference || "",
+      notes: ex.notes || `Imported from email: ${email.subject}`,
+      flightDate: ex.flightDate || ex.date || "",
+      departureAirport: ex.departureAirport || "",
+      arrivalAirport: ex.arrivalAirport || "",
+      departureTime: ex.departureTime || "",
+      arrivalTime: ex.arrivalTime || "",
+      flightNumber: ex.flightNumber || "",
+      checkIn: ex.checkIn || "",
+      checkOut: ex.checkOut || "",
+      propertyAddress: ex.propertyAddress || "",
+      pickUpDate: ex.pickUpDate || "",
+      dropOffDate: ex.dropOffDate || "",
+      pickUpLocation: ex.pickUpLocation || "",
+      carType: ex.carType || "",
+      ferryDate: ex.ferryDate || ex.date || "",
+      sailingReturnDate: ex.returnDate || "",
+      transferDate: ex.date || "",
+      totalPrice: ex.totalPrice || "",
+      stepCurrency: ex.currency || "GBP",
+      customStartDate: ex.date || ex.checkIn || ex.flightDate || "",
+    };
+    updateHolidays(prev => prev.map(h => {
+      if (h.id !== holidayId) return h;
+      return { ...h, steps: [...(h.steps || []), newStep], bookings: { ...(h.bookings || {}), [stepId]: bookingData } };
+    }));
+    // Dismiss the pending email
+    await supabase.from("pending_emails").update({ dismissed: true }).eq("id", email.id);
+    setPendingEmails(prev => prev.filter(e => e.id !== email.id));
+    setMatchingEmail(null);
+    setShowEmailInbox(false);
   }
 
   function rebookHoliday(source) {
@@ -2411,7 +2467,7 @@ export default function App({ user }) {
       )}
 
       {/* Pending email inbox */}
-      {showEmailInbox && (
+      {showEmailInbox && !matchingEmail && (
         <div style={overlay} onClick={() => setShowEmailInbox(false)}>
           <div style={{ ...modal, maxWidth: "520px" }} onClick={e => e.stopPropagation()}>
             <div style={modalHeader}>
@@ -2419,7 +2475,7 @@ export default function App({ user }) {
               <button onClick={() => setShowEmailInbox(false)} style={closeBtn}>✕</button>
             </div>
             <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
-              These booking confirmations couldn't be matched to a holiday automatically. Check the dates on your holidays match the booking dates.
+              These booking confirmations couldn't be matched to a holiday automatically. Tap "Add to holiday" to assign one manually.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {pendingEmails.map(email => (
@@ -2432,11 +2488,47 @@ export default function App({ user }) {
                     }} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>✕</button>
                   </div>
                   <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>From: {email.from_address} · {new Date(email.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
-                  {email.extracted?.provider && <div style={{ fontSize: "12px", color: "#0ea5e9" }}>{email.extracted.provider}{email.extracted.reference ? ` · Ref: ${email.extracted.reference}` : ""}</div>}
-                  {email.extracted?.date && <div style={{ fontSize: "12px", color: "#94a3b8" }}>Date: {email.extracted.date}</div>}
+                  {email.extracted?.provider && <div style={{ fontSize: "12px", color: "#0ea5e9", marginBottom: "4px" }}>{email.extracted.provider}{email.extracted.reference ? ` · Ref: ${email.extracted.reference}` : ""}</div>}
+                  {email.extracted?.date && <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>Booking date: {email.extracted.date}</div>}
+                  <button onClick={() => setMatchingEmail(email)}
+                    style={{ ...primaryBtn, fontSize: "12px", padding: "6px 14px", width: "100%" }}>
+                    + Add to holiday
+                  </button>
                 </div>
               ))}
               {pendingEmails.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px" }}>No unmatched emails</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Match email to holiday picker */}
+      {matchingEmail && (
+        <div style={overlay} onClick={() => setMatchingEmail(null)}>
+          <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <h3 style={modalTitle}>Add to which holiday?</h3>
+              <button onClick={() => setMatchingEmail(null)} style={closeBtn}>✕</button>
+            </div>
+            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", background: "#f8fafc", borderRadius: "8px", padding: "10px 12px" }}>
+              <div style={{ fontWeight: "600", color: "#0f172a", marginBottom: "2px" }}>{matchingEmail.subject}</div>
+              {matchingEmail.extracted?.provider && <div style={{ color: "#0ea5e9" }}>{matchingEmail.extracted.provider}</div>}
+              {matchingEmail.extracted?.date && <div>Date: {matchingEmail.extracted.date}</div>}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {holidays.map(h => (
+                <button key={h.id} onClick={() => addEmailToHoliday(matchingEmail, h.id)}
+                  style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
+                >
+                  <span style={{ fontSize: "22px" }}>{h.emoji}</span>
+                  <div>
+                    <div style={{ fontWeight: "600", fontSize: "14px", color: "#0f172a" }}>{h.name}</div>
+                    {h.startDate && <div style={{ fontSize: "12px", color: "#94a3b8" }}>{formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</div>}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
