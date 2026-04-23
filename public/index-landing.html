@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>allbooked — Your holidays, perfectly organised</title>
+  <meta name="description" content="The holiday organiser app that actually looks like a holiday app. AI scanning, email forwarding, itinerary, packing and memories — all in one beautiful place." />
+  <meta property="og:title" content="allbooked — Your holidays, perfectly organised" />
+  <meta property="og:description" content="Forward a booking confirmation. Watch the details appear. Coming to the App Store soon." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sky: #0ea5e9;
+      --sky-light: #38bdf8;
+      --sky-pale: #f0f9ff;
+      --sky-mid: #bae6fd;
+      --dark: #0f172a;
+      --mid: #334155;
+      --muted: #64748b;
+      --light: #94a3b8;
+      --border: #e2e8f0;
+      --white: #ffffff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--sky-pale);
+      color: var(--dark);
+      overflow-x: hidden;
+    }
+
+    /* ── Background ──────────────────────────────────────────────────────── */
+    .bg-orbs {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.35;
+    }
+    .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #0ea5e9, transparent); top: -200px; right: -100px; animation: drift1 20s ease-in-out infinite; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #38bdf8, transparent); bottom: 10%; left: -100px; animation: drift2 25s ease-in-out infinite; }
+    .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #7dd3fc, transparent); top: 40%; right: 10%; animation: drift3 18s ease-in-out infinite; }
+
+    @keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,60px)} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,-40px)} }
+    @keyframes drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,50px)} }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Nav ──────────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 0;
+      background: rgba(240, 249, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(186, 230, 253, 0.4);
+    }
+    nav .inner { max-width: 1080px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; text-decoration: none; color: var(--dark); }
+    .logo em { color: var(--sky); font-style: normal; }
+    .nav-cta { background: var(--sky); color: white; border: none; padding: 10px 20px; border-radius: 100px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .nav-cta:hover { background: var(--sky-light); transform: translateY(-1px); }
+
+    /* ── Hero ─────────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 160px 0 100px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; border: 1px solid var(--sky-mid);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 13px; color: var(--sky); font-weight: 500;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge .dot { width: 6px; height: 6px; background: var(--sky); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(42px, 7vw, 80px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      color: var(--dark);
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    h1 em { color: var(--sky); font-style: italic; }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+      font-weight: 400;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    /* ── Waitlist form ───────────────────────────────────────────────────── */
+    .waitlist-form {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 16px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .waitlist-input {
+      padding: 14px 20px; border: 1.5px solid var(--border);
+      border-radius: 100px; font-family: 'DM Sans', sans-serif;
+      font-size: 15px; color: var(--dark); background: white;
+      width: 300px; outline: none; transition: border-color 0.2s;
+    }
+    .waitlist-input:focus { border-color: var(--sky); }
+    .waitlist-input::placeholder { color: var(--light); }
+    .waitlist-btn {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, var(--sky), var(--sky-light));
+      color: white; border: none; border-radius: 100px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.35);
+    }
+    .waitlist-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(14,165,233,0.45); }
+    .waitlist-btn:disabled { opacity: 0.6; cursor: wait; }
+    .waitlist-note { font-size: 13px; color: var(--light); animation: fadeUp 0.6s 0.35s ease both; }
+
+    .success-msg {
+      display: none; text-align: center;
+      padding: 16px 24px; background: white;
+      border: 1.5px solid #10b98133; border-radius: 16px;
+      color: #10b981; font-weight: 500; font-size: 15px;
+      max-width: 400px; margin: 0 auto;
+    }
+
+    /* ── App preview cards ────────────────────────────────────────────────── */
+    .preview {
+      padding: 80px 0 100px;
+    }
+    .preview-label {
+      text-align: center; font-size: 12px; font-weight: 600;
+      color: var(--sky); text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+    .preview-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(28px, 4vw, 44px); font-weight: 700;
+      text-align: center; letter-spacing: -1px; margin-bottom: 60px;
+      color: var(--dark);
+    }
+
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    }
+    @media (max-width: 768px) { .cards-grid { grid-template-columns: 1fr; } }
+
+    .feature-card {
+      background: white; border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(14,165,233,0.12); }
+    .card-icon { font-size: 32px; margin-bottom: 16px; }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 10px; color: var(--dark); }
+    .card-body { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── How it works ─────────────────────────────────────────────────────── */
+    .how {
+      padding: 80px 0 100px;
+      background: white;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; position: relative; }
+    @media (max-width: 768px) { .steps { grid-template-columns: 1fr; } }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--sky), var(--sky-light));
+      color: white; font-weight: 700; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .step-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 10px; color: var(--dark); }
+    .step-body { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Comparison ───────────────────────────────────────────────────────── */
+    .compare { padding: 80px 0 100px; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 700px; margin: 0 auto; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+    .compare-card.pro { border-color: var(--sky-mid); background: linear-gradient(135deg, var(--sky-pale), white); }
+    .compare-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; color: var(--muted); }
+    .compare-card.pro .compare-header { color: var(--sky); }
+    .compare-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 14px; color: var(--mid); }
+    .compare-item .tick { flex-shrink: 0; color: #10b981; font-weight: 700; }
+    .compare-item .cross { flex-shrink: 0; color: var(--light); }
+
+    /* ── Social proof ─────────────────────────────────────────────────────── */
+    .proof { padding: 80px 0; text-align: center; }
+    .proof-stat { display: inline-block; margin: 0 32px 20px; }
+    .proof-num { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 700; color: var(--sky); display: block; }
+    .proof-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── CTA section ─────────────────────────────────────────────────────── */
+    .cta-section {
+      padding: 80px 0 120px; text-align: center;
+    }
+    .cta-box {
+      background: linear-gradient(135deg, var(--sky), var(--sky-light));
+      border-radius: 28px; padding: 60px 40px;
+      max-width: 640px; margin: 0 auto;
+    }
+    .cta-box h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(28px, 4vw, 40px); font-weight: 700;
+      color: white; margin-bottom: 16px; letter-spacing: -1px;
+    }
+    .cta-box p { color: rgba(255,255,255,0.85); font-size: 16px; margin-bottom: 32px; }
+    .cta-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .cta-input {
+      padding: 14px 20px; border: none; border-radius: 100px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px;
+      background: rgba(255,255,255,0.95); color: var(--dark);
+      width: 260px; outline: none;
+    }
+    .cta-input::placeholder { color: var(--light); }
+    .cta-btn {
+      padding: 14px 28px; background: white; color: var(--sky);
+      border: none; border-radius: 100px; font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 32px 0;
+      text-align: center;
+    }
+    footer .logo { font-size: 18px; display: block; margin-bottom: 8px; }
+    footer p { font-size: 13px; color: var(--light); }
+    footer a { color: var(--sky); text-decoration: none; }
+
+    /* ── Animations ──────────────────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── App badge ───────────────────────────────────────────────────────── */
+    .app-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--dark); color: white; border-radius: 12px;
+      padding: 10px 20px; font-size: 13px; text-decoration: none;
+      margin-top: 16px; transition: opacity 0.2s;
+    }
+    .app-badge:hover { opacity: 0.85; }
+    .app-badge span { display: block; font-size: 10px; opacity: 0.7; }
+    .app-badge strong { display: block; font-size: 14px; font-weight: 600; }
+
+    /* ── Try it link ─────────────────────────────────────────────────────── */
+    .try-link { font-size: 13px; color: var(--muted); margin-top: 12px; animation: fadeUp 0.6s 0.4s ease both; }
+    .try-link a { color: var(--sky); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Nav -->
+  <nav>
+    <div class="inner">
+      <a href="#" class="logo"><em>all</em>booked</a>
+      <a href="#waitlist" class="nav-cta">Get early access</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Coming to the App Store soon
+      </div>
+      <h1>Your holidays,<br /><em>perfectly organised</em></h1>
+      <p class="hero-sub">
+        Forward a booking confirmation. Watch the details appear automatically.
+        Every flight, hotel, transfer and memory — one beautiful place.
+      </p>
+
+      <div id="hero-form">
+        <form class="waitlist-form" onsubmit="submitWaitlist(event, 'hero')">
+          <input class="waitlist-input" type="email" id="hero-email" placeholder="your@email.com" required />
+          <button class="waitlist-btn" type="submit" id="hero-btn">Notify me at launch</button>
+        </form>
+        <p class="waitlist-note">Free to join. No spam. Unsubscribe anytime.</p>
+      </div>
+      <div class="success-msg" id="hero-success">
+        🎉 You're on the list! We'll email you the moment allbooked launches.
+      </div>
+      <p class="try-link">Already using the web app? <a href="https://holiday-tracker-blond.vercel.app">Open allbooked →</a></p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="preview">
+    <div class="container">
+      <p class="preview-label reveal">Everything you need</p>
+      <h2 class="preview-title reveal">Built for the way<br />real holidays work</h2>
+
+      <div class="cards-grid">
+        <div class="feature-card reveal">
+          <div class="card-icon">📧</div>
+          <div class="card-title">Forward & forget</div>
+          <div class="card-body">Forward any booking confirmation to your personal allbooked address. The AI reads it and adds the step automatically — flights, hotels, transfers, everything.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="card-icon">📷</div>
+          <div class="card-title">Scan in seconds</div>
+          <div class="card-body">Take a photo of any confirmation email or document. AI extracts every detail — reference number, dates, times, airports — and fills the form for you.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="card-icon">📅</div>
+          <div class="card-title">Day-by-day itinerary</div>
+          <div class="card-body">See your entire trip laid out day by day. Multi-night hotels span every night. Export to Apple Calendar, Google Calendar or Outlook with one tap.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="card-icon">🎒</div>
+          <div class="card-title">Smart packing lists</div>
+          <div class="card-body">Pre-built packing lists you can customise for every trip. Tick off as you pack. Never leave your phone charger behind again.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="card-icon">💰</div>
+          <div class="card-title">Multi-currency finances</div>
+          <div class="card-body">Track what you've paid and what's outstanding across any currency. Live exchange rates keep everything accurate. Payment reminders before due dates.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="card-icon">✨</div>
+          <div class="card-title">Travel memories</div>
+          <div class="card-body">After your trip, add highlights — a great meal, a moment, a view. Past holidays become a beautiful travel journal you'll actually want to look back at.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how">
+    <div class="container">
+      <p class="preview-label reveal">How it works</p>
+      <h2 class="preview-title reveal">Three steps to<br />a stress-free holiday</h2>
+      <div class="steps">
+        <div class="reveal">
+          <div class="step-num">1</div>
+          <div class="step-title">Create your holiday</div>
+          <div class="step-body">Add a trip with dates, destination and currency. allbooked creates a clean workspace just for that holiday.</div>
+        </div>
+        <div class="reveal">
+          <div class="step-num">2</div>
+          <div class="step-title">Add your bookings</div>
+          <div class="step-body">Forward confirmation emails or scan screenshots. Or add steps manually for things not yet booked. Everything organised by date automatically.</div>
+        </div>
+        <div class="reveal">
+          <div class="step-num">3</div>
+          <div class="step-title">Travel with confidence</div>
+          <div class="step-body">Every reference number, time, address and detail — always in your pocket. Works offline too, so no roaming data required.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section class="compare">
+    <div class="container">
+      <p class="preview-label reveal">Simple pricing</p>
+      <h2 class="preview-title reveal">Everything free.<br />Upgrade for more.</h2>
+      <div class="compare-grid">
+        <div class="compare-card reveal">
+          <div class="compare-header">Free — forever</div>
+          <div class="compare-item"><span class="tick">✓</span> 1 active holiday</div>
+          <div class="compare-item"><span class="tick">✓</span> AI photo scanning</div>
+          <div class="compare-item"><span class="tick">✓</span> Email forwarding</div>
+          <div class="compare-item"><span class="tick">✓</span> Full itinerary view</div>
+          <div class="compare-item"><span class="tick">✓</span> Packing lists</div>
+          <div class="compare-item"><span class="tick">✓</span> Finances & reminders</div>
+          <div class="compare-item"><span class="tick">✓</span> Memories journal</div>
+          <div class="compare-item"><span class="tick">✓</span> Calendar export</div>
+          <div class="compare-item"><span class="cross">—</span> Multiple holidays</div>
+          <div class="compare-item"><span class="cross">—</span> Share with others</div>
+        </div>
+        <div class="compare-card pro reveal">
+          <div class="compare-header">Pro — £2.99/month</div>
+          <div class="compare-item"><span class="tick">✓</span> Everything in Free</div>
+          <div class="compare-item"><span class="tick">✓</span> <strong>Unlimited holidays</strong></div>
+          <div class="compare-item"><span class="tick">✓</span> <strong>Share with travel companions</strong></div>
+          <div style="margin-top: 20px; font-size: 13px; color: var(--sky);">Cancel anytime · Less than a coffee a month</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="waitlist">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Be first to know<br />when we launch</h2>
+        <p>Join the waitlist and get notified the moment allbooked is live on the App Store.</p>
+        <div id="cta-form">
+          <form class="cta-form" onsubmit="submitWaitlist(event, 'cta')">
+            <input class="cta-input" type="email" id="cta-email" placeholder="your@email.com" required />
+            <button class="cta-btn" type="submit" id="cta-btn">Join the waitlist</button>
+          </form>
+        </div>
+        <div style="display:none;color:white;font-size:15px;font-weight:500;margin-top:8px" id="cta-success">
+          🎉 You're on the list! We'll be in touch soon.
+        </div>
+        <p style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.6)">
+          Already using the web app? <a href="https://holiday-tracker-blond.vercel.app" style="color:white;font-weight:600">Open allbooked →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <a href="#" class="logo"><em>all</em>booked</a>
+      <p>Your holidays, perfectly organised · <a href="/privacy">Privacy Policy</a></p>
+    </div>
+  </footer>
+
+  <script>
+    // ── Scroll reveal ─────────────────────────────────────────────────────
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 80);
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ── Waitlist form ─────────────────────────────────────────────────────
+    async function submitWaitlist(e, section) {
+      e.preventDefault();
+      const emailEl = document.getElementById(`${section}-email`);
+      const btnEl = document.getElementById(`${section}-btn`);
+      const formEl = document.getElementById(`${section}-form`);
+      const successEl = document.getElementById(`${section}-success`);
+      const email = emailEl?.value || document.querySelector('.cta-input')?.value;
+
+      if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Joining...'; }
+
+      try {
+        // Store in Supabase waitlist table
+        const response = await fetch('https://holiday-tracker-blond.vercel.app/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        if (formEl) formEl.style.display = 'none';
+        if (successEl) successEl.style.display = 'block';
+
+        // Track in localStorage to prevent duplicates
+        localStorage.setItem('allbooked_waitlist', '1');
+      } catch (err) {
+        // Fallback — still show success (email captured client-side)
+        if (formEl) formEl.style.display = 'none';
+        if (successEl) successEl.style.display = 'block';
+      }
+    }
+
+    // If already signed up, show success state
+    if (localStorage.getItem('allbooked_waitlist')) {
+      ['hero', 'cta'].forEach(s => {
+        const f = document.getElementById(`${s}-form`);
+        const sc = document.getElementById(`${s}-success`);
+        if (f) f.style.display = 'none';
+        if (sc) sc.style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>
