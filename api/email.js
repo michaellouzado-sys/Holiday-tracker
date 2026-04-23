@@ -334,44 +334,57 @@ async function extractBookingFromPDF(base64Content, subject) {
 }
 
 async function extractBookingFromEmail(subject, body) {
-  const prompt = `You are extracting travel booking details from a confirmation email.
+  // Strip HTML tags and clean up whitespace for better extraction
+  const cleanBody = body
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s{3,}/g, "  ")
+    .trim();
+
+  const prompt = `You are extracting travel booking details from a confirmation email. Search carefully through ALL the text — data may appear in tables, lists or scattered across the email.
 
 Subject: ${subject}
 
-Body:
-${body.slice(0, 3000)}
+Email content:
+${cleanBody.slice(0, 4000)}
 
-Extract all booking details and return ONLY a JSON object with these fields (use empty string if not found):
+Extract every detail you can find and return ONLY a JSON object. For any field you cannot find, use empty string "". Do not guess — only extract what is explicitly stated.
 {
   "stepType": "flight|hotel|villa|carHire|ferry|sailing|parking|transfer|custom",
-  "provider": "company or airline name",
-  "reference": "booking reference or PNR",
-  "date": "YYYY-MM-DD primary date",
-  "dateBooked": "YYYY-MM-DD if visible",
-  "totalPrice": "numeric amount as string e.g. 450.00",
-  "currency": "3-letter code e.g. GBP",
-  "notes": "any other useful info",
-  "flightDate": "YYYY-MM-DD",
-  "departureAirport": "name and IATA e.g. Manchester (MAN)",
-  "arrivalAirport": "name and IATA e.g. Athens (ATH)",
-  "departureTime": "HH:MM",
-  "arrivalTime": "HH:MM",
-  "flightNumber": "e.g. BA123",
-  "checkIn": "YYYY-MM-DD",
-  "checkOut": "YYYY-MM-DD",
-  "propertyAddress": "full address",
-  "pickUpDate": "YYYY-MM-DD",
-  "dropOffDate": "YYYY-MM-DD",
-  "pickUpLocation": "location",
-  "carType": "e.g. VW Golf",
-  "ferryDate": "YYYY-MM-DD",
-  "returnDate": "YYYY-MM-DD for sailing return",
-  "pickupTime": "HH:MM",
-  "pickupLocation": "location",
-  "carParkName": "car park name",
-  "terminalName": "terminal",
-  "parkingEntry": "YYYY-MM-DDTHH:MM",
-  "parkingExit": "YYYY-MM-DDTHH:MM"
+  "provider": "airline, hotel or company name",
+  "reference": "booking reference, PNR or confirmation number",
+  "date": "YYYY-MM-DD primary travel date",
+  "dateBooked": "YYYY-MM-DD date booking was made",
+  "totalPrice": "total cost as number e.g. 450.00",
+  "currency": "3-letter code e.g. GBP EUR USD",
+  "notes": "cabin class, seat, baggage allowance, meal, special requests, important conditions",
+  "flightDate": "YYYY-MM-DD departure date",
+  "departureAirport": "full name and IATA code e.g. London Heathrow (LHR)",
+  "arrivalAirport": "full name and IATA code e.g. Athens Eleftherios Venizelos (ATH)",
+  "departureTime": "HH:MM 24hr",
+  "arrivalTime": "HH:MM 24hr",
+  "flightNumber": "e.g. BA256 or FR1234",
+  "checkIn": "YYYY-MM-DD hotel check-in date",
+  "checkOut": "YYYY-MM-DD hotel check-out date",
+  "propertyAddress": "full street address of hotel or villa",
+  "pickUpDate": "YYYY-MM-DD car hire pickup date",
+  "dropOffDate": "YYYY-MM-DD car hire drop-off date",
+  "pickUpLocation": "car hire pickup location",
+  "carType": "car model or category e.g. VW Golf, Economy",
+  "ferryDate": "YYYY-MM-DD ferry departure date",
+  "returnDate": "YYYY-MM-DD return date for sailing or ferry",
+  "pickupTime": "HH:MM transfer pickup time",
+  "pickupLocation": "transfer pickup address or location",
+  "carParkName": "name of car park",
+  "terminalName": "airport terminal e.g. Terminal 2",
+  "parkingEntry": "YYYY-MM-DDTHH:MM entry datetime",
+  "parkingExit": "YYYY-MM-DDTHH:MM exit datetime"
 }`;
 
   try {
