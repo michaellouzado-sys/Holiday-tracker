@@ -91,9 +91,30 @@ export default async function handler(req, res) {
       bodyLength: bodyText.length,
       dataKeys: Object.keys(data)
     });
+    // ── 3b. Try to extract text from PDF attachments if body is empty ────────
+    let finalBodyText = bodyText;
+    if (!finalBodyText.trim() && data.attachments?.length > 0) {
+      log("PDF_ATTACHMENTS", data.attachments.map(a => ({ name: a.filename, type: a.content_type, size: a.size })));
+      for (const attachment of data.attachments) {
+        if (attachment.content_type === "application/pdf" && attachment.content) {
+          try {
+            // Send PDF to Claude directly as base64
+            const pdfText = await extractTextFromPDF(attachment.content, subject);
+            if (pdfText) {
+              finalBodyText = pdfText;
+              log("PDF_EXTRACTED_LENGTH", finalBodyText.length);
+              break;
+            }
+          } catch (e) {
+            log("PDF_ERROR", e.message);
+          }
+        }
+      }
+    }
+
     // ── 4. Extract with Claude ────────────────────────────────────────────────
     log("CLAUDE_EXTRACTION", "starting...");
-    const extracted = await extractBookingFromEmail(subject, bodyText);
+    const extracted = await extractBookingFromEmail(subject, finalBodyText);
     log("CLAUDE_EXTRACTED", extracted);
 
     // ── 5. Load holidays ──────────────────────────────────────────────────────
@@ -219,6 +240,38 @@ export default async function handler(req, res) {
   } catch (err) {
     log("ERROR", { message: err.message, stack: err.stack });
     return res.status(200).json({ ok: true, error: err.message });
+  }
+}
+
+async function extractTextFromPDF(base64Content, subject) {
+  // Send PDF to Claude as a document to extract text
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: { type: "base64", media_type: "application/pdf", data: base64Content }
+            },
+            { type: "text", text: "Extract all text content from this booking confirmation PDF. Return just the raw text, no formatting." }
+          ]
+        }]
+      }),
+    });
+    const data = await response.json();
+    return data.content?.[0]?.text || "";
+  } catch (e) {
+    return "";
   }
 }
 
