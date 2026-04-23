@@ -2474,10 +2474,17 @@ export default function App({ user }) {
                         const bB = selectedHoliday.bookings?.[b.id] || {};
                         const dA = getStepDate(a, bA) || bA.customStartDate || "";
                         const dB = getStepDate(b, bB) || bB.customStartDate || "";
-                        if (!dA && !dB) return 0;
+                        if (!dA && !dB) return stepTypePriority(a) - stepTypePriority(b);
                         if (!dA) return 1;  // undated go to bottom
                         if (!dB) return -1;
-                        return dA < dB ? -1 : dA > dB ? 1 : 0;
+                        if (dA !== dB) return dA < dB ? -1 : 1;
+                        // Same date — tiebreak by time then step type
+                        const tA = getStepTime(a, bA) || "";
+                        const tB = getStepTime(b, bB) || "";
+                        if (tA && tB && tA !== tB) return tA < tB ? -1 : 1;
+                        if (tA && !tB) return -1;
+                        if (!tA && tB) return 1;
+                        return stepTypePriority(a) - stepTypePriority(b);
                       }).map((step, idx, arr) => (
                       <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
                         currency={selectedHoliday.currency || "GBP"}
