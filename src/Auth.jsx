@@ -116,6 +116,17 @@ export default function AuthScreen() {
           {message && (
             <div style={{ background: "#10b98122", border: "1px solid #00d4aa44", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#10b981", fontSize: "13px" }}>
               {message}
+              {mode === "login" && (
+                <div style={{ marginTop: "8px", color: "#64748b", fontSize: "12px" }}>
+                  📬 Can't find the email? Check your junk or spam folder.
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === "signup" && !message && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#64748b", fontSize: "12px" }}>
+              📬 After signing up, you'll receive a confirmation email. If you don't see it, check your junk or spam folder.
             </div>
           )}
 
