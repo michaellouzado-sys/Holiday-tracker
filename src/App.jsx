@@ -1,3 +1,4 @@
+import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 
@@ -1824,7 +1825,7 @@ export default function App({ user }) {
   const [holidays, setHolidays]         = useState([]);
   const [selectedId, setSelectedId]     = useState(null);
   const [view, setView]                 = useState("list");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("upcoming");
   const [bookingModal, setBookingModal] = useState(null);
   const [holidayModal, setHolidayModal] = useState(null);
   const [addStepModal, setAddStepModal] = useState(false);
@@ -1862,6 +1863,13 @@ export default function App({ user }) {
     }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
+    // Init RevenueCat
+    (async () => { try {
+      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+      await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
+      const { customerInfo } = await Purchases.getCustomerInfo();
+      if (customerInfo.entitlements.active["pro"]) setIsPro(true);
+    } catch (e) { console.log("RC init error", e); } })()
     // Load shares on mount
     loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
     loadMyShares(user.id).then(setMyShares).catch(console.error);
@@ -2146,7 +2154,7 @@ export default function App({ user }) {
     };
   }
 
-  const filteredHolidays = holidays.filter(h => filterStatus === "all" || getStatus(h) === filterStatus);
+  const filteredHolidays = holidays.filter(h => getStatus(h) === filterStatus);
 
   if (!loaded) return <div style={{ ...appShell, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div style={{ color: "#0ea5e9", fontSize: "24px" }}>✈️ Loading...</div></div>;
 
@@ -2216,7 +2224,7 @@ export default function App({ user }) {
         {/* List view */}
         {view === "list" && (<>
           <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
-            {["all","upcoming","active","past"].map(s => (
+            {["upcoming","active","past"].map(s => (
               <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{s}</button>
             ))}
           </div>
@@ -2436,6 +2444,10 @@ export default function App({ user }) {
             <p style={{ fontSize: "11px", color: "#e2e8f0", maxWidth: "320px", margin: "0 auto 12px", lineHeight: "1.5", padding: "0 16px" }}>
               allbooked is a planning aid only. Always verify all booking details directly with your travel providers. We accept no liability for missed travel or incorrect information.
             </p>
+<button onClick={async () => {
+                const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin });
+                if (!error) alert("Password reset email sent — check your inbox.");
+              }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: "13px", cursor: "pointer", padding: "8px 16px" }}>Change password</button>
             <button onClick={() => supabase.auth.signOut()}
               style={{ background: "none", border: "none", color: "#cbd5e1", fontSize: "13px", cursor: "pointer", padding: "8px 16px" }}
               title={user.email}
@@ -2686,10 +2698,18 @@ export default function App({ user }) {
                 <div style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff" }}>£2.99<span style={{ fontSize: "14px", fontWeight: "400" }}>/month</span></div>
                 <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Cancel anytime</div>
               </div>
-              <button onClick={() => {
-                // TODO: Replace with RevenueCat purchase flow when iOS app is ready
-                // For now, show coming soon message
-                alert("In-app purchases will be available when allbooked launches on the App Store. Stay tuned!");
+              <button onClick={async () => {
+                try {
+                  const offerings = await Purchases.getOfferings();
+                  const pkg = offerings.current?.availablePackages[0];
+                  if (pkg) {
+                    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+                    if (customerInfo.entitlements.active["pro"]) {
+                      await grantPro(true);
+                      setShowUpgradeModal(false);
+                    }
+                  }
+                } catch (e) { if (e.code !== "1") console.error("Purchase error", e); }
               }} style={{ ...primaryBtn, width: "100%", padding: "14px", fontSize: "15px", marginBottom: "12px" }}>
                 Upgrade to Pro
               </button>
@@ -2698,16 +2718,15 @@ export default function App({ user }) {
               </button>
               <div style={{ marginTop: "16px", fontSize: "11px", color: "#cbd5e1" }}>
                 Already have Pro? <button onClick={async () => {
-                  // TODO: Replace with RevenueCat restore when iOS ready
-                  // For now allow admin grant via special flow
-                  const code = prompt("Enter your Pro access code:");
-                  if (code === "ALLBOOKED-PRO") {
-                    await grantPro(true);
-                    setShowUpgradeModal(false);
-                    alert("Pro access activated!");
-                  } else if (code) {
-                    alert("Invalid code.");
-                  }
+                  try {
+                    const { customerInfo } = await Purchases.restorePurchases();
+                    if (customerInfo.entitlements.active["pro"]) {
+                      await grantPro(true);
+                      setShowUpgradeModal(false);
+                    } else {
+                      alert("No active Pro subscription found.");
+                    }
+                  } catch (e) { console.error("Restore error", e); }
                 }} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "11px", padding: 0 }}>Restore or enter access code</button>
               </div>
             </div>
