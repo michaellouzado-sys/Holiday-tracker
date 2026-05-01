@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>allbooked</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
@@ -15,8 +15,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #f0f9ff; color: #0f172a; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* iOS safe area support — prevents content hiding behind notch/Dynamic Island and home bar */
+      body {
+        background: #f0f9ff;
+        color: #0f172a;
+        /* Pad for iOS safe areas */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      /* Remove grey tap highlight on iOS */
+      * { -webkit-tap-highlight-color: transparent; }
+
+      /* Prevent elastic scroll bounce on iOS */
+      html, body { overscroll-behavior: none; height: 100%; }
+
+      /* Prevent iOS font size inflation */
+      html { -webkit-text-size-adjust: 100%; }
+
+      /* Ensure all inputs are 16px+ to prevent iOS auto-zoom on focus */
+      input, textarea, select {
+        font-size: 16px !important;
+      }
+
+      /* Smooth scrolling for the app feel */
+      * { -webkit-overflow-scrolling: touch; }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>

@@ -1794,6 +1794,9 @@ function InstructionsModal({ onClose }) {
               How to use <span style={{ color: "#0ea5e9" }}>allbooked</span>
             </h2>
             <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "4px" }}>v{APP_VERSION}</div>
+            <div style={{ color: "#e2e8f0", fontSize: "11px", marginTop: "8px", lineHeight: "1.5" }}>
+              allbooked is a planning aid only. Always verify bookings directly with your travel providers. We accept no liability for missed travel or errors.
+            </div>
           </div>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
@@ -2429,7 +2432,10 @@ export default function App({ user }) {
 
         {/* Sign out — bottom of list view only */}
         {view === "list" && (
-          <div style={{ textAlign: "center", marginTop: "32px", paddingBottom: "16px" }}>
+          <div style={{ textAlign: "center", marginTop: "32px", paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+            <p style={{ fontSize: "11px", color: "#e2e8f0", maxWidth: "320px", margin: "0 auto 12px", lineHeight: "1.5", padding: "0 16px" }}>
+              allbooked is a planning aid only. Always verify all booking details directly with your travel providers. We accept no liability for missed travel or incorrect information.
+            </p>
             <button onClick={() => supabase.auth.signOut()}
               style={{ background: "none", border: "none", color: "#cbd5e1", fontSize: "13px", cursor: "pointer", padding: "8px 16px" }}
               title={user.email}
@@ -2512,7 +2518,7 @@ export default function App({ user }) {
               {detailTab === "bookings" && (
                 <button onClick={() => setAddStepModal(true)}
                   style={{
-                    position: "fixed", bottom: "28px", right: "24px", zIndex: 500,
+                    position: "fixed", bottom: "calc(28px + env(safe-area-inset-bottom))", right: "24px", zIndex: 500,
                     width: "80px", height: "80px", borderRadius: "50%",
                     background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
                     border: "none", cursor: "pointer", color: "#ffffff",

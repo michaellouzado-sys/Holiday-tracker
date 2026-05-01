@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy — allbooked</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f0f9ff; color: #0f172a; line-height: 1.7; }
-    .header { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+    .header { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 20px 24px; }
     .logo { font-family: Georgia, serif; font-size: 22px; font-weight: 700; }
     .logo span { color: #0ea5e9; }
     .container { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
@@ -18,6 +18,7 @@
     ul { margin: 0 0 14px 20px; }
     li { font-size: 15px; color: #334155; margin-bottom: 6px; }
     .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .disclaimer { background: #fff7ed; border: 2px solid #fed7aa; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
     a { color: #0ea5e9; }
     .footer { text-align: center; margin-top: 60px; color: #94a3b8; font-size: 13px; }
   </style>
@@ -25,96 +26,37 @@
 <body>
   <div class="header">
     <div class="logo"><span>all</span>booked</div>
-    <span style="color:#94a3b8;font-size:14px;">Your holidays, perfectly organised</span>
   </div>
-
   <div class="container">
     <h1>Privacy Policy</h1>
     <p class="updated">Last updated: April 2026</p>
-
-    <p>allbooked ("we", "us", "our") is a holiday organiser app built and operated by Michael Louzado. This policy explains what data we collect, how we use it, and your rights under UK GDPR.</p>
-
+    <div class="disclaimer">
+      <p style="color:#92400e;font-weight:700;margin-bottom:8px;">Important Disclaimer</p>
+      <p style="color:#92400e;">allbooked is a planning and organisational aid only. It does not make bookings on your behalf. Always verify all travel details directly with your airline, hotel, or other travel providers before travelling. The accuracy of information depends entirely on what is entered or imported by the user. We accept no responsibility or liability for missed flights, cancelled bookings, incorrect information, or any other loss or inconvenience arising from use of this app.</p>
+    </div>
+    <p>allbooked is a holiday organiser app operated by Michael Louzado. This policy explains what data we collect, how we use it, and your rights under UK GDPR.</p>
     <h2>1. What data we collect</h2>
-    <div class="card">
-      <p><strong>Account data</strong></p>
-      <ul>
-        <li>Email address (used to create and identify your account)</li>
-        <li>Name (used to generate your personal email forwarding address)</li>
-      </ul>
-    </div>
-    <div class="card">
-      <p><strong>Holiday data</strong></p>
-      <ul>
-        <li>Holiday names, destinations and dates you enter</li>
-        <li>Booking details you add (references, providers, dates, prices)</li>
-        <li>Packing lists and memories you create</li>
-      </ul>
-    </div>
-    <div class="card">
-      <p><strong>Email forwarding data</strong></p>
-      <ul>
-        <li>When you forward a booking confirmation to your allbooked address, we receive the email content</li>
-        <li>We pass the email body to Claude (Anthropic's AI) to extract booking details</li>
-        <li>The extracted details are saved to your holiday. The raw email is not stored permanently</li>
-      </ul>
-    </div>
-    <div class="card">
-      <p><strong>Photo scanning data</strong></p>
-      <ul>
-        <li>When you scan a confirmation photo, the image is sent to Claude (Anthropic) for extraction</li>
-        <li>Images are not stored — they are processed and discarded immediately</li>
-      </ul>
-    </div>
-
+    <div class="card"><p><strong>Account data</strong></p><ul><li>Email address</li><li>Name (for your forwarding address)</li></ul></div>
+    <div class="card"><p><strong>Holiday data</strong></p><ul><li>Holiday names, destinations, dates</li><li>Booking details, packing lists, memories</li></ul></div>
+    <div class="card"><p><strong>Email forwarding</strong></p><ul><li>Forwarded emails are passed to Claude (Anthropic AI) for extraction</li><li>Raw emails are not stored permanently</li></ul></div>
+    <div class="card"><p><strong>Photo scanning</strong></p><ul><li>Images sent to Claude for extraction are never stored</li></ul></div>
     <h2>2. How we use your data</h2>
-    <ul>
-      <li>To provide the allbooked service — storing and displaying your holiday information</li>
-      <li>To process email forwarding and photo scanning via AI extraction</li>
-      <li>To send authentication emails (sign-up confirmation, password reset)</li>
-      <li>We do not sell your data to third parties</li>
-      <li>We do not use your data for advertising</li>
-    </ul>
-
+    <ul><li>To provide the allbooked service</li><li>To process email forwarding and photo scanning</li><li>To send authentication emails</li><li>We do not sell your data or use it for advertising</li></ul>
     <h2>3. Where your data is stored</h2>
-    <p>Your account and holiday data is stored on <strong>Supabase</strong>, a cloud database provider, on servers in the EU. Authentication is handled by Supabase Auth.</p>
-    <p>Email forwarding is processed by <strong>Resend</strong>, an email infrastructure provider.</p>
-    <p>AI extraction (photo scanning and email parsing) is performed by <strong>Anthropic</strong> (Claude API). Data sent to Anthropic is used only to process your request and is not used to train AI models under their API terms.</p>
-
+    <p>Data is stored on <strong>Supabase</strong> (EU servers). Email is processed by <strong>Resend</strong>. AI extraction by <strong>Anthropic</strong> — not used for model training per their API terms.</p>
     <h2>4. Data retention</h2>
-    <ul>
-      <li>Your account and holiday data is retained for as long as you have an account</li>
-      <li>If you delete your account, all your data is permanently deleted within 30 days</li>
-      <li>Forwarded emails are not stored after extraction is complete</li>
-      <li>Scanned photos are not stored at all</li>
-    </ul>
-
+    <ul><li>Data retained while your account is active</li><li>Account deletion removes all data within 30 days</li><li>Photos are never stored. Forwarded emails deleted after extraction</li></ul>
     <h2>5. Your rights (UK GDPR)</h2>
-    <p>You have the right to:</p>
-    <ul>
-      <li><strong>Access</strong> — request a copy of the data we hold about you</li>
-      <li><strong>Rectification</strong> — correct inaccurate data</li>
-      <li><strong>Erasure</strong> — request deletion of your account and all associated data</li>
-      <li><strong>Portability</strong> — receive your data in a machine-readable format</li>
-      <li><strong>Objection</strong> — object to how we process your data</li>
-    </ul>
-    <p>To exercise any of these rights, email us at <a href="mailto:privacy@allbooked.app">privacy@allbooked.app</a>.</p>
-
-    <h2>6. Cookies</h2>
-    <p>allbooked uses only essential cookies required for authentication (session management). We do not use tracking or advertising cookies.</p>
-
-    <h2>7. Children</h2>
-    <p>allbooked is not directed at children under 13. We do not knowingly collect data from children under 13. If you believe a child has provided us with personal data, please contact us and we will delete it.</p>
-
-    <h2>8. Changes to this policy</h2>
-    <p>We may update this policy from time to time. We will notify users of significant changes by email. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
-
+    <p>You have the right to access, correct, delete or export your data. Contact: <a href="mailto:privacy@allbooked.app">privacy@allbooked.app</a></p>
+    <h2>6. Limitation of Liability</h2>
+    <p>allbooked is provided as a planning tool only. We make no warranties regarding the accuracy or completeness of information in the app. We shall not be liable for any loss arising from use of the app including but not limited to missed travel, incorrect bookings, or financial loss. You remain solely responsible for verifying all travel arrangements with providers.</p>
+    <h2>7. Cookies</h2>
+    <p>Essential authentication cookies only. No tracking or advertising cookies.</p>
+    <h2>8. Children</h2>
+    <p>Not directed at children under 13. We do not knowingly collect data from children under 13.</p>
     <h2>9. Contact</h2>
-    <p>For privacy questions or requests: <a href="mailto:privacy@allbooked.app">privacy@allbooked.app</a></p>
-    <p>allbooked is operated by Michael Louzado, United Kingdom.</p>
-
-    <div class="footer">
-      <p>&copy; 2026 allbooked · <a href="/">Back to app</a></p>
-    </div>
+    <p><a href="mailto:privacy@allbooked.app">privacy@allbooked.app</a> · Operated by Michael Louzado, United Kingdom.</p>
+    <div class="footer"><p>&copy; 2026 allbooked · <a href="/">Back to app</a></p></div>
   </div>
 </body>
 </html>
