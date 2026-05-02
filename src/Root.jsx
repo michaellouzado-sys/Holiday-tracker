@@ -19,6 +19,7 @@ function SetNewPasswordScreen() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setDone(true);
+      window.history.replaceState(null, "", window.location.pathname);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -44,7 +45,7 @@ function SetNewPasswordScreen() {
             {done ? "Password updated ✓" : "Set new password"}
           </h2>
           {done ? (
-            <p style={{ color: "#64748b", fontSize: "14px" }}>Your password has been updated. You can now use the app.</p>
+            <p style={{ color: "#64748b", fontSize: "14px" }}>Your password has been updated. You can close this and return to the app.</p>
           ) : (<>
             <label style={{ display: "block", marginBottom: "16px", fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px" }}>
               <span>New password</span>
@@ -88,9 +89,14 @@ function SetNewPasswordScreen() {
   );
 }
 
+function isRecoveryUrl() {
+  const hash = window.location.hash;
+  return hash.includes("type=recovery") || hash.includes("type=passwordrecovery");
+}
+
 export default function Root() {
   const [session, setSession] = useState(undefined);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryUrl());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,17 +106,16 @@ export default function Root() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
-        setSession(session);
-      } else {
+      } else if (event === "USER_UPDATED") {
         setIsPasswordRecovery(false);
-        setSession(session);
       }
+      setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) {
+  if (session === undefined && !isPasswordRecovery) {
     return (
       <div style={{
         minHeight: "100vh", background: "#080814",
