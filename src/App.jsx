@@ -2127,7 +2127,7 @@ export default function App({ user }) {
     setView("detail");
     setDetailTab("bookings");
   }
-  const selectedHoliday = holidays.find(h => h.id === selectedId);
+  const selectedHoliday = holidays.find(h => h.id === selectedId) || sharedHolidays.find(h => h.id === selectedId);
 
   useEffect(() => {
     if (!selectedHoliday) return;
