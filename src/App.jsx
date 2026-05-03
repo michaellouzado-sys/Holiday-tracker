@@ -2244,9 +2244,7 @@ export default function App({ user }) {
                   exportToCalendar(selectedHoliday);
                 }
               }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#0ea5e9", borderColor: "#bae6fd" }}>📅 Export</button>
-              {isPro && (
-                <button onClick={() => { setShowShareModal(true); setShareSuccess(false); setShareError(null); }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#10b981", borderColor: "#10b98144" }}>👥 Share</button>
-              )}
+              <button onClick={() => { if (!isPro) { setShowUpgradeModal(true); } else { setShowShareModal(true); setShareSuccess(false); setShareError(null); } }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#10b981", borderColor: "#10b98144" }}>👥 Share trip details</button>
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
               <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
