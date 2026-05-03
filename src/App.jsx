@@ -1937,10 +1937,21 @@ export default function App({ user }) {
         setShareLoading(false);
         return;
       }
+      // Look up the recipient's user ID so RLS can use auth.uid() for shared holiday access
+      const { data: recipientUser } = await supabase
+        .from("user_email_addresses")
+        .select("user_id")
+        .eq("address", email.toLowerCase())
+        .maybeSingle();
+      
+      // Also try auth lookup via a direct match
+      const { data: authMatch } = await supabase.rpc("get_user_id_by_email", { p_email: email.toLowerCase() }).maybeSingle();
+
       const { error } = await supabase.from("holiday_shares").insert({
         holiday_id: holiday.id,
         owner_id: user.id,
         shared_with_email: email.toLowerCase(),
+        shared_with_id: recipientUser?.user_id || authMatch || null,
         status: "accepted", // auto-accept for now — invitation flow can come later
         accepted_at: new Date().toISOString(),
       });
