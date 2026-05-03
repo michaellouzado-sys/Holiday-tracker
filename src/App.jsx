@@ -2243,7 +2243,7 @@ export default function App({ user }) {
           {!isPro && (
             <div onClick={() => setShowUpgradeModal(true)} style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
               <div>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>Free plan · 1 holiday</div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>Free plan · 2 holidays</div>
                 <div style={{ fontSize: "12px", color: "#e0f2fe", marginTop: "2px" }}>Upgrade to Pro for unlimited holidays & sharing</div>
               </div>
               <div style={{ background: "#ffffff", color: "#0ea5e9", fontSize: "12px", fontWeight: "700", padding: "6px 12px", borderRadius: "8px", whiteSpace: "nowrap" }}>£2.99/mo →</div>
