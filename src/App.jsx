@@ -300,6 +300,20 @@ async function saveToSupabase(userId, payload) {
   if (error) throw error;
 }
 
+async function updateSharedHoliday(ownerId, holidayId, updater) {
+  // Load owner's current data
+  const { data: ownerData } = await supabase.from("app_data").select("data").eq("id", ownerId).maybeSingle();
+  if (!ownerData) throw new Error("Could not load owner data");
+  const current = ownerData.data;
+  const updatedHolidays = current.holidays.map(h => h.id === holidayId ? updater(h) : h);
+  const { error } = await supabase.from("app_data").update({ 
+    data: { ...current, holidays: updatedHolidays }, 
+    updated_at: new Date().toISOString() 
+  }).eq("id", ownerId);
+  if (error) throw error;
+  return updatedHolidays.find(h => h.id === holidayId);
+}
+
 // ─── Image scanning ────────────────────────────────────────────────────────────
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -1894,6 +1908,25 @@ export default function App({ user }) {
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
 
+  // Update a shared holiday on the owner's data
+  const updateSharedHolidayLocal = async (holidayId, updater) => {
+    const holiday = [...holidays, ...sharedHolidays].find(h => h.id === holidayId);
+    if (!holiday?._shared) return false;
+    try {
+      const updated = await updateSharedHoliday(holiday._ownerId, holidayId, updater);
+      // Refresh shared holidays
+      const refreshed = await loadSharedWithMe(user);
+      setSharedHolidays(refreshed);
+      // Update selectedHoliday if it's the one being edited
+      if (selectedHoliday?.id === holidayId) setSelectedHoliday({ ...updated, _shared: true, _shareId: holiday._shareId, _ownerId: holiday._ownerId });
+      return true;
+    } catch (e) {
+      console.error("Failed to update shared holiday", e);
+      setSaveError("Failed to save — check connection");
+      return false;
+    }
+  };
+
   async function shareHoliday(holiday, email) {
     setShareLoading(true);
     setShareError(null);
@@ -1939,12 +1972,20 @@ export default function App({ user }) {
     setShowInstructions(false);
   }
 
-  function updatePacking(packed) {
-    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, packing: packed } : h));
+  async function updatePacking(packed) {
+    if (selectedHoliday?._shared) {
+      await updateSharedHolidayLocal(selectedId, h => ({ ...h, packing: packed }));
+    } else {
+      updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, packing: packed } : h));
+    }
   }
 
-  function updateMemories(mems) {
-    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, memories: mems } : h));
+  async function updateMemories(mems) {
+    if (selectedHoliday?._shared) {
+      await updateSharedHolidayLocal(selectedId, h => ({ ...h, memories: mems }));
+    } else {
+      updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, memories: mems } : h));
+    }
   }
 
   function exportToCalendar(holiday) {
@@ -2109,8 +2150,12 @@ export default function App({ user }) {
     setView("list");
   }
 
-  function addStep(step) {
-    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, steps: [...(h.steps || []), step] } : h));
+  async function addStep(step) {
+    if (selectedHoliday?._shared) {
+      await updateSharedHolidayLocal(selectedId, h => ({ ...h, steps: [...(h.steps || []), step] }));
+    } else {
+      updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, steps: [...(h.steps || []), step] } : h));
+    }
     setAddStepModal(false);
   }
 
@@ -2139,8 +2184,12 @@ export default function App({ user }) {
     }));
   }
 
-  function saveBooking(stepId, data) {
-    updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, bookings: { ...h.bookings, [stepId]: data } } : h));
+  async function saveBooking(stepId, data) {
+    if (selectedHoliday?._shared) {
+      await updateSharedHolidayLocal(selectedId, h => ({ ...h, bookings: { ...h.bookings, [stepId]: data } }));
+    } else {
+      updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, bookings: { ...h.bookings, [stepId]: data } } : h));
+    }
     setBookingModal(null);
   }
 
