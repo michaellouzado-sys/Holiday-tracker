@@ -2718,15 +2718,44 @@ export default function App({ user }) {
               </button>
               <div style={{ marginTop: "16px", fontSize: "11px", color: "#cbd5e1" }}>
                 Already have Pro? <button onClick={async () => {
-                  try {
-                    const { customerInfo } = await Purchases.restorePurchases();
-                    if (customerInfo.entitlements.active["pro"]) {
-                      await grantPro(true);
-                      setShowUpgradeModal(false);
+                  // Check if input looks like a promo code
+                  const input = prompt("Enter your promo code or leave blank to restore purchases:");
+                  if (input && input.trim().length > 0) {
+                    const trimmed = input.trim().toUpperCase();
+                    const { data: promoData, error: promoError } = await supabase
+                      .from("promo_codes")
+                      .select("id, used_by")
+                      .eq("code", trimmed)
+                      .single();
+                    if (promoError || !promoData) {
+                      alert("Invalid promo code.");
+                    } else if (promoData.used_by) {
+                      alert("This promo code has already been used.");
                     } else {
-                      alert("No active Pro subscription found.");
+                      const { error: updateError } = await supabase
+                        .from("promo_codes")
+                        .update({ used_by: user.id, used_at: new Date().toISOString() })
+                        .eq("id", promoData.id)
+                        .is("used_by", null);
+                      if (updateError) {
+                        alert("Failed to redeem code. Please try again.");
+                      } else {
+                        await grantPro(true);
+                        setShowUpgradeModal(false);
+                        alert("Promo code applied! Welcome to Pro 🎉");
+                      }
                     }
-                  } catch (e) { console.error("Restore error", e); }
+                  } else if (input !== null) {
+                    try {
+                      const { customerInfo } = await Purchases.restorePurchases();
+                      if (customerInfo.entitlements.active["pro"]) {
+                        await grantPro(true);
+                        setShowUpgradeModal(false);
+                      } else {
+                        alert("No active Pro subscription found.");
+                      }
+                    } catch (e) { console.error("Restore error", e); }
+                  }
                 }} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "11px", padding: 0 }}>Restore or enter access code</button>
               </div>
             </div>
