@@ -2257,7 +2257,17 @@ export default function App({ user }) {
               <button onClick={() => { if (!isPro) { setShowUpgradeModal(true); } else { setShowShareModal(true); setShareSuccess(false); setShareError(null); } }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#10b981", borderColor: "#10b98144" }}>👥 Share trip details</button>
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
-              <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
+              {selectedHoliday._shared ? (
+                <button onClick={async () => {
+                  if (!window.confirm("Remove this shared holiday from your view?")) return;
+                  await supabase.from("holiday_shares").delete().eq("id", selectedHoliday._shareId);
+                  setSharedHolidays(prev => prev.filter(h => h.id !== selectedHoliday.id));
+                  setSelectedId(null);
+                  setView("list");
+                }} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Remove</button>
+              ) : (
+                <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
+              )}
             </>)}
             {view === "list" && <>
               <button onClick={() => {
