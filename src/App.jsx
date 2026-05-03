@@ -244,23 +244,22 @@ const DEFAULT_PACKING = [
 // ─── Email address management ──────────────────────────────────────────────────
 // ─── Sharing helpers ──────────────────────────────────────────────────────────
 async function loadSharedWithMe(user) {
-  // Get share records for my email
-  const { data } = await supabase
+  // Use SECURITY DEFINER function to bypass RLS and fetch shared holidays
+  const { data, error } = await supabase
+    .rpc("get_shared_holidays", { p_user_id: user.id });
+  if (error || !data?.length) return [];
+
+  // Get share metadata so we can attach _shareId and _ownerId
+  const { data: shares } = await supabase
     .from("holiday_shares")
     .select("*")
-    .eq("shared_with_email", user.email)
+    .eq("shared_with_id", user.id)
     .eq("status", "accepted");
-  if (!data?.length) return [];
 
-  // For each accepted share, load the owner's holiday data
-  const results = [];
-  for (const share of data) {
-    const { data: ownerData } = await supabase
-      .from("app_data").select("data").eq("id", share.owner_id).maybeSingle();
-    const holiday = ownerData?.data?.holidays?.find(h => h.id === share.holiday_id);
-    if (holiday) results.push({ ...holiday, _shared: true, _shareId: share.id, _ownerId: share.owner_id });
-  }
-  return results;
+  return data.map(holiday => {
+    const share = shares?.find(s => s.holiday_id === holiday.id);
+    return { ...holiday, _shared: true, _shareId: share?.id, _ownerId: share?.owner_id };
+  });
 }
 
 async function loadMyShares(userId) {
