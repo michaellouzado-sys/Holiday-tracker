@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 
 const SHARED_ROW_ID = "shared";
-const FREE_HOLIDAY_LIMIT = 1; // Free tier: max active holidays
+const FREE_HOLIDAY_LIMIT = 2; // Free tier: max active holidays
 
 const STEP_TEMPLATES = [
   { icon: "✈️", label: "Outbound Flights" },
