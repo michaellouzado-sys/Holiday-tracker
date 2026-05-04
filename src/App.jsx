@@ -2278,7 +2278,9 @@ export default function App({ user }) {
                 )}
                 <button onClick={async () => {
                   if (!window.confirm("Remove this shared holiday from your view?")) return;
-                  await supabase.from("holiday_shares").delete().eq("id", selectedHoliday._shareId);
+                  console.log("Deleting share:", selectedHoliday._shareId, "for holiday:", selectedHoliday.id);
+                  const { error: delError } = await supabase.from("holiday_shares").delete().eq("id", selectedHoliday._shareId);
+                  console.log("Delete error:", delError);
                   setSharedHolidays(prev => prev.filter(h => h.id !== selectedHoliday.id));
                   setSelectedId(null);
                   setView("list");
