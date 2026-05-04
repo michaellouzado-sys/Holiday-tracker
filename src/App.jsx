@@ -300,20 +300,19 @@ async function saveToSupabase(userId, payload) {
 }
 
 async function updateSharedHoliday(ownerId, holidayId, updater, userId) {
-  // Load owner's current data via SECURITY DEFINER function
-  const { data: holidays } = await supabase.rpc("get_shared_holidays", { p_user_id: userId });
-  const holiday = holidays?.find(h => h.id === holidayId);
-  if (!holiday) throw new Error("Could not load shared holiday data");
+  // Load owner's full data via SECURITY DEFINER function
+  const { data: currentData, error: loadError } = await supabase.rpc("get_owner_data_for_shared", {
+    p_owner_id: ownerId,
+    p_user_id: userId
+  });
+  if (loadError || !currentData) throw new Error("Could not load owner data");
 
   // Apply the updater to get the new holiday state
+  const holiday = currentData.holidays?.find(h => h.id === holidayId);
+  if (!holiday) throw new Error("Holiday not found");
   const updatedHoliday = updater(holiday);
-
-  // Load full owner data to reconstruct
-  const { data: ownerData } = await supabase.from("app_data").select("data").eq("id", ownerId).maybeSingle();
-  if (!ownerData) throw new Error("Could not load owner data");
-  const current = ownerData.data;
-  const updatedHolidays = current.holidays.map(h => h.id === holidayId ? updatedHoliday : h);
-  const updatedData = { ...current, holidays: updatedHolidays };
+  const updatedHolidays = currentData.holidays.map(h => h.id === holidayId ? updatedHoliday : h);
+  const updatedData = { ...currentData, holidays: updatedHolidays };
 
   // Save via SECURITY DEFINER function
   const { error } = await supabase.rpc("update_shared_holiday", {
