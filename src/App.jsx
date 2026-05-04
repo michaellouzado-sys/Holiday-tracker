@@ -1930,7 +1930,7 @@ export default function App({ user }) {
       const refreshed = await loadSharedWithMe(user);
       setSharedHolidays(refreshed);
       // Update selectedHoliday if it's the one being edited
-      if (selectedHoliday?.id === holidayId) setSelectedHoliday({ ...updated, _shared: true, _shareId: holiday._shareId, _ownerId: holiday._ownerId, _sharePermission: holiday._sharePermission });
+      if (selectedHoliday?.id === holidayId) setSelectedId(holidayId);
       return true;
     } catch (e) {
       console.error("Failed to update shared holiday", e);
