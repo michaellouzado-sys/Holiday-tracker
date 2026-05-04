@@ -1990,7 +1990,11 @@ export default function App({ user }) {
       await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
       await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
       const { customerInfo } = await Purchases.getCustomerInfo();
-      if (customerInfo.entitlements.active["pro"]) setIsPro(true);
+      if (customerInfo.entitlements.active["pro"]) {
+        setIsPro(true);
+      } else {
+        await grantPro(false);
+      }
     } catch (e) { console.log("RC init error", e); } })()
     // Load shares on mount
     loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
