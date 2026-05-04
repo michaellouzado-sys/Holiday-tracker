@@ -1856,6 +1856,7 @@ export default function App({ user }) {
   const [isPro, setIsPro] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePermission, setSharePermission] = useState("view");
   const [shareEmail, setShareEmail] = useState("");
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState(null);
@@ -1926,7 +1927,7 @@ export default function App({ user }) {
     }
   };
 
-  async function shareHoliday(holiday, email) {
+  async function shareHoliday(holiday, email, permission = "view") {
     setShareLoading(true);
     setShareError(null);
     try {
@@ -1952,6 +1953,7 @@ export default function App({ user }) {
         owner_id: user.id,
         shared_with_email: email.toLowerCase(),
         shared_with_id: recipientUser?.user_id || authMatch || null,
+        permission: permission,
         status: "accepted", // auto-accept for now — invitation flow can come later
         accepted_at: new Date().toISOString(),
       });
@@ -2257,7 +2259,10 @@ export default function App({ user }) {
               <button onClick={() => { if (!isPro) { setShowUpgradeModal(true); } else { setShowShareModal(true); setShareSuccess(false); setShareError(null); } }} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: "#10b981", borderColor: "#10b98144" }}>👥 Share trip details</button>
               <button onClick={() => setRebookModal(selectedHoliday)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#0ea5e944", fontSize: "13px", padding: "8px 12px" }}>Rebook</button>
               <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
-              {selectedHoliday._shared ? (
+              {selectedHoliday._shared ? (<>
+                {selectedHoliday._sharePermission === "edit" && (
+                  <button onClick={() => setHolidayModal({ holiday: selectedHoliday })} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px" }}>Edit</button>
+                )}
                 <button onClick={async () => {
                   if (!window.confirm("Remove this shared holiday from your view?")) return;
                   await supabase.from("holiday_shares").delete().eq("id", selectedHoliday._shareId);
@@ -2265,7 +2270,7 @@ export default function App({ user }) {
                   setSelectedId(null);
                   setView("list");
                 }} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Remove</button>
-              ) : (
+              </>) : (
                 <button onClick={() => deleteHoliday(selectedHoliday.id)} style={{ ...secondaryBtn, color: "#ef4444", borderColor: "#ef444444", fontSize: "13px", padding: "8px 12px" }}>Delete</button>
               )}
             </>)}
@@ -2708,14 +2713,18 @@ export default function App({ user }) {
             </p>
             {!shareSuccess ? (
               <>
+                <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                  <button onClick={() => setSharePermission("view")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "view" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "view" ? "#f0f9ff" : "#fff", color: sharePermission === "view" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "view" ? "600" : "400" }}>👁 View only</button>
+                  <button onClick={() => setSharePermission("edit")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "edit" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "edit" ? "#f0f9ff" : "#fff", color: sharePermission === "edit" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "edit" ? "600" : "400" }}>✏️ Can edit</button>
+                </div>
                 <label style={labelStyle}>
                   <span>Email address</span>
                   <input type="email" value={shareEmail} onChange={e => setShareEmail(e.target.value)}
                     placeholder="friend@example.com" style={inputStyle}
-                    onKeyDown={e => e.key === "Enter" && shareEmail.trim() && shareHoliday(selectedHoliday, shareEmail.trim())} />
+                    onKeyDown={e => e.key === "Enter" && shareEmail.trim() && shareHoliday(selectedHoliday, shareEmail.trim(), sharePermission)} />
                 </label>
                 {shareError && <div style={{ color: "#ef4444", fontSize: "13px", marginBottom: "12px" }}>{shareError}</div>}
-                <button onClick={() => shareHoliday(selectedHoliday, shareEmail.trim())}
+                <button onClick={() => shareHoliday(selectedHoliday, shareEmail.trim(), sharePermission)}
                   disabled={!shareEmail.trim() || shareLoading}
                   style={{ ...primaryBtn, width: "100%", opacity: (!shareEmail.trim() || shareLoading) ? 0.5 : 1 }}>
                   {shareLoading ? "Sharing..." : "Share holiday"}
@@ -2735,7 +2744,10 @@ export default function App({ user }) {
                 <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Shared with</div>
                 {myShares.filter(s => s.holiday_id === selectedHoliday.id).map(s => (
                   <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
-                    <span style={{ fontSize: "13px", color: "#0f172a" }}>{s.shared_with_email}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "13px", color: "#0f172a" }}>{s.shared_with_email}</span>
+                      <span style={{ fontSize: "11px", padding: "2px 6px", borderRadius: "10px", background: s.permission === "edit" ? "#f0f9ff" : "#f8fafc", color: s.permission === "edit" ? "#0ea5e9" : "#94a3b8", border: "1px solid", borderColor: s.permission === "edit" ? "#0ea5e944" : "#e2e8f0" }}>{s.permission === "edit" ? "✏️ edit" : "👁 view"}</span>
+                    </div>
                     <button onClick={() => removeShare(s.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}>Remove</button>
                   </div>
                 ))}
