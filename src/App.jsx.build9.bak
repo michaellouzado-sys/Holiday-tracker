@@ -528,11 +528,10 @@ function DatePicker({ value, onChange, label, style: extraStyle, minDate }) {
       {/* Calendar dropdown */}
       {open && (
         <div onClick={e => e.stopPropagation()} style={{
-          position: "fixed", zIndex: 9999, top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
+          position: "absolute", zIndex: 2000, top: "calc(100% + 4px)", right: 0,
           background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px",
-          padding: "12px", boxShadow: "0 20px 60px rgba(14,165,233,0.25)",
-          width: "min(300px, calc(100vw - 32px))"
+          padding: "12px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)",
+          minWidth: "260px"
         }}>
           {/* Month navigation */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -811,28 +810,6 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
     amountPaid:          booking?.amountPaid          || "",
     paymentDueDate:      booking?.paymentDueDate      || "",
     stepCurrency:        booking?.stepCurrency        || currency,
-    activityName:        booking?.activityName        || "",
-    activityLocation:    booking?.activityLocation    || "",
-    activityDate:        booking?.activityDate        || "",
-    startTime:           booking?.startTime           || "",
-    endTime:             booking?.endTime             || "",
-    pickupDate:          booking?.pickupDate          || "",
-    departurePort:       booking?.departurePort       || "",
-    arrivalPort:         booking?.arrivalPort         || "",
-    parkName:            booking?.parkName            || "",
-    entryDate:           booking?.entryDate           || "",
-    exitDate:            booking?.exitDate            || "",
-    restaurantName:      booking?.restaurantName      || "",
-    restaurantAddress:   booking?.restaurantAddress   || "",
-    restaurantDate:      booking?.restaurantDate      || "",
-    restaurantTime:      booking?.restaurantTime      || "",
-    diners:              booking?.diners              || "",
-    tourDeparturePoint:  booking?.tourDeparturePoint  || "",
-    tourDropOffPoint:    booking?.tourDropOffPoint    || "",
-    tourDepartureDate:   booking?.tourDepartureDate   || "",
-    tourDuration:        booking?.tourDuration        || "",
-    vaccineName:         booking?.vaccineName         || "",
-    vaccinationDate:     booking?.vaccinationDate     || "",
   });
 
   const [editingName, setEditingName] = useState(false);
@@ -1057,79 +1034,6 @@ function BookingModal({ step, booking, currency = "GBP", onSave, onDelete, onClo
             </div>
           );
         })()}
-
-        
-        {/* ── Activities / Tours ── */}
-        {(step.label.toLowerCase().includes("activit") || (step.label.toLowerCase().includes("tour") && !step.label.toLowerCase().includes("tour package"))) && (<>
-          <Field k="activityName" label="Activity / Tour Name" placeholder="e.g. Boat Trip to Blue Lagoon" form={form} set={set} />
-          <Field k="activityLocation" label="Location" placeholder="e.g. Reykjavik Marina" form={form} set={set} />
-          <Row>
-            <HalfDateField k="activityDate" label="Date" form={form} set={set} />
-          </Row>
-          <Row>
-            <HalfTimeField k="startTime" label="Start Time" form={form} set={set} />
-            <HalfTimeField k="endTime" label="End Time" form={form} set={set} />
-          </Row>
-        </>)}
-
-        {/* ── Currency ── */}
-        {step.label.toLowerCase().includes("currenc") && (
-          <DateField k="pickupDate" label="Collection / Pickup Date" form={form} set={set} />
-        )}
-
-        {/* ── Ferry ── */}
-        {isFerryStep && (<>
-          <Row>
-            <HalfField k="departurePort" label="Departure Port" placeholder="e.g. Dover" form={form} set={set} />
-            <HalfField k="arrivalPort" label="Arrival Port" placeholder="e.g. Calais" form={form} set={set} />
-          </Row>
-        </>)}
-
-        {/* ── Sailing ── */}
-        {isSailingStep && (<>
-          <Row>
-            <HalfField k="departurePort" label="Departure Marina / Port" placeholder="e.g. Palma Marina" form={form} set={set} />
-            <HalfField k="arrivalPort" label="Return Marina / Port" placeholder="e.g. Palma Marina" form={form} set={set} />
-          </Row>
-        </>)}
-
-        {/* ── Theme Park ── */}
-        {step.label.toLowerCase().includes("theme park") && (<>
-          <Field k="parkName" label="Theme Park Name" placeholder="e.g. Disneyland Paris" form={form} set={set} />
-          <Row>
-            <HalfDateField k="entryDate" label="Entry Date" form={form} set={set} />
-            <HalfDateField k="exitDate" label="Exit Date (if multi-day)" form={form} set={set} />
-          </Row>
-        </>)}
-
-        {/* ── Restaurant ── */}
-        {step.label.toLowerCase().includes("restaurant") && (<>
-          <Field k="restaurantName" label="Restaurant Name" placeholder="e.g. La Pergola" form={form} set={set} />
-          <Field k="restaurantAddress" label="Address" placeholder="e.g. Via Alberto Cadlolo 101, Rome" form={form} set={set} />
-          <Row>
-            <HalfDateField k="restaurantDate" label="Booking Date" form={form} set={set} />
-            <HalfTimeField k="restaurantTime" label="Booking Time" form={form} set={set} />
-          </Row>
-          <HalfField k="diners" label="Number of Diners" placeholder="e.g. 4" form={form} set={set} />
-        </>)}
-
-        {/* ── Tour Package ── */}
-        {step.label.toLowerCase().includes("tour package") && (<>
-          <Row>
-            <HalfField k="tourDeparturePoint" label="Departure Point" placeholder="e.g. Manchester Airport" form={form} set={set} />
-            <HalfField k="tourDropOffPoint" label="Drop-off Point" placeholder="e.g. Heathrow T5" form={form} set={set} />
-          </Row>
-          <Row>
-            <HalfDateField k="tourDepartureDate" label="Departure Date" form={form} set={set} />
-            <HalfField k="tourDuration" label="Duration" placeholder="e.g. 10 nights" form={form} set={set} />
-          </Row>
-        </>)}
-
-        {/* ── Travel Vaccinations ── */}
-        {step.label.toLowerCase().includes("vaccin") && (<>
-          <Field k="vaccineName" label="Vaccine Name" placeholder="e.g. Hepatitis A, Yellow Fever" form={form} set={set} />
-          <DateField k="vaccinationDate" label="Vaccination Date" form={form} set={set} />
-        </>)}
 
         <TextArea k="notes" label="Notes" placeholder="Any additional details..." rows={3} form={form} set={set} />
 
