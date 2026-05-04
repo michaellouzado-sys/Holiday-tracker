@@ -299,18 +299,31 @@ async function saveToSupabase(userId, payload) {
   if (error) throw error;
 }
 
-async function updateSharedHoliday(ownerId, holidayId, updater) {
-  // Load owner's current data
+async function updateSharedHoliday(ownerId, holidayId, updater, userId) {
+  // Load owner's current data via SECURITY DEFINER function
+  const { data: holidays } = await supabase.rpc("get_shared_holidays", { p_user_id: userId });
+  const holiday = holidays?.find(h => h.id === holidayId);
+  if (!holiday) throw new Error("Could not load shared holiday data");
+
+  // Apply the updater to get the new holiday state
+  const updatedHoliday = updater(holiday);
+
+  // Load full owner data to reconstruct
   const { data: ownerData } = await supabase.from("app_data").select("data").eq("id", ownerId).maybeSingle();
   if (!ownerData) throw new Error("Could not load owner data");
   const current = ownerData.data;
-  const updatedHolidays = current.holidays.map(h => h.id === holidayId ? updater(h) : h);
-  const { error } = await supabase.from("app_data").update({ 
-    data: { ...current, holidays: updatedHolidays }, 
-    updated_at: new Date().toISOString() 
-  }).eq("id", ownerId);
+  const updatedHolidays = current.holidays.map(h => h.id === holidayId ? updatedHoliday : h);
+  const updatedData = { ...current, holidays: updatedHolidays };
+
+  // Save via SECURITY DEFINER function
+  const { error } = await supabase.rpc("update_shared_holiday", {
+    p_owner_id: ownerId,
+    p_holiday_id: holidayId,
+    p_user_id: userId,
+    p_updated_data: updatedData
+  });
   if (error) throw error;
-  return updatedHolidays.find(h => h.id === holidayId);
+  return updatedHoliday;
 }
 
 // ─── Image scanning ────────────────────────────────────────────────────────────
@@ -1913,12 +1926,12 @@ export default function App({ user }) {
     const holiday = [...holidays, ...sharedHolidays].find(h => h.id === holidayId);
     if (!holiday?._shared) return false;
     try {
-      const updated = await updateSharedHoliday(holiday._ownerId, holidayId, updater);
+      const updated = await updateSharedHoliday(holiday._ownerId, holidayId, updater, user.id);
       // Refresh shared holidays
       const refreshed = await loadSharedWithMe(user);
       setSharedHolidays(refreshed);
       // Update selectedHoliday if it's the one being edited
-      if (selectedHoliday?.id === holidayId) setSelectedHoliday({ ...updated, _shared: true, _shareId: holiday._shareId, _ownerId: holiday._ownerId });
+      if (selectedHoliday?.id === holidayId) setSelectedHoliday({ ...updated, _shared: true, _shareId: holiday._shareId, _ownerId: holiday._ownerId, _sharePermission: holiday._sharePermission });
       return true;
     } catch (e) {
       console.error("Failed to update shared holiday", e);
