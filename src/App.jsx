@@ -2907,7 +2907,13 @@ export default function App({ user }) {
               <button onClick={() => setShowUpgradeModal(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "13px" }}>
                 Maybe later
               </button>
-              <div style={{ marginTop: "16px", fontSize: "11px", color: "#cbd5e1" }}>
+              <div style={{ marginTop: "16px", fontSize: "11px", color: "#94a3b8", lineHeight: "1.8" }}>
+                <a href="https://allbooked.app/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Privacy Policy</a>
+                {" · "}
+                <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Terms of Use</a>
+                <br />
+              </div>
+              <div style={{ marginTop: "8px", fontSize: "11px", color: "#cbd5e1" }}>
                 Already have Pro? <button onClick={async () => {
                   // Check if input looks like a promo code
                   const input = prompt("Enter your promo code or leave blank to restore purchases:");

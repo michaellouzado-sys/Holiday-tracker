@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — allbooked</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sky: #0ea5e9;
+      --sky-light: #38bdf8;
+      --sky-pale: #e0f2fe;
+      --sky-bg: #f0f9ff;
+      --slate: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --white: #ffffff;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--sky-bg);
+      color: var(--slate);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px;
+      letter-spacing: -0.3px;
+    }
+    .logo span { color: var(--sky); }
+    .badge {
+      background: var(--sky-pale);
+      color: var(--sky);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid #bae6fd;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 60px 24px 40px;
+    }
+    .hero-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(28px, 5vw, 38px);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--sky); }
+    .hero p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 480px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+    .contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--sky), var(--sky-light));
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 13px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .contact-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(14,165,233,0.45);
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── FAQ ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      margin-top: 40px;
+    }
+
+    .faq { display: flex; flex-direction: column; gap: 10px; }
+
+    details {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    details:hover { border-color: #bae6fd; }
+    details[open] { border-color: var(--sky); }
+
+    summary {
+      padding: 16px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--sky);
+      font-weight: 400;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    details[open] summary::after { transform: rotate(45deg); }
+
+    .answer {
+      padding: 0 18px 16px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .answer a { color: var(--sky); }
+
+    /* ── Contact card ── */
+    .contact-card {
+      margin-top: 40px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+    }
+    .contact-card h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .contact-card p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .email-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--sky);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      background: var(--sky-pale);
+      border: 1px solid #bae6fd;
+      padding: 10px 20px;
+      border-radius: 10px;
+      transition: background 0.15s;
+    }
+    .email-link:hover { background: #bae6fd; }
+
+    /* ── Legal links ── */
+    .legal {
+      margin-top: 40px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .legal a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .legal a:hover { border-color: var(--sky); color: var(--sky); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo"><span>all</span>booked</div>
+    <div class="badge">Support</div>
+  </header>
+
+  <div class="hero">
+    <span class="hero-icon">✈️</span>
+    <h1>How can we <span>help?</span></h1>
+    <p>Find answers to common questions below, or get in touch and we'll get back to you as soon as possible.</p>
+    <a href="mailto:support@allbooked.app" class="contact-btn">✉️ Email Support</a>
+  </div>
+
+  <main>
+
+    <div class="section-title">Frequently Asked Questions</div>
+
+    <div class="faq">
+
+      <details>
+        <summary>How do I add a holiday?</summary>
+        <div class="answer">Tap <strong>+ New Holiday</strong> on the home screen. Give it a name, destination, and travel dates. Then open the holiday and use <strong>+ Add Step</strong> to add individual bookings like flights, hotels, and transfers.</div>
+      </details>
+
+      <details>
+        <summary>How do I get my booking confirmations into the app?</summary>
+        <div class="answer">Two ways — <strong>Scan:</strong> inside any booking step, tap <em>Scan from photo or screenshot</em> and the app reads the details automatically. <strong>Forward email:</strong> every account has a unique forwarding address shown at the top of the home screen. Forward any booking confirmation to it and the app adds it automatically within 30 seconds.</div>
+      </details>
+
+      <details>
+        <summary>How do I share a holiday with someone?</summary>
+        <div class="answer">Open the holiday and tap <strong>Share trip details</strong>. Enter the email address of someone with an allbooked account and choose View or Edit access. They'll see the holiday in their app instantly. Sharing requires an allbooked Pro subscription.</div>
+      </details>
+
+      <details>
+        <summary>What is allbooked Pro?</summary>
+        <div class="answer">Pro is a £2.99/month subscription that unlocks unlimited holidays and the ability to share holidays with travel companions. The free plan includes up to 2 active holidays. You can cancel at any time from your iPhone Settings → Apple ID → Subscriptions.</div>
+      </details>
+
+      <details>
+        <summary>How do I cancel my Pro subscription?</summary>
+        <div class="answer">Go to <strong>iPhone Settings → your name → Subscriptions</strong>, find allbooked, and tap Cancel Subscription. Your Pro access continues until the end of the current billing period.</div>
+      </details>
+
+      <details>
+        <summary>How do I restore a purchase on a new device?</summary>
+        <div class="answer">On the upgrade screen, tap <strong>Restore or enter access code</strong> at the bottom and leave the prompt blank, then confirm. Your purchase will be restored automatically.</div>
+      </details>
+
+      <details>
+        <summary>Will my data be lost if I delete the app?</summary>
+        <div class="answer">No — all your holiday data is stored securely in the cloud and linked to your account. Simply reinstall the app and sign in to restore everything.</div>
+      </details>
+
+      <details>
+        <summary>Can I use allbooked offline?</summary>
+        <div class="answer">The app needs an internet connection to load your holidays. Once loaded, you can view your bookings offline. Changes made offline will sync when you reconnect.</div>
+      </details>
+
+      <details>
+        <summary>How do I export my itinerary to my calendar?</summary>
+        <div class="answer">Open a holiday and tap the <strong>📅 Export</strong> button. This downloads an .ics file that you can open in Apple Calendar, Google Calendar, or Outlook.</div>
+      </details>
+
+      <details>
+        <summary>I forgot my password — how do I reset it?</summary>
+        <div class="answer">On the sign-in screen tap <strong>Forgot password</strong>, or from inside the app scroll to the bottom of the home screen and tap <strong>Change password</strong>. A reset link will be emailed to you.</div>
+      </details>
+
+    </div>
+
+    <!-- Contact -->
+    <div class="contact-card">
+      <h2>Still need help?</h2>
+      <p>Can't find an answer above? Drop us an email and we'll respond within 1–2 business days.</p>
+      <a href="mailto:support@allbooked.app" class="email-link">✉️ support@allbooked.app</a>
+    </div>
+
+    <!-- Legal -->
+    <div class="legal">
+      <a href="https://allbooked.app/privacy" target="_blank">🔒 Privacy Policy</a>
+      <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank">📄 Terms of Use (EULA)</a>
+      <a href="https://allbooked.app">🏠 Back to allbooked</a>
+    </div>
+
+  </main>
+
+  <footer>© 2025 allbooked · All rights reserved</footer>
+
+</body>
+</html>
