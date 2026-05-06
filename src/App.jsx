@@ -2886,8 +2886,9 @@ export default function App({ user }) {
                 ))}
               </div>
               <div style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "16px", marginBottom: "12px" }}>
+                <div style={{ fontSize: "13px", color: "#e0f2fe", marginBottom: "6px", fontWeight: "600" }}>allbooked Pro — Monthly</div>
                 <div style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff" }}>£2.99<span style={{ fontSize: "14px", fontWeight: "400" }}>/month</span></div>
-                <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Cancel anytime</div>
+                <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Monthly subscription · Auto-renews · Cancel anytime</div>
               </div>
               <button onClick={async () => {
                 try {
