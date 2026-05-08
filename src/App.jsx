@@ -1992,7 +1992,7 @@ export default function App({ user }) {
       const { customerInfo } = await Purchases.getCustomerInfo();
       if (customerInfo.entitlements.active["pro"]) {
         setIsPro(true);
-      } else {
+      } else if (!d.isPro) {
         await grantPro(false);
       }
     } catch (e) { console.log("RC init error", e); } })()
