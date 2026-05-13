@@ -2404,18 +2404,7 @@ export default function App({ user }) {
                 📧
                 {pendingEmails.length > 0 && <span style={{ position: "absolute", top: "-6px", right: "-6px", background: "#f59e0b", color: "#fff", fontSize: "9px", fontWeight: "700", borderRadius: "10px", padding: "1px 5px", lineHeight: "1.4" }}>{pendingEmails.length}</span>}
               </button>
-              {!isPro && (
-                <button onClick={() => setShowUpgradeModal(true)} style={{ background: "#0ea5e9", border: "none", borderRadius: "8px", padding: "0 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", height: "36px", whiteSpace: "nowrap" }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#ffffff", lineHeight: "1.3" }}>Free plan · {FREE_HOLIDAY_LIMIT} holidays</div>
-                  <div style={{ fontSize: "9px", color: "#e0f2fe", lineHeight: "1.3" }}>Unlimited + sharing with Pro →</div>
-                </button>
-              )}
-              {isPro && (
-                <div style={{ background: "#10b98111", border: "1px solid #10b98133", borderRadius: "8px", padding: "0 12px", height: "36px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontSize: "13px" }}>⭐</span>
-                  <span style={{ fontSize: "12px", color: "#10b981", fontWeight: "600" }}>Pro</span>
-                </div>
-              )}
+
             </>}
 
           </div>
