@@ -1990,6 +1990,9 @@ export default function App({ user }) {
       await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
       await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
       const { customerInfo } = await Purchases.getCustomerInfo();
+      console.log("RC entitlements:", JSON.stringify(customerInfo.entitlements.active));
+      console.log("RC isPro:", !!customerInfo.entitlements.active["pro"]);
+      console.log("Supabase isPro:", d.isPro);
       if (customerInfo.entitlements.active["pro"]) {
         setIsPro(true);
       } else if (!d.isPro) {
@@ -2394,12 +2397,25 @@ export default function App({ user }) {
                 } else {
                   setHolidayModal({});
                 }
-              }} style={{ ...primaryBtn, fontSize: "13px", padding: "8px 14px" }}>+ New Holiday</button>
-              <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, color: "#0ea5e9", borderColor: "#bae6fd", fontSize: "13px", padding: "8px 12px" }}>? Help</button>
-              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "13px", padding: "8px 12px" }}>⭐</button>
-              <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "8px 12px", color: pendingEmails.length > 0 ? "#f59e0b" : "#94a3b8", borderColor: pendingEmails.length > 0 ? "#fde68a" : "#e2e8f0" }}>
-                📧{pendingEmails.length > 0 ? ` ${pendingEmails.length}` : ""}
+              }} style={{ ...secondaryBtn, fontSize: "13px", padding: "0 12px", height: "36px", display: "flex", alignItems: "center" }}>+ New Holiday</button>
+              <button onClick={() => setShowInstructions(true)} style={{ ...secondaryBtn, fontSize: "13px", padding: "0 12px", height: "36px", display: "flex", alignItems: "center" }}>? Help</button>
+              <button onClick={() => setShowSuppliers(s => !s)} style={{ ...secondaryBtn, color: showSuppliers ? "#0f172a" : "#64748b", background: showSuppliers ? "#e0f2fe" : "#f1f5f9", fontSize: "15px", padding: "0", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>⭐</button>
+              <button onClick={() => setShowEmailInbox(true)} style={{ ...secondaryBtn, fontSize: "15px", padding: "0", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", color: pendingEmails.length > 0 ? "#f59e0b" : "#94a3b8", borderColor: pendingEmails.length > 0 ? "#fde68a" : "#e2e8f0" }}>
+                📧
+                {pendingEmails.length > 0 && <span style={{ position: "absolute", top: "-6px", right: "-6px", background: "#f59e0b", color: "#fff", fontSize: "9px", fontWeight: "700", borderRadius: "10px", padding: "1px 5px", lineHeight: "1.4" }}>{pendingEmails.length}</span>}
               </button>
+              {!isPro && (
+                <button onClick={() => setShowUpgradeModal(true)} style={{ background: "#0ea5e9", border: "none", borderRadius: "8px", padding: "0 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", height: "36px", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#ffffff", lineHeight: "1.3" }}>Free plan · {FREE_HOLIDAY_LIMIT} holidays</div>
+                  <div style={{ fontSize: "9px", color: "#e0f2fe", lineHeight: "1.3" }}>Unlimited + sharing with Pro →</div>
+                </button>
+              )}
+              {isPro && (
+                <div style={{ background: "#10b98111", border: "1px solid #10b98133", borderRadius: "8px", padding: "0 12px", height: "36px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "13px" }}>⭐</span>
+                  <span style={{ fontSize: "12px", color: "#10b981", fontWeight: "600" }}>Pro</span>
+                </div>
+              )}
             </>}
 
           </div>
@@ -2423,35 +2439,40 @@ export default function App({ user }) {
             </div>
           )}
 
-          {/* Pro status banner */}
-          {!isPro && (
-            <div onClick={() => setShowUpgradeModal(true)} style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>Free plan · 2 holidays</div>
-                <div style={{ fontSize: "12px", color: "#e0f2fe", marginTop: "2px" }}>Upgrade to Pro for unlimited holidays & sharing</div>
+          {/* Feature card */}
+          <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "12px", padding: "14px 16px", marginBottom: "16px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "#0f172a", marginBottom: "10px", lineHeight: "1.5" }}>
+              Store all your booking details — references, dates, times, addresses, all in one place
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+              <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>✓</span>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>See what's booked and what still needs booking</div>
+                  <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Every step tracked</div>
+                </div>
               </div>
-              <div style={{ background: "#ffffff", color: "#0ea5e9", fontSize: "12px", fontWeight: "700", padding: "6px 12px", borderRadius: "8px", whiteSpace: "nowrap" }}>£2.99/mo →</div>
-            </div>
-          )}
-          {isPro && (
-            <div style={{ background: "#10b98111", border: "1px solid #10b98133", borderRadius: "12px", padding: "10px 16px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "16px" }}>⭐</span>
-              <span style={{ fontSize: "13px", color: "#10b981", fontWeight: "600" }}>allbooked Pro</span>
-            </div>
-          )}
-
-          {/* Email forwarding address */}
-          {emailAddress && (
-            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "18px" }}>📧</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "2px" }}>Forward booking confirmations to</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "#0ea5e9", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emailAddress}@in.allbooked.app</div>
+              <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>💳</span>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track payments and what's outstanding</div>
+                  <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Cost, paid, due dates</div>
+                </div>
               </div>
-              <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }}
-                style={{ ...secondaryBtn, fontSize: "12px", padding: "6px 12px", flexShrink: 0 }}>Copy</button>
             </div>
-          )}
+            {emailAddress && (
+              <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "9px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "14px" }}>📧</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Forward confirmation emails — or scan a photo inside any booking step</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0ea5e9", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{emailAddress}@in.allbooked.app</div>
+                    <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }} style={{ ...secondaryBtn, fontSize: "11px", padding: "3px 10px", flexShrink: 0 }}>Copy</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Trip stats strip */}
           {holidays.length > 0 && (() => {
