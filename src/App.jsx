@@ -2412,10 +2412,24 @@ export default function App({ user }) {
 
         {/* List view */}
         {view === "list" && (<>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
-            {["upcoming","active","past"].map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{s}</button>
-            ))}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              {["upcoming","active","past"].map(s => (
+                <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{s}</button>
+              ))}
+            </div>
+            {!isPro && (
+              <button onClick={() => setShowUpgradeModal(true)} style={{ background: "#0ea5e9", border: "none", borderRadius: "8px", padding: "0 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center", height: "36px", whiteSpace: "nowrap", flexShrink: 0 }}>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "#ffffff", lineHeight: "1.3" }}>Free plan · {FREE_HOLIDAY_LIMIT} holidays</div>
+                <div style={{ fontSize: "9px", color: "#e0f2fe", lineHeight: "1.3" }}>Unlimited + sharing with Pro →</div>
+              </button>
+            )}
+            {isPro && (
+              <div style={{ background: "#10b98111", border: "1px solid #10b98133", borderRadius: "8px", padding: "0 12px", height: "36px", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                <span style={{ fontSize: "13px" }}>⭐</span>
+                <span style={{ fontSize: "12px", color: "#10b981", fontWeight: "600" }}>Pro</span>
+              </div>
+            )}
           </div>
           {/* Supplier ratings panel */}
           {showSuppliers && (
