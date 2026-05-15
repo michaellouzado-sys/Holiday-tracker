@@ -2086,9 +2086,11 @@ If nothing significant is found, return an empty array: []`;
         </p>
       )}
       {status === 'loading' && (
-        <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>
-          Searching for disruptions…
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 0' }}>
+          <style>{`@keyframes ab-spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid #e0f2fe', borderTopColor: '#0ea5e9', animation: 'ab-spin 0.7s linear infinite', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: '#94a3b8' }}>Searching for disruptions — this may take a few seconds…</span>
+        </div>
       )}
       {status === 'error' && (
         <p style={{ fontSize: 13, color: '#ef4444', textAlign: 'center', padding: '8px 0' }}>
