@@ -1963,9 +1963,8 @@ function DisruptionAlerts({ holiday }) {
   const checkDisruptions = async () => {
     setStatus('loading');
     setAlerts([]);
-    try {
-      const dateRange = formatDateRange(holiday);
-      const prompt = `You are a travel disruption checker. Search the web for any disruptions, issues, or important events for a holiday to ${holiday.destination || holiday.name} during ${dateRange}.
+    const dateRange = formatDateRange(holiday);
+    const prompt = `You are a travel disruption checker. Search the web for any disruptions, issues, or important events for a holiday to ${holiday.destination || holiday.name} during ${dateRange}.
 
 Look for:
 1. Transport strikes (flights, trains, metro, buses, ferries)
@@ -1988,6 +1987,7 @@ Return ONLY a JSON array (no markdown, no preamble) with objects like:
 
 If nothing significant is found, return an empty array: []`;
 
+    try {
       const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
