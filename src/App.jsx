@@ -2730,17 +2730,35 @@ export default function App({ user }) {
           )}
 
           {filteredHolidays.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌍</div>
-              <p style={{ fontSize: "16px" }}>No holidays yet. Add your first trip!</p>
-              <button onClick={() => {
-                const activeHols = holidays.filter(h => getStatus(h) !== "past").length;
-                if (!isPro && activeHols >= FREE_HOLIDAY_LIMIT) {
-                  setShowUpgradeModal(true);
-                } else {
-                  setHolidayModal({});
-                }
-              }} style={{ ...primaryBtn, marginTop: "16px" }}>+ Add Holiday</button>
+            <div>
+              {holidays.length === 0 ? (
+                <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "14px", padding: "24px 20px 20px", textAlign: "center", marginBottom: "12px" }}>
+                  <div style={{ fontSize: "40px", marginBottom: "10px" }}>✈️</div>
+                  <div style={{ fontSize: "17px", fontWeight: "600", color: "#0f172a", marginBottom: "6px" }}>Welcome to <span style={{ color: "#0ea5e9" }}>all</span>booked</div>
+                  <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "20px", lineHeight: "1.6", maxWidth: "300px", margin: "0 auto 20px" }}>Your holiday organiser. Keep every booking in one place — flights, hotels, transfers and more.</div>
+                  <div style={{ textAlign: "left", marginBottom: "20px" }}>
+                    {[
+                      { n: 1, title: "Add your first holiday", sub: "Give it a name, destination and travel dates" },
+                      { n: 2, title: "Add booking steps", sub: "Flights, hotel, transfers, car hire — whatever applies" },
+                      { n: 3, title: "Fill in the details", sub: "Forward confirmation emails or scan a screenshot — details fill in automatically" },
+                    ].map(({ n, title, sub }) => (
+                      <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "10px 0", borderBottom: n < 3 ? "0.5px solid #e0f2fe" : "none" }}>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#e0f2fe", color: "#0ea5e9", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</div>
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "2px" }}>{title}</div>
+                          <div style={{ fontSize: "12px", color: "#64748b", lineHeight: "1.4" }}>{sub}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setHolidayModal({})} style={{ ...primaryBtn, width: "100%", padding: "12px" }}>+ Add your first holiday</button>
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
+                  <div style={{ fontSize: "36px", marginBottom: "12px" }}>🌍</div>
+                  <p>No {filterStatus} holidays.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ display: "grid", gap: "14px" }}>
