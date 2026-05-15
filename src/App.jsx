@@ -2208,7 +2208,9 @@ export default function App({ user }) {
   useEffect(() => {
     loadFromSupabase(user.id).then(d => {
       setHolidays(d.holidays || []);
+      console.log("Supabase data isPro:", d.isPro, typeof d.isPro);
       setIsPro(d.isPro === true);
+      console.log("setIsPro called with:", d.isPro === true);
     }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
