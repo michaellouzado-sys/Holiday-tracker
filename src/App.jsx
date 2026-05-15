@@ -2629,7 +2629,7 @@ export default function App({ user }) {
               <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "9px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "14px" }}>📧</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Easily populate booking details by forwarding booking emails to the address below or screenshot the details</div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Easily populate booking details by forwarding booking emails to the address below, screenshotting the details, or entering them manually</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0ea5e9", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{emailAddress}@in.allbooked.app</div>
                     <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }} style={{ ...secondaryBtn, fontSize: "11px", padding: "3px 10px", flexShrink: 0 }}>Copy</button>
@@ -2740,7 +2740,7 @@ export default function App({ user }) {
                     {[
                       { n: 1, title: "Add your first holiday", sub: "Give it a name, destination and travel dates" },
                       { n: 2, title: "Add booking steps", sub: "Flights, hotel, transfers, car hire — whatever applies" },
-                      { n: 3, title: "Fill in the details", sub: "Forward confirmation emails or scan a screenshot — details fill in automatically" },
+                      { n: 3, title: "Fill in the details", sub: "Forward confirmation emails, scan a screenshot, or enter details manually — whatever works for you" },
                     ].map(({ n, title, sub }) => (
                       <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "10px 0", borderBottom: n < 3 ? "0.5px solid #e0f2fe" : "none" }}>
                         <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#e0f2fe", color: "#0ea5e9", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</div>
