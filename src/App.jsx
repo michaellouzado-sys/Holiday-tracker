@@ -2217,14 +2217,11 @@ export default function App({ user }) {
       await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
       await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
       const { customerInfo } = await Purchases.getCustomerInfo();
-      console.log("RC entitlements:", JSON.stringify(customerInfo.entitlements.active));
-      console.log("RC isPro:", !!customerInfo.entitlements.active["pro"]);
-      console.log("Supabase isPro:", d.isPro);
       if (customerInfo.entitlements.active["pro"]) {
         setIsPro(true);
-      } else if (!d.isPro) {
-        await grantPro(false);
       }
+      // Do not revoke Pro here — Supabase is the source of truth for web
+      // grantPro(false) is intentionally removed to prevent overwriting manual grants
     } catch (e) { console.log("RC init error", e); /* Web not supported — isPro already set from Supabase */ } })()
     // Load shares on mount
     loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
