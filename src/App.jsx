@@ -2588,7 +2588,11 @@ export default function App({ user }) {
     };
   }
 
-  const filteredHolidays = holidays.filter(h => getStatus(h) === filterStatus);
+  const filteredHolidays = holidays.filter(h => {
+    const s = getStatus(h);
+    if (filterStatus === "upcoming") return s === "upcoming" || s === "active";
+    return s === filterStatus;
+  });
 
   if (!loaded) return <div style={{ ...appShell, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div style={{ color: "#0ea5e9", fontSize: "24px" }}>✈️ Loading...</div></div>;
 
@@ -2672,8 +2676,8 @@ export default function App({ user }) {
         {view === "list" && (<>
           <div style={{ display: "flex", gap: "8px", marginBottom: "20px", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", gap: "8px" }}>
-              {["upcoming","active","past"].map(s => (
-                <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{s}</button>
+              {[["upcoming", "Upcoming"], ["past", "Past"]].map(([s, label]) => (
+                <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 16px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", background: filterStatus === s ? "#0ea5e9" : "#f1f5f9", border: `1px solid ${filterStatus === s ? "#0ea5e9" : "#e2e8f0"}`, color: filterStatus === s ? "#0f172a" : "#64748b", textTransform: "capitalize" }}>{label}</button>
               ))}
             </div>
             {isPro === false && (
@@ -2945,7 +2949,7 @@ export default function App({ user }) {
         </>)}
 
           {/* Trip stats — bottom of list */}
-          {holidays.length > 0 && (() => {
+          {view === "list" && holidays.length > 0 && (() => {
             const pastHols = holidays.filter(h => getStatus(h) === "past");
             const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
             const countries = [...new Set(
