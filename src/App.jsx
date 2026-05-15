@@ -1980,9 +1980,7 @@ Run these specific searches one by one:
 1. Search: "${dest} transport strike ${month}"
 2. Search: "${dest} flight disruption ${month}"
 3. Search: "${dest} public holiday ${month}"
-4. Search: "${dest} major event concert ${month}"
-5. Search: "ETIAS entry requirement UK travellers 2026"
-6. Search: "${dest} travel warning ${month}"
+4. Search: "${dest} major event concert festival ${month}"
 
 For each search, extract any relevant disruptions that fall within ${dateRange}.
 Only include disruptions that genuinely occur during the trip dates.
