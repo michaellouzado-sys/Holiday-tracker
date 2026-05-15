@@ -2611,7 +2611,7 @@ export default function App({ user }) {
               <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
                 <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>✓</span>
                 <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>See what's booked and what still needs booking</div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track what's booked and what still needs booking</div>
                   <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Every step tracked</div>
                 </div>
               </div>
@@ -2627,7 +2627,7 @@ export default function App({ user }) {
               <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "9px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "14px" }}>📧</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Forward confirmation emails — or scan a photo inside any booking step</div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Easily populate booking details by forwarding booking emails to the address below or screenshot the details</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0ea5e9", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{emailAddress}@in.allbooked.app</div>
                     <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }} style={{ ...secondaryBtn, fontSize: "11px", padding: "3px 10px", flexShrink: 0 }}>Copy</button>
