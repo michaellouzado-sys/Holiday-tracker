@@ -1972,15 +1972,20 @@ function DisruptionAlerts({ holiday }) {
     setStatus('loading');
     setAlerts([]);
     const dateRange = formatDateRange(holiday);
-    const prompt = `You are a travel disruption checker. Search the web for any disruptions, issues, or important events for a holiday to ${holiday.destination || holiday.name} during ${dateRange}.
+    const dest = holiday.destination || holiday.name;
+    const month = holiday.startDate ? new Date(holiday.startDate).toLocaleString('en-GB', { month: 'long', year: 'numeric' }) : 'upcoming';
+    const prompt = `You are a travel disruption checker. Run MULTIPLE specific web searches to find disruptions for a trip to ${dest} during ${dateRange}.
 
-Look for:
-1. Transport strikes (flights, trains, metro, buses, ferries)
-2. Major sporting events or concerts causing crowds/transport issues
-3. Public holidays that may affect opening hours or services
-4. Political protests or planned demonstrations
-5. Entry requirement changes (visas, ETIAS, health requirements)
-6. Extreme weather warnings
+Run these specific searches one by one:
+1. Search: "${dest} transport strike ${month}"
+2. Search: "${dest} flight disruption ${month}"
+3. Search: "${dest} public holiday ${month}"
+4. Search: "${dest} major event concert ${month}"
+5. Search: "ETIAS entry requirement UK travellers 2026"
+6. Search: "${dest} travel warning ${month}"
+
+For each search, extract any relevant disruptions that fall within ${dateRange}.
+Only include disruptions that genuinely occur during the trip dates.
 
 Return ONLY a JSON array (no markdown, no preamble) with objects like:
 [
