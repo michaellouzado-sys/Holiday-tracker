@@ -2244,7 +2244,9 @@ export default function App({ user }) {
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveToSupabase(user.id, { holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
+      loadFromSupabase(user.id).then(current => {
+        saveToSupabase(user.id, { ...current, holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
+      }).catch(() => setSaveError("Save failed — check connection"));
     }, 600);
     // Reschedule payment notifications whenever holidays change
     schedulePaymentNotifications(hs).catch(console.error);
