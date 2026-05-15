@@ -2639,6 +2639,56 @@ export default function App({ user }) {
             )}
           </div>
 
+          {/* Departure nudge banners */}
+          {(() => {
+            const now = new Date();
+            const nudges = holidays
+              .filter(h => {
+                if (!h.startDate) return false;
+                const daysTo = Math.ceil((new Date(h.startDate) - now) / 86400000);
+                if (daysTo < 0 || daysTo > 30) return false;
+                const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
+                return unbooked > 0;
+              })
+              .map(h => ({
+                h,
+                daysTo: Math.ceil((new Date(h.startDate) - now) / 86400000),
+                unbooked: (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length,
+              }))
+              .sort((a, b) => a.daysTo - b.daysTo);
+            if (nudges.length === 0) return null;
+            return (
+              <div style={{ marginBottom: "16px" }}>
+                {nudges.map(({ h, daysTo, unbooked }) => {
+                  const urgent = daysTo <= 7;
+                  return (
+                    <div key={h.id} onClick={() => { setSelectedId(h.id); setView("detail"); }}
+                      style={{
+                        background: urgent ? "#fef2f2" : "#fffbeb",
+                        border: `1px solid ${urgent ? "#fecaca" : "#fde68a"}`,
+                        borderRadius: "12px", padding: "12px 16px", marginBottom: "8px",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        gap: "12px", cursor: "pointer"
+                      }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "20px" }}>{urgent ? "🚨" : "⚠️"}</span>
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: "600", color: urgent ? "#b91c1c" : "#92400e" }}>
+                            {h.emoji} {h.name} in {daysTo} day{daysTo !== 1 ? "s" : ""}
+                          </div>
+                          <div style={{ fontSize: "12px", color: urgent ? "#dc2626" : "#b45309", marginTop: "1px" }}>
+                            {unbooked} step{unbooked !== 1 ? "s" : ""} still not booked
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "12px", color: urgent ? "#ef4444" : "#f59e0b", whiteSpace: "nowrap" }}>View →</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           {/* Trip stats strip */}
           {holidays.length > 0 && (() => {
             const pastHols = holidays.filter(h => getStatus(h) === "past");
