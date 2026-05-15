@@ -2812,19 +2812,8 @@ export default function App({ user }) {
           )}
         </>)}
 
-          {/* Trip stats strip */}
+          {/* Upcoming payments */}
           {holidays.length > 0 && (() => {
-            const pastHols = holidays.filter(h => getStatus(h) === "past");
-            const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
-            // Extract country from destination (last item after comma, e.g. "Athens, Greece" → "Greece")
-            const countries = [...new Set(
-              holidays
-                .filter(h => h.destination && getStatus(h) === "past")
-                .map(h => {
-                  const parts = h.destination.split(",").map(s => s.trim());
-                  return parts[parts.length - 1]; // take last part as country
-                })
-            )];
             const upcomingPayments = [];
             const now = new Date();
             holidays.forEach(h => {
@@ -2842,40 +2831,52 @@ export default function App({ user }) {
               });
             });
             upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
+            if (upcomingPayments.length === 0) return null;
             return (
-              <div style={{ marginBottom: "20px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: upcomingPayments.length > 0 ? "12px" : "0" }}>
-                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#0ea5e9" }}>{upcomingHols.length}</div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Upcoming</div>
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
+                {upcomingPayments.map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
+                    <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
+                    <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
+                      {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
+                    </span>
                   </div>
-                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#10b981" }}>{pastHols.length}</div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
-                  </div>
-                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{countries.length}</div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Countries visited</div>
-                  </div>
-                </div>
-                {/* Payment reminders */}
-                {upcomingPayments.length > 0 && (
-                  <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px" }}>
-                    <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
-                    {upcomingPayments.map((p, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
-                        <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
-                        <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
-                          {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             );
           })()}
 
+
+          {/* Trip stats — bottom of list */}
+          {holidays.length > 0 && (() => {
+            const pastHols = holidays.filter(h => getStatus(h) === "past");
+            const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
+            const countries = [...new Set(
+              holidays
+                .filter(h => h.destination && getStatus(h) === "past")
+                .map(h => {
+                  const parts = h.destination.split(",").map(s => s.trim());
+                  return parts[parts.length - 1];
+                })
+            )];
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginTop: "16px", marginBottom: "8px" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#0ea5e9" }}>{upcomingHols.length}</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Upcoming</div>
+                </div>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#10b981" }}>{pastHols.length}</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
+                </div>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{countries.length}</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Countries visited</div>
+                </div>
+              </div>
+            );
+          })()}
 
         {/* Sign out — bottom of list view only */}
         {view === "list" && (
