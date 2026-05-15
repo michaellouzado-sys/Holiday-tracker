@@ -2208,7 +2208,7 @@ export default function App({ user }) {
   useEffect(() => {
     loadFromSupabase(user.id).then(d => {
       setHolidays(d.holidays || []);
-      setIsPro(d.isPro || false);
+      setIsPro(d.isPro === true);
     }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
@@ -2225,7 +2225,7 @@ export default function App({ user }) {
       } else if (!d.isPro) {
         await grantPro(false);
       }
-    } catch (e) { console.log("RC init error", e); } })()
+    } catch (e) { console.log("RC init error", e); /* Web not supported — isPro already set from Supabase */ } })()
     // Load shares on mount
     loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
     loadMyShares(user.id).then(setMyShares).catch(console.error);
