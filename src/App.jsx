@@ -2715,6 +2715,42 @@ export default function App({ user }) {
             </div>
           )}
 
+          {/* Upcoming payments */}
+          {holidays.length > 0 && (() => {
+            const upcomingPayments = [];
+            const now = new Date();
+            holidays.forEach(h => {
+              (h.steps || []).forEach(s => {
+                const b = h.bookings?.[s.id] || {};
+                if (!b.paymentDueDate) return;
+                const due = new Date(b.paymentDueDate);
+                const daysUntil = Math.ceil((due - now) / 86400000);
+                const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+                const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
+                const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
+                if (daysUntil >= 0 && daysUntil <= 30 && outstanding > 0) {
+                  upcomingPayments.push({ holidayName: h.name, stepLabel: s.label, daysUntil, due: b.paymentDueDate, outstanding, currency: b.stepCurrency || h.currency || "GBP" });
+                }
+              });
+            });
+            upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
+            if (upcomingPayments.length === 0) return null;
+            return (
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
+                {upcomingPayments.map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
+                    <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
+                    <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
+                      {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+
           {filteredHolidays.length === 0 ? (
             <div>
               {loaded && holidays.length === 0 ? (
@@ -2811,42 +2847,6 @@ export default function App({ user }) {
             </div>
           )}
         </>)}
-
-          {/* Upcoming payments */}
-          {holidays.length > 0 && (() => {
-            const upcomingPayments = [];
-            const now = new Date();
-            holidays.forEach(h => {
-              (h.steps || []).forEach(s => {
-                const b = h.bookings?.[s.id] || {};
-                if (!b.paymentDueDate) return;
-                const due = new Date(b.paymentDueDate);
-                const daysUntil = Math.ceil((due - now) / 86400000);
-                const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
-                const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
-                const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
-                if (daysUntil >= 0 && daysUntil <= 30 && outstanding > 0) {
-                  upcomingPayments.push({ holidayName: h.name, stepLabel: s.label, daysUntil, due: b.paymentDueDate, outstanding, currency: b.stepCurrency || h.currency || "GBP" });
-                }
-              });
-            });
-            upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
-            if (upcomingPayments.length === 0) return null;
-            return (
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
-                {upcomingPayments.map((p, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
-                    <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
-                    <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
-                      {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-
 
           {/* Trip stats — bottom of list */}
           {holidays.length > 0 && (() => {
