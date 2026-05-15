@@ -2731,7 +2731,7 @@ export default function App({ user }) {
 
           {filteredHolidays.length === 0 ? (
             <div>
-              {holidays.length === 0 ? (
+              {loaded && holidays.length === 0 ? (
                 <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "14px", padding: "24px 20px 20px", textAlign: "center", marginBottom: "12px" }}>
                   <div style={{ fontSize: "40px", marginBottom: "10px" }}>✈️</div>
                   <div style={{ fontSize: "17px", fontWeight: "600", color: "#0f172a", marginBottom: "6px" }}>Welcome to <span style={{ color: "#0ea5e9" }}>all</span>booked</div>
