@@ -2013,7 +2013,31 @@ If nothing significant is found, return an empty array: []`;
       setStatus('done');
     } catch (err) {
       console.error('Disruption check failed:', err);
-      console.error('Error details:', JSON.stringify(err, null, 2));
+      // Retry once on failure
+      try {
+        const retryResponse = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const retryData = await retryResponse.json();
+        const retryBlock = retryData.content?.find(b => b.type === 'text');
+        if (retryBlock?.text) {
+          const clean = retryBlock.text.replace(/```json|```/g, '').trim();
+          const parsed = JSON.parse(clean);
+          setAlerts(Array.isArray(parsed) ? parsed : []);
+          setLastChecked(new Date());
+          setStatus('done');
+          return;
+        }
+      } catch (retryErr) {
+        console.error('Retry also failed:', retryErr);
+      }
       setStatus('error');
     }
   };
@@ -3477,6 +3501,14 @@ function Stat({ label, value, color, small }) {
 }
 
 const appShell    = { minHeight: "100vh", background: "#f0f9ff", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#0f172a" };
+
+// Inject spin keyframe once
+if (typeof document !== 'undefined' && !document.getElementById('allbooked-spin')) {
+  const style = document.createElement('style');
+  style.id = 'allbooked-spin';
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+}
 const overlay     = { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, backdropFilter: "blur(8px)", padding: "20px" };
 const modal       = { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "28px", width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(14,165,233,0.12)" };
 const modalHeader = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" };
