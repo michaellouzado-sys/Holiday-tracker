@@ -2241,12 +2241,14 @@ export default function App({ user }) {
     return () => clearInterval(poll);
   }, []);
 
+  const isProRef = useRef(null);
+  useEffect(() => { isProRef.current = isPro; }, [isPro]);
+
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      loadFromSupabase(user.id).then(current => {
-        saveToSupabase(user.id, { ...current, holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
-      }).catch(() => setSaveError("Save failed — check connection"));
+      // Read isPro from a ref so we always have the latest value without stale closure
+      saveToSupabase(user.id, { holidays: hs, isPro: isProRef.current }).catch(() => setSaveError("Save failed — check connection"));
     }, 600);
     // Reschedule payment notifications whenever holidays change
     schedulePaymentNotifications(hs).catch(console.error);
