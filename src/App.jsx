@@ -1948,13 +1948,15 @@ function DisruptionAlerts({ holiday }) {
   const [lastChecked, setLastChecked] = useState(null);
 
   const formatDateRange = (h) => {
-    const steps = h.steps || [];
-    const dates = steps
-      .flatMap(s => [s.startDate, s.endDate, s.date])
-      .filter(Boolean)
-      .sort();
-    if (dates.length < 2) return h.dates || 'your trip dates';
-    return `${dates[0]} to ${dates[dates.length - 1]}`;
+    if (h.startDate && h.endDate) {
+      const start = new Date(h.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const end = new Date(h.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      return `${start} to ${end}`;
+    }
+    if (h.startDate) {
+      return `from ${new Date(h.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    }
+    return 'your trip dates';
   };
 
   const checkDisruptions = async () => {
