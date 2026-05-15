@@ -1941,6 +1941,166 @@ function InstructionsModal({ onClose }) {
   );
 }
 
+// ─── Disruption Alerts ─────────────────────────────────────────────────────────
+function DisruptionAlerts({ holiday }) {
+  const [status, setStatus] = useState('idle');
+  const [alerts, setAlerts] = useState([]);
+  const [lastChecked, setLastChecked] = useState(null);
+
+  const formatDateRange = (h) => {
+    const steps = h.steps || [];
+    const dates = steps
+      .flatMap(s => [s.startDate, s.endDate, s.date])
+      .filter(Boolean)
+      .sort();
+    if (dates.length < 2) return h.dates || 'your trip dates';
+    return `${dates[0]} to ${dates[dates.length - 1]}`;
+  };
+
+  const checkDisruptions = async () => {
+    setStatus('loading');
+    setAlerts([]);
+    try {
+      const dateRange = formatDateRange(holiday);
+      const prompt = `You are a travel disruption checker. Search the web for any disruptions, issues, or important events for a holiday to ${holiday.destination || holiday.name} during ${dateRange}.
+
+Look for:
+1. Transport strikes (flights, trains, metro, buses, ferries)
+2. Major sporting events or concerts causing crowds/transport issues
+3. Public holidays that may affect opening hours or services
+4. Political protests or planned demonstrations
+5. Entry requirement changes (visas, ETIAS, health requirements)
+6. Extreme weather warnings
+
+Return ONLY a JSON array (no markdown, no preamble) with objects like:
+[
+  {
+    "type": "danger|warn|info",
+    "category": "Transport strike|Major event|Entry requirement|Weather|Public holiday|Other",
+    "title": "short title under 10 words",
+    "detail": "2-3 sentences of actionable detail",
+    "source": "source name"
+  }
+]
+
+If nothing significant is found, return an empty array: []`;
+
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await response.json();
+      console.log('Disruption API response:', JSON.stringify(data, null, 2));
+      const textBlock = data.content?.find(b => b.type === 'text');
+      if (textBlock?.text) {
+        const clean = textBlock.text.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean);
+        setAlerts(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setAlerts([]);
+      }
+      setLastChecked(new Date());
+      setStatus('done');
+    } catch (err) {
+      console.error('Disruption check failed:', err);
+      console.error('Error details:', JSON.stringify(err, null, 2));
+      setStatus('error');
+    }
+  };
+
+  const chipStyle = (type) => ({
+    display: 'inline-block', fontSize: 11, padding: '2px 8px',
+    borderRadius: 20, fontWeight: 500, marginRight: 6,
+    background: type === 'danger' ? '#FCEBEB' : type === 'warn' ? '#FAEEDA' : '#E6F1FB',
+    color: type === 'danger' ? '#A32D2D' : type === 'warn' ? '#854F0B' : '#185FA5',
+  });
+
+  const borderColor = (type) =>
+    type === 'danger' ? '#E24B4A' : type === 'warn' ? '#EF9F27' : '#378ADD';
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+          Disruption Alerts
+        </p>
+        <button
+          onClick={checkDisruptions}
+          disabled={status === 'loading'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#f1f5f9', border: '1px solid #e2e8f0',
+            borderRadius: 8, padding: '6px 12px', fontSize: 13,
+            cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+            opacity: status === 'loading' ? 0.6 : 1, color: '#334155'
+          }}>
+          {status === 'loading' ? '⏳ Checking...' : status === 'done' ? '↻ Refresh' : '⚠️ Check for disruptions'}
+        </button>
+      </div>
+
+      {status === 'idle' && (
+        <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>
+          Tap to check for strikes, events, and travel disruptions near your trip dates.
+        </p>
+      )}
+      {status === 'loading' && (
+        <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>
+          Searching for disruptions…
+        </p>
+      )}
+      {status === 'error' && (
+        <p style={{ fontSize: 13, color: '#ef4444', textAlign: 'center', padding: '8px 0' }}>
+          Couldn't check right now. Try again.
+        </p>
+      )}
+      {status === 'done' && alerts.length === 0 && (
+        <p style={{ fontSize: 13, color: '#22c55e', textAlign: 'center', padding: '8px 0' }}>
+          ✓ No significant disruptions found for your trip.
+        </p>
+      )}
+      {alerts.map((alert, i) => (
+        <div key={i} style={{
+          background: '#fff', border: '0.5px solid #e2e8f0',
+          borderLeft: `3px solid ${borderColor(alert.type)}`,
+          borderRadius: '0 8px 8px 0', padding: '12px 14px', marginBottom: 8,
+          position: 'relative'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={chipStyle(alert.type)}>{alert.category}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>{alert.source}</span>
+              <button onClick={() => setAlerts(prev => prev.filter((_, j) => j !== i))}
+                style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0 }}>✕</button>
+            </div>
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px', color: '#1e293b' }}>{alert.title}</p>
+          <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5 }}>{alert.detail}</p>
+        </div>
+      ))}
+      {status === 'done' && lastChecked && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+            Last checked: {lastChecked.toLocaleTimeString()} · Powered by AI web search
+          </p>
+          {alerts.length > 0 && (
+            <button onClick={() => setAlerts([])}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function App({ user }) {
   const [holidays, setHolidays]         = useState([]);
@@ -2690,6 +2850,11 @@ export default function App({ user }) {
                   </button>
                 ))}
               </div>
+
+              {/* Disruption Alerts — shown on Bookings and Itinerary tabs */}
+              {(detailTab === "bookings" || detailTab === "itinerary") && (
+                <DisruptionAlerts holiday={selectedHoliday} />
+              )}
 
               {/* Bookings tab */}
               {detailTab === "bookings" && (<>
