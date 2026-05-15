@@ -2236,6 +2236,22 @@ export default function App({ user }) {
       });
       if (error) throw error;
       setMyShares(await loadMyShares(user.id));
+      // If recipient has no allbooked account, send them an invite email
+      if (!recipientUser?.user_id && !authMatch) {
+        try {
+          await fetch("/api/invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              toEmail: email.toLowerCase(),
+              fromName: user.user_metadata?.full_name || user.email?.split("@")[0] || "Someone",
+              holidayName: holiday.name,
+              holidayEmoji: holiday.emoji || "✈️",
+              holidayDestination: holiday.destination || "",
+            }),
+          });
+        } catch (e) { console.error("Invite email failed", e); }
+      }
       setShareSuccess(true);
       setShareEmail("");
     } catch (e) {
