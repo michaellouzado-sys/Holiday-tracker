@@ -1,4 +1,5 @@
 import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 
@@ -2103,6 +2104,69 @@ If nothing significant is found, return an empty array: []`;
   );
 }
 
+// ─── Local Notifications ──────────────────────────────────────────────────────
+async function schedulePaymentNotifications(holidays) {
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    if (display !== "granted") {
+      const { display: granted } = await LocalNotifications.requestPermissions();
+      if (granted !== "granted") return;
+    }
+    // Cancel all existing payment notifications before rescheduling
+    const pending = await LocalNotifications.getPending();
+    const paymentNotifs = pending.notifications.filter(n => n.id >= 1000 && n.id < 2000);
+    if (paymentNotifs.length > 0) {
+      await LocalNotifications.cancel({ notifications: paymentNotifs });
+    }
+    const now = new Date();
+    const notifications = [];
+    let id = 1000;
+    holidays.forEach(h => {
+      (h.steps || []).forEach(s => {
+        const b = h.bookings?.[s.id] || {};
+        if (!b.paymentDueDate) return;
+        const due = new Date(b.paymentDueDate);
+        const daysUntil = Math.ceil((due - now) / 86400000);
+        const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+        const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
+        const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
+        if (daysUntil <= 0 || outstanding <= 0) return;
+        // Schedule notification at 9am on due date
+        const notifDate = new Date(b.paymentDueDate + "T09:00:00");
+        if (notifDate > now) {
+          notifications.push({
+            id: id++,
+            title: "Payment due today",
+            body: `${h.name} · ${s.label} — ${b.stepCurrency || h.currency || "£"}${Math.ceil(outstanding)} due`,
+            schedule: { at: notifDate },
+            sound: "default",
+          });
+        }
+        // Also schedule a 7-day warning
+        if (daysUntil > 7) {
+          const warnDate = new Date(notifDate);
+          warnDate.setDate(warnDate.getDate() - 7);
+          if (warnDate > now) {
+            notifications.push({
+              id: id++,
+              title: "Payment due in 7 days",
+              body: `${h.name} · ${s.label} — ${b.stepCurrency || h.currency || "£"}${Math.ceil(outstanding)} due ${new Date(b.paymentDueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+              schedule: { at: warnDate },
+              sound: "default",
+            });
+          }
+        }
+      });
+    });
+    if (notifications.length > 0) {
+      await LocalNotifications.schedule({ notifications });
+      console.log(`Scheduled ${notifications.length} payment notification(s)`);
+    }
+  } catch (e) {
+    console.error("Failed to schedule notifications:", e);
+  }
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function App({ user }) {
   const [holidays, setHolidays]         = useState([]);
@@ -2182,6 +2246,8 @@ export default function App({ user }) {
     saveTimer.current = setTimeout(() => {
       saveToSupabase(user.id, { holidays: hs }).catch(() => setSaveError("Save failed — check connection"));
     }, 600);
+    // Reschedule payment notifications whenever holidays change
+    schedulePaymentNotifications(hs).catch(console.error);
   }, []);
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
