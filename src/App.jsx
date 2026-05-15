@@ -2208,6 +2208,7 @@ export default function App({ user }) {
   useEffect(() => {
     loadFromSupabase(user.id).then(d => {
       setHolidays(d.holidays || []);
+      console.log("Supabase full data keys:", Object.keys(d || {}));
       console.log("Supabase data isPro:", d.isPro, typeof d.isPro);
       setIsPro(d.isPro === true);
       console.log("setIsPro called with:", d.isPro === true);
