@@ -1949,18 +1949,26 @@ function DisruptionAlerts({ holiday }) {
   const [lastChecked, setLastChecked] = useState(null);
 
   const formatDateRange = (h) => {
-    if (h.startDate && h.endDate) {
-      const start = new Date(h.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-      const end = new Date(h.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-      return `${start} to ${end}`;
-    }
     if (h.startDate) {
-      return `from ${new Date(h.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      const start = new Date(h.startDate);
+      // Cap search window to first 30 days of trip
+      const searchEnd = h.endDate
+        ? new Date(Math.min(new Date(h.endDate), new Date(start.getTime() + 30 * 86400000)))
+        : new Date(start.getTime() + 30 * 86400000);
+      const startStr = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const endStr = searchEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      return `${startStr} to ${endStr}`;
     }
-    return 'your trip dates';
+    return 'the next 30 days';
   };
 
   const checkDisruptions = async () => {
+    if (!holiday.destination) {
+      setStatus('error');
+      setAlerts([{ type: 'info', category: 'No destination', title: 'Add a destination to check for disruptions', detail: 'Edit your holiday and add a destination (e.g. "Rome, Italy") so we know where to search.', source: '' }]);
+      setStatus('done');
+      return;
+    }
     setStatus('loading');
     setAlerts([]);
     const dateRange = formatDateRange(holiday);
