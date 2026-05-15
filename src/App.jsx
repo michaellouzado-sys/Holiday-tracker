@@ -2136,6 +2136,7 @@ export default function App({ user }) {
   const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
   const [matchingEmail, setMatchingEmail] = useState(null); // pending email being matched to a holiday
   const [saveError, setSaveError]       = useState(null);
+  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
   const [rates, setRates]               = useState(null);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
   const saveTimer = useRef(null);
@@ -2496,6 +2497,15 @@ export default function App({ user }) {
       updateHolidays(prev => prev.map(h => h.id === selectedId ? { ...h, bookings: { ...h.bookings, [stepId]: data } } : h));
     }
     setBookingModal(null);
+    // Show rating prompt after 3rd confirmed booking (once per install)
+    if (data.confirmed) {
+      try {
+        const count = parseInt(localStorage.getItem("allbooked_confirmed_count") || "0") + 1;
+        localStorage.setItem("allbooked_confirmed_count", count);
+        const alreadyRated = localStorage.getItem("allbooked_rated");
+        if (count === 3 && !alreadyRated) setShowRatingPrompt(true);
+      } catch(e) {}
+    }
   }
 
   function completionCount(h) {
@@ -3350,6 +3360,25 @@ export default function App({ user }) {
             <div style={{ display: "flex", gap: "10px" }}>
               <button onClick={() => setRebookModal(null)} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
               <button onClick={() => rebookHoliday(rebookModal)} style={{ ...primaryBtn, flex: 2 }}>Create Copy</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRatingPrompt && (
+        <div style={{ position: "fixed", bottom: "calc(100px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 2000, width: "calc(100% - 40px)", maxWidth: "400px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)" }}>
+            <button onClick={() => setShowRatingPrompt(false)} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: "18px" }}>✕</button>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>⭐</div>
+            <div style={{ fontSize: "15px", fontWeight: "600", color: "#0f172a", marginBottom: "6px" }}>Enjoying allbooked?</div>
+            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", lineHeight: "1.5" }}>A quick rating helps other travellers find the app — it only takes a second.</div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button onClick={() => { setShowRatingPrompt(false); try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {} }} style={{ flex: 1, padding: "9px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "10px", color: "#64748b", fontSize: "13px", cursor: "pointer" }}>Not now</button>
+              <button onClick={() => {
+                try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {}
+                setShowRatingPrompt(false);
+                window.open("https://apps.apple.com/app/allbooked/id6744030076?action=write-review", "_blank");
+              }} style={{ flex: 2, padding: "9px", background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", border: "none", borderRadius: "10px", color: "#ffffff", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>⭐ Rate allbooked</button>
             </div>
           </div>
         </div>
