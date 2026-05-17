@@ -256,9 +256,38 @@ export default async function handler(req, res) {
       };
     });
 
+    // If return flight exists, add a second step for it
+    let finalHolidays = updatedHolidays;
+    if (extracted.returnFlightDate && stepType === "flight") {
+      const returnStepId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      const returnStep = { id: returnStepId, icon: "✈️", label: "Return Flights" };
+      const returnBooking = {
+        confirmed: true,
+        provider: extracted.provider || "",
+        reference: extracted.reference || "",
+        notes: `Return flight. Imported from email: ${subject}`,
+        flightDate: extracted.returnFlightDate || "",
+        departureAirport: extracted.returnDepartureAirport || "",
+        arrivalAirport: extracted.returnArrivalAirport || "",
+        departureTime: extracted.returnDepartureTime || "",
+        arrivalTime: extracted.returnArrivalTime || "",
+        flightNumber: extracted.returnFlightNumber || "",
+        stepCurrency: extracted.currency || "GBP",
+      };
+      finalHolidays = updatedHolidays.map(h => {
+        if (h.id !== matchedHoliday.id) return h;
+        return {
+          ...h,
+          steps: [...(h.steps || []), returnStep],
+          bookings: { ...(h.bookings || {}), [returnStepId]: returnBooking },
+        };
+      });
+      log("RETURN_FLIGHT_ADDED", { returnStepId, returnFlightDate: extracted.returnFlightDate });
+    }
+
     const { error: upsertErr } = await supabase
       .from("app_data")
-      .upsert({ id: userId, data: { holidays: updatedHolidays }, updated_at: new Date().toISOString() });
+      .upsert({ id: userId, data: { holidays: finalHolidays }, updated_at: new Date().toISOString() });
 
     log("UPSERT", { error: upsertErr?.message || "ok" });
     log("SUCCESS", { holiday: matchedHoliday.name, stepType, stepId });
@@ -383,7 +412,8 @@ FLIGHT emails (stepType: "flight"):
 - Flight number: 2-letter airline code + digits e.g. "BA256", "EZY8765", "FR1234", "A3284"
 - Airports: city names or 3-letter IATA codes e.g. (LHR), (ATH), (CFU) — often in route format "LHR → ATH"
 - Times: near "Departs", "Arrives", "Departure", "Arrival" or in a flight summary table
-- Multiple flights: extract the OUTBOUND flight details into flight fields
+- If there are TWO flights (outbound AND return), extract BOTH. Put outbound in the main fields and return flight in returnFlight object
+- Return flight fields: returnFlightDate, returnDepartureAirport, returnArrivalAirport, returnDepartureTime, returnArrivalTime, returnFlightNumber
 
 HOTEL/VILLA emails (stepType: "hotel" or "villa"):
 - Check-in/out: look for "Check-in", "Arrival", "Check-out", "Departure" dates
@@ -454,7 +484,13 @@ Return this exact JSON structure (empty string "" for any field not found):
   "carParkName": "name of car park",
   "terminalName": "airport terminal e.g. Terminal 2",
   "parkingEntry": "YYYY-MM-DDTHH:MM entry datetime",
-  "parkingExit": "YYYY-MM-DDTHH:MM exit datetime"
+  "parkingExit": "YYYY-MM-DDTHH:MM exit datetime",
+  "returnFlightDate": "YYYY-MM-DD return flight date if present",
+  "returnDepartureAirport": "return departure airport",
+  "returnArrivalAirport": "return arrival airport",
+  "returnDepartureTime": "HH:MM return departure time",
+  "returnArrivalTime": "HH:MM return arrival time",
+  "returnFlightNumber": "return flight number e.g. BA257"
 }`;
 
   try {
