@@ -1942,42 +1942,560 @@ function InstructionsModal({ onClose }) {
   );
 }
 
-// ─── Main App ──────────────────────────────────────────────────────────────────
-export default function App({ user }) {
-  const [holidays, setHolidays]         = useState([]);
-  const [selectedId, setSelectedId]     = useState(null);
-  const [view, setView]                 = useState("list");
-  const [filterStatus, setFilterStatus] = useState("upcoming");
-  const [bookingModal, setBookingModal] = useState(null);
-  const [holidayModal, setHolidayModal] = useState(null);
-  const [addStepModal, setAddStepModal] = useState(false);
-  const [detailTab, setDetailTab]       = useState("bookings");
-  const [showSuppliers, setShowSuppliers] = useState(false);
-  const [rebookModal, setRebookModal]   = useState(null);
-  const [showInstructions, setShowInstructions] = useState(() => {
-    try { return localStorage.getItem("allbooked_seen_v" + APP_VERSION) !== "1"; }
-    catch { return true; }
-  }); // holiday to rebook from // bookings | timeline | itinerary | packing
-  const [loaded, setLoaded]             = useState(false);
-  const [emailAddress, setEmailAddress] = useState(null);
+// ─── Shared helpers (used by list-view components) ────────────────────────────
+function completionCount(h) {
+  const steps = h.steps || [];
+  const countable = steps.filter(s => !h.bookings?.[s.id]?.bookOnDay);
+  return {
+    confirmed: countable.filter(s => h.bookings?.[s.id]?.confirmed).length,
+    total: countable.length,
+    onDay: steps.filter(s => h.bookings?.[s.id]?.bookOnDay).length,
+  };
+}
+
+// ─── Feature Card ──────────────────────────────────────────────────────────────
+function FeatureCard({ emailAddress }) {
+  return (
+    <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "12px", padding: "14px 16px", marginBottom: "16px" }}>
+      <div style={{ fontSize: "12px", fontWeight: "600", color: "#0f172a", marginBottom: "10px", lineHeight: "1.5" }}>
+        Store all your booking details — references, dates, times, addresses, all in one place
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+        <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+          <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>✓</span>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track what's booked and what still needs booking</div>
+            <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Every step tracked</div>
+          </div>
+        </div>
+        <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+          <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>💳</span>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track payments and what's outstanding</div>
+            <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Cost, paid, due dates</div>
+          </div>
+        </div>
+      </div>
+      {emailAddress && (
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "9px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "14px" }}>📧</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Easily populate booking details by forwarding booking emails to the address below, screenshotting the details, or entering them manually</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0ea5e9", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{emailAddress}@in.allbooked.app</div>
+              <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }} style={{ ...secondaryBtn, fontSize: "11px", padding: "3px 10px", flexShrink: 0 }}>Copy</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Nudge Banners ─────────────────────────────────────────────────────────────
+function NudgeBanners({ holidays, onSelect }) {
+  const now = new Date();
+  const nudges = holidays
+    .filter(h => {
+      if (!h.startDate) return false;
+      const daysTo = Math.ceil((new Date(h.startDate) - now) / 86400000);
+      if (daysTo < 0 || daysTo > 30) return false;
+      const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
+      return unbooked > 0;
+    })
+    .map(h => ({
+      h,
+      daysTo: Math.ceil((new Date(h.startDate) - now) / 86400000),
+      unbooked: (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length,
+    }))
+    .sort((a, b) => a.daysTo - b.daysTo);
+
+  if (nudges.length === 0) return null;
+  return (
+    <div style={{ marginBottom: "16px" }}>
+      {nudges.map(({ h, daysTo, unbooked }) => {
+        const urgent = daysTo <= 7;
+        return (
+          <div key={h.id} onClick={() => onSelect(h.id)}
+            style={{
+              background: urgent ? "#fef2f2" : "#fffbeb",
+              border: `1px solid ${urgent ? "#fecaca" : "#fde68a"}`,
+              borderRadius: "12px", padding: "12px 16px", marginBottom: "8px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: "12px", cursor: "pointer"
+            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "20px" }}>{urgent ? "🚨" : "⚠️"}</span>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: urgent ? "#b91c1c" : "#92400e" }}>
+                  {h.emoji} {h.name} in {daysTo} day{daysTo !== 1 ? "s" : ""}
+                </div>
+                <div style={{ fontSize: "12px", color: urgent ? "#dc2626" : "#b45309", marginTop: "1px" }}>
+                  {unbooked} step{unbooked !== 1 ? "s" : ""} still not booked
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize: "12px", color: urgent ? "#ef4444" : "#f59e0b", whiteSpace: "nowrap" }}>View →</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Upcoming Payments ─────────────────────────────────────────────────────────
+function UpcomingPayments({ holidays }) {
+  const now = new Date();
+  const upcomingPayments = [];
+  holidays.forEach(h => {
+    (h.steps || []).forEach(s => {
+      const b = h.bookings?.[s.id] || {};
+      if (!b.paymentDueDate) return;
+      const due = new Date(b.paymentDueDate);
+      const daysUntil = Math.ceil((due - now) / 86400000);
+      const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+      const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
+      const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
+      if (daysUntil >= 0 && daysUntil <= 30 && outstanding > 0) {
+        upcomingPayments.push({ holidayName: h.name, stepLabel: s.label, daysUntil, outstanding, currency: b.stepCurrency || h.currency || "GBP" });
+      }
+    });
+  });
+  upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
+  if (upcomingPayments.length === 0) return null;
+  return (
+    <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px" }}>
+      <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
+      {upcomingPayments.map((p, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
+          <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
+          <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
+            {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Holiday Card ──────────────────────────────────────────────────────────────
+function HolidayCard({ h, rates, onSelect }) {
+  const { confirmed, total } = completionCount(h);
+  const pct = total > 0 ? Math.round((confirmed / total) * 100) : 0;
+  const status = getStatus(h);
+  return (
+    <div onClick={() => onSelect(h.id)}
+      style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px 24px", cursor: "pointer", display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center", transition: "border-color 0.2s" }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = "#0ea5e9"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}
+    >
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "22px" }}>{h.emoji}</span>
+          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "17px", color: "#0f172a" }}>{h.name}</span>
+          <span style={{ fontSize: "11px", padding: "2px 10px", borderRadius: "20px", textTransform: "uppercase", background: STATUS_COLORS[status] + "22", color: STATUS_COLORS[status], border: `1px solid ${STATUS_COLORS[status]}44` }}>{status}</span>
+        </div>
+        <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
+          {h.destination && <span>📍 {h.destination}</span>}
+          {h.startDate && <span>📅 {formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</span>}
+          <span style={{ color: "#cbd5e1" }}>{total} step{total !== 1 ? "s" : ""}</span>
+          {(() => {
+            const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
+            return unbooked > 0 ? <span style={{ color: "#ef4444", fontWeight: "600" }}>✗ {unbooked} not booked</span> : null;
+          })()}
+        </div>
+        {total > 0 ? (<>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#10b981" : "#0ea5e9" }}>{pct}%</span></div>
+          <div style={{ height: "4px", background: "#e0f2fe", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#10b981" : "linear-gradient(90deg, #0ea5e9, #38bdf8)", transition: "width 0.4s" }} /></div>
+          {(() => {
+            const displayC = h.currency || "GBP";
+            const sym = getCurrencySymbol(displayC);
+            let gt = 0, gp = 0, has = false;
+            (h.steps || []).forEach(s => {
+              const b = h.bookings?.[s.id] || {};
+              const stepC = b.stepCurrency || displayC;
+              const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
+              const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
+              if (!isNaN(t)) { gt += convertAmount(t, stepC, displayC, rates); has = true; }
+              if (!isNaN(p)) gp += convertAmount(p, stepC, displayC, rates);
+            });
+            if (!has) return null;
+            const go = gt - gp;
+            return (
+              <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
+                {go > 0 && <span style={{ color: "#f59e0b" }}>{sym}{Math.ceil(go)} outstanding</span>}
+                {go <= 0 && <span style={{ color: "#10b981" }}>✓ all paid</span>}
+              </div>
+            );
+          })()}
+        </>) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>No booking steps added yet</span>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: "8px", alignSelf: "stretch" }}>
+        <div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div>
+        <div style={{ fontSize: "10px", fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
+          <span style={{ color: "#0ea5e9" }}>all</span><span style={{ color: "#cbd5e1" }}>booked</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Trip Stats Strip ──────────────────────────────────────────────────────────
+function TripStatsStrip({ holidays }) {
+  const pastHols = holidays.filter(h => getStatus(h) === "past");
+  const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
+  const countries = [...new Set(
+    holidays
+      .filter(h => h.destination && getStatus(h) === "past")
+      .map(h => {
+        const parts = h.destination.split(",").map(s => s.trim());
+        return parts[parts.length - 1];
+      })
+  )];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginTop: "16px", marginBottom: "8px" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+        <div style={{ fontSize: "22px", fontWeight: "700", color: "#0ea5e9" }}>{upcomingHols.length}</div>
+        <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Upcoming</div>
+      </div>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+        <div style={{ fontSize: "22px", fontWeight: "700", color: "#10b981" }}>{pastHols.length}</div>
+        <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
+      </div>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
+        <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{countries.length}</div>
+        <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Countries visited</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Share Modal ──────────────────────────────────────────────────────────────
+function ShareModal({ holiday, sharePermission, setSharePermission, shareEmail, setShareEmail, shareLoading, shareError, shareSuccess, setShareSuccess, myShares, onShare, onRemoveShare, onClose }) {
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "440px" }} onClick={e => e.stopPropagation()}>
+        <div style={modalHeader}>
+          <h3 style={modalTitle}>👥 Share {holiday.emoji} {holiday.name}</h3>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+        <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
+          Enter the email address of someone with an allbooked account. They'll see this holiday in their app.
+        </p>
+        {!shareSuccess ? (
+          <>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+              <button onClick={() => setSharePermission("view")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "view" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "view" ? "#f0f9ff" : "#fff", color: sharePermission === "view" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "view" ? "600" : "400" }}>👁 View only</button>
+              <button onClick={() => setSharePermission("edit")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "edit" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "edit" ? "#f0f9ff" : "#fff", color: sharePermission === "edit" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "edit" ? "600" : "400" }}>✏️ Can edit</button>
+            </div>
+            <label style={labelStyle}>
+              <span>Email address</span>
+              <input type="email" value={shareEmail} onChange={e => setShareEmail(e.target.value)}
+                placeholder="friend@example.com" style={inputStyle}
+                onKeyDown={e => e.key === "Enter" && shareEmail.trim() && onShare(shareEmail.trim(), sharePermission)} />
+            </label>
+            {shareError && <div style={{ color: "#ef4444", fontSize: "13px", marginBottom: "12px" }}>{shareError}</div>}
+            <button onClick={() => onShare(shareEmail.trim(), sharePermission)}
+              disabled={!shareEmail.trim() || shareLoading}
+              style={{ ...primaryBtn, width: "100%", opacity: (!shareEmail.trim() || shareLoading) ? 0.5 : 1 }}>
+              {shareLoading ? "Sharing..." : "Share holiday"}
+            </button>
+          </>
+        ) : (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>✅</div>
+            <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "8px" }}>Holiday shared!</div>
+            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>{shareEmail} can now see this holiday in their allbooked app.</div>
+            <button onClick={() => { setShareSuccess(false); setShareEmail(""); }} style={{ ...secondaryBtn }}>Share with someone else</button>
+          </div>
+        )}
+        {myShares.filter(s => s.holiday_id === holiday.id).length > 0 && (
+          <div style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+            <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Shared with</div>
+            {myShares.filter(s => s.holiday_id === holiday.id).map(s => (
+              <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "13px", color: "#0f172a" }}>{s.shared_with_email}</span>
+                  <span style={{ fontSize: "11px", padding: "2px 6px", borderRadius: "10px", background: s.permission === "edit" ? "#f0f9ff" : "#f8fafc", color: s.permission === "edit" ? "#0ea5e9" : "#94a3b8", border: "1px solid", borderColor: s.permission === "edit" ? "#0ea5e944" : "#e2e8f0" }}>{s.permission === "edit" ? "✏️ edit" : "👁 view"}</span>
+                </div>
+                <button onClick={() => onRemoveShare(s.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Upgrade Modal ─────────────────────────────────────────────────────────────
+function UpgradeModal({ user, onClose, onGrant }) {
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "400px" }} onClick={e => e.stopPropagation()}>
+        <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
+          <div style={{ fontSize: "48px", marginBottom: "12px" }}>⭐</div>
+          <h2 style={{ margin: "0 0 8px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: "24px", color: "#0f172a" }}>
+            <span style={{ color: "#0ea5e9" }}>all</span>booked Pro
+          </h2>
+          <p style={{ margin: "0 0 24px", color: "#64748b", fontSize: "14px" }}>Unlock unlimited holidays and share trips with travel companions.</p>
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginBottom: "20px", textAlign: "left" }}>
+            <div style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>What you get</div>
+            {["✓  Unlimited holidays", "✓  Share holidays with travel companions", "✓  Everything in the free plan included"].map(t => (
+              <div key={t} style={{ fontSize: "14px", color: "#0f172a", marginBottom: "8px" }}>{t}</div>
+            ))}
+          </div>
+          <div style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "16px", marginBottom: "12px" }}>
+            <div style={{ fontSize: "13px", color: "#e0f2fe", marginBottom: "6px", fontWeight: "600" }}>allbooked Pro — Monthly</div>
+            <div style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff" }}>£2.99<span style={{ fontSize: "14px", fontWeight: "400" }}>/month</span></div>
+            <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Monthly subscription · Auto-renews · Cancel anytime</div>
+          </div>
+          <button onClick={async () => {
+            try {
+              const offerings = await Purchases.getOfferings();
+              const pkg = offerings.current?.availablePackages[0];
+              if (pkg) {
+                const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+                if (customerInfo.entitlements.active["pro"]) {
+                  await onGrant(true);
+                  onClose();
+                }
+              }
+            } catch (e) { if (e.code !== "1") console.error("Purchase error", e); }
+          }} style={{ ...primaryBtn, width: "100%", padding: "14px", fontSize: "15px", marginBottom: "12px" }}>
+            Upgrade to Pro
+          </button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "13px" }}>
+            Maybe later
+          </button>
+          <div style={{ marginTop: "16px", fontSize: "11px", color: "#94a3b8", lineHeight: "1.8" }}>
+            <a href="https://allbooked.app/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Privacy Policy</a>
+            {" · "}
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Terms of Use</a>
+            <br />
+          </div>
+          <div style={{ marginTop: "8px", fontSize: "11px", color: "#cbd5e1" }}>
+            Already have Pro? <button onClick={async () => {
+              const input = prompt("Enter your promo code or leave blank to restore purchases:");
+              if (input && input.trim().length > 0) {
+                const trimmed = input.trim().toUpperCase();
+                const { data: promoData, error: promoError } = await supabase
+                  .from("promo_codes")
+                  .select("id, used_by")
+                  .eq("code", trimmed)
+                  .single();
+                if (promoError || !promoData) {
+                  alert("Invalid promo code.");
+                } else if (promoData.used_by) {
+                  alert("This promo code has already been used.");
+                } else {
+                  const { error: updateError } = await supabase
+                    .from("promo_codes")
+                    .update({ used_by: user.id, used_at: new Date().toISOString() })
+                    .eq("id", promoData.id)
+                    .is("used_by", null);
+                  if (updateError) {
+                    alert("Failed to redeem code. Please try again.");
+                  } else {
+                    await onGrant(true);
+                    onClose();
+                    alert("Promo code applied! Welcome to Pro 🎉");
+                  }
+                }
+              } else if (input !== null) {
+                try {
+                  const { customerInfo } = await Purchases.restorePurchases();
+                  if (customerInfo.entitlements.active["pro"]) {
+                    await onGrant(true);
+                    onClose();
+                  } else {
+                    alert("No active Pro subscription found.");
+                  }
+                } catch (e) { console.error("Restore error", e); }
+              }
+            }} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "11px", padding: 0 }}>Restore or enter access code</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Export Warning Modal ──────────────────────────────────────────────────────
+function ExportWarningModal({ warning, onClose, onExport }) {
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+        <div style={modalHeader}>
+          <h3 style={modalTitle}>⚠️ Before you export</h3>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+          {warning.unbooked > 0 && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#b91c1c" }}>
+              ✗ <strong>{warning.unbooked} step{warning.unbooked !== 1 ? "s" : ""} not yet booked</strong> — these will still be exported but may not reflect final details.
+            </div>
+          )}
+          {warning.noDate > 0 && (
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#92400e" }}>
+              📅 <strong>{warning.noDate} step{warning.noDate !== 1 ? "s" : ""} have no date set</strong> — these will be placed on the holiday departure date in your calendar.
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onClose} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
+          <button onClick={onExport} style={{ ...primaryBtn, flex: 2 }}>Export anyway</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Email Inbox Modal ─────────────────────────────────────────────────────────
+function EmailInboxModal({ pendingEmails, onDismiss, onMatchEmail, onClose }) {
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "520px" }} onClick={e => e.stopPropagation()}>
+        <div style={modalHeader}>
+          <h3 style={modalTitle}>📧 Unmatched emails</h3>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+        <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
+          These booking confirmations couldn't be matched to a holiday automatically. Tap "Add to holiday" to assign one manually.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {pendingEmails.map(email => (
+            <div key={email.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                <div style={{ fontWeight: "600", fontSize: "13px", color: "#0f172a" }}>{email.subject || "(no subject)"}</div>
+                <button onClick={() => onDismiss(email.id)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>✕</button>
+              </div>
+              <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>From: {email.from_address} · {new Date(email.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+              {email.extracted?.provider && <div style={{ fontSize: "12px", color: "#0ea5e9", marginBottom: "4px" }}>{email.extracted.provider}{email.extracted.reference ? ` · Ref: ${email.extracted.reference}` : ""}</div>}
+              {email.extracted?.date && <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>Booking date: {email.extracted.date}</div>}
+              <button onClick={() => onMatchEmail(email)}
+                style={{ ...primaryBtn, fontSize: "12px", padding: "6px 14px", width: "100%" }}>
+                + Add to holiday
+              </button>
+            </div>
+          ))}
+          {pendingEmails.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px" }}>No unmatched emails</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Match Email Modal ─────────────────────────────────────────────────────────
+function MatchEmailModal({ email, holidays, onAdd, onClose }) {
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
+        <div style={modalHeader}>
+          <h3 style={modalTitle}>Add to which holiday?</h3>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+        <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", background: "#f8fafc", borderRadius: "8px", padding: "10px 12px" }}>
+          <div style={{ fontWeight: "600", color: "#0f172a", marginBottom: "2px" }}>{email.subject}</div>
+          {email.extracted?.provider && <div style={{ color: "#0ea5e9" }}>{email.extracted.provider}</div>}
+          {email.extracted?.date && <div>Date: {email.extracted.date}</div>}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {holidays.map(h => (
+            <button key={h.id} onClick={() => onAdd(email, h.id)}
+              style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
+            >
+              <span style={{ fontSize: "22px" }}>{h.emoji}</span>
+              <div>
+                <div style={{ fontWeight: "600", fontSize: "14px", color: "#0f172a" }}>{h.name}</div>
+                {h.startDate && <div style={{ fontSize: "12px", color: "#94a3b8" }}>{formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</div>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Rebook Confirm Modal ──────────────────────────────────────────────────────
+function RebookConfirmModal({ holiday, onConfirm, onClose }) {
+  return (
+    <div style={overlay}>
+      <div style={{ ...modal, maxWidth: "420px" }}>
+        <div style={modalHeader}>
+          <h3 style={modalTitle}>Rebook Holiday</h3>
+          <button onClick={onClose} style={closeBtn}>✕</button>
+        </div>
+        <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
+          This will create a new copy of <strong style={{ color: "#0f172a" }}>{holiday.emoji} {holiday.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
+        </p>
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#94a3b8" }}>
+          {(holiday.steps || []).length} step{(holiday.steps || []).length !== 1 ? "s" : ""} will be copied · All booking details cleared · Dates cleared
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onClose} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
+          <button onClick={onConfirm} style={{ ...primaryBtn, flex: 2 }}>Create Copy</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Rating Prompt Toast ───────────────────────────────────────────────────────
+function RatingPromptToast({ onDismiss, onRate }) {
+  return (
+    <div style={{ position: "fixed", bottom: "calc(100px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 2000, width: "calc(100% - 40px)", maxWidth: "400px" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)" }}>
+        <button onClick={onDismiss} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: "18px" }}>✕</button>
+        <div style={{ fontSize: "28px", marginBottom: "8px" }}>⭐</div>
+        <div style={{ fontSize: "15px", fontWeight: "600", color: "#0f172a", marginBottom: "6px" }}>Enjoying allbooked?</div>
+        <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", lineHeight: "1.5" }}>A quick rating helps other travellers find the app — it only takes a second.</div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button onClick={onDismiss} style={{ flex: 1, padding: "9px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "10px", color: "#64748b", fontSize: "13px", cursor: "pointer" }}>Not now</button>
+          <button onClick={onRate} style={{ flex: 2, padding: "9px", background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", border: "none", borderRadius: "10px", color: "#ffffff", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>⭐ Rate allbooked</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── useRevenueCat ────────────────────────────────────────────────────────────
+function useRevenueCat(user, isPro, setIsPro) {
+  const isProRef = useRef(null);
+  useEffect(() => { isProRef.current = isPro; }, [isPro]);
+
+  useEffect(() => {
+    (async () => { try {
+      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+      await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
+      const { customerInfo } = await Purchases.getCustomerInfo();
+      if (customerInfo.entitlements.active["pro"]) {
+        setIsPro(true);
+      }
+      // Do not revoke Pro here — Supabase is the source of truth for web
+      // grantPro(false) is intentionally removed to prevent overwriting manual grants
+    } catch (e) { console.log("RC init error", e); /* Web not supported — isPro already set from Supabase */ } })();
+  }, []);
+
+  async function grantPro(grant) {
+    setIsPro(grant);
+    const current = await loadFromSupabase(user.id);
+    await saveToSupabase(user.id, { ...current, isPro: grant, holidays: current.holidays || [] });
+  }
+
+  return { isProRef, grantPro };
+}
+
+// ─── useHolidayData ───────────────────────────────────────────────────────────
+function useHolidayData(user, isProRef, setIsPro) {
+  const [holidays, setHolidays]           = useState([]);
+  const [loaded, setLoaded]               = useState(false);
+  const [saveError, setSaveError]         = useState(null);
+  const [emailAddress, setEmailAddress]   = useState(null);
   const [pendingEmails, setPendingEmails] = useState([]);
-  const [showEmailInbox, setShowEmailInbox] = useState(false);
-  const [isPro, setIsPro] = useState(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [sharePermission, setSharePermission] = useState("view");
-  const [shareEmail, setShareEmail] = useState("");
-  const [shareLoading, setShareLoading] = useState(false);
-  const [shareError, setShareError] = useState(null);
-  const [shareSuccess, setShareSuccess] = useState(false);
-  const [sharedHolidays, setSharedHolidays] = useState([]); // holidays shared WITH me
-  const [myShares, setMyShares] = useState([]); // holidays I have shared
-  const [exportWarning, setExportWarning] = useState(null); // { unbooked, noDate }
-  const [matchingEmail, setMatchingEmail] = useState(null); // pending email being matched to a holiday
-  const [saveError, setSaveError]       = useState(null);
-  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
-  const [rates, setRates]               = useState(null);
-  const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
   const saveTimer = useRef(null);
 
   useEffect(() => {
@@ -1990,20 +2508,6 @@ export default function App({ user }) {
     }).catch(console.error).finally(() => setLoaded(true));
     getOrCreateEmailAddress(user.id, user).then(setEmailAddress).catch(console.error);
     getPendingEmails(user.id).then(setPendingEmails).catch(console.error);
-    // Init RevenueCat
-    (async () => { try {
-      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-      await Purchases.configure({ apiKey: "appl_ObCdudZtvqZElEOqgLNnBSmHJLA" });
-      const { customerInfo } = await Purchases.getCustomerInfo();
-      if (customerInfo.entitlements.active["pro"]) {
-        setIsPro(true);
-      }
-      // Do not revoke Pro here — Supabase is the source of truth for web
-      // grantPro(false) is intentionally removed to prevent overwriting manual grants
-    } catch (e) { console.log("RC init error", e); /* Web not supported — isPro already set from Supabase */ } })()
-    // Load shares on mount
-    loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
-    loadMyShares(user.id).then(setMyShares).catch(console.error);
 
     // Poll for new data every 30 seconds — picks up emails added by webhook
     const poll = setInterval(() => {
@@ -2011,13 +2515,9 @@ export default function App({ user }) {
       loadFromSupabase(user.id).then(d => {
         if (d.holidays) setHolidays(d.holidays);
       }).catch(console.error);
-      loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
     }, 30000);
     return () => clearInterval(poll);
   }, []);
-
-  const isProRef = useRef(null);
-  useEffect(() => { isProRef.current = isPro; }, [isPro]);
 
   const persist = useCallback(async (hs) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -2031,24 +2531,28 @@ export default function App({ user }) {
 
   const updateHolidays = fn => setHolidays(prev => { const next = fn(prev); persist(next); return next; });
 
-  // Update a shared holiday on the owner's data
-  const updateSharedHolidayLocal = async (holidayId, updater) => {
-    const holiday = [...holidays, ...sharedHolidays].find(h => h.id === holidayId);
-    if (!holiday?._shared) return false;
-    try {
-      const updated = await updateSharedHoliday(holiday._ownerId, holidayId, updater, user.id);
-      // Refresh shared holidays
-      const refreshed = await loadSharedWithMe(user);
-      setSharedHolidays(refreshed);
-      // Update selectedHoliday if it's the one being edited
-      if (selectedHoliday?.id === holidayId) setSelectedId(holidayId);
-      return true;
-    } catch (e) {
-      console.error("Failed to update shared holiday", e);
-      setSaveError("Failed to save — check connection");
-      return false;
-    }
-  };
+  return { holidays, setHolidays, loaded, saveError, setSaveError, emailAddress, pendingEmails, setPendingEmails, persist, updateHolidays };
+}
+
+// ─── useSharing ───────────────────────────────────────────────────────────────
+function useSharing(user, holidays) {
+  const [sharedHolidays, setSharedHolidays] = useState([]);
+  const [myShares, setMyShares]             = useState([]);
+  const [sharePermission, setSharePermission] = useState("view");
+  const [shareEmail, setShareEmail]         = useState("");
+  const [shareLoading, setShareLoading]     = useState(false);
+  const [shareError, setShareError]         = useState(null);
+  const [shareSuccess, setShareSuccess]     = useState(false);
+
+  useEffect(() => {
+    loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
+    loadMyShares(user.id).then(setMyShares).catch(console.error);
+
+    const poll = setInterval(() => {
+      loadSharedWithMe(user).then(setSharedHolidays).catch(console.error);
+    }, 30000);
+    return () => clearInterval(poll);
+  }, []);
 
   async function shareHoliday(holiday, email, permission = "view") {
     setShareLoading(true);
@@ -2067,7 +2571,7 @@ export default function App({ user }) {
         .select("user_id")
         .eq("address", email.toLowerCase())
         .maybeSingle();
-      
+
       // Also try auth lookup via a direct match
       const { data: authMatch } = await supabase.rpc("get_user_id_by_email", { p_email: email.toLowerCase() }).maybeSingle();
 
@@ -2112,11 +2616,59 @@ export default function App({ user }) {
     setMyShares(await loadMyShares(user.id));
   }
 
-  async function grantPro(grant) {
-    setIsPro(grant);
-    const current = await loadFromSupabase(user.id);
-    await saveToSupabase(user.id, { ...current, isPro: grant, holidays: current.holidays || [] });
-  }
+  return { sharedHolidays, setSharedHolidays, myShares, setMyShares, sharePermission, setSharePermission, shareEmail, setShareEmail, shareLoading, shareError, shareSuccess, setShareSuccess, shareHoliday, removeShare };
+}
+
+// ─── Main App ──────────────────────────────────────────────────────────────────
+export default function App({ user }) {
+  // ── UI state ──────────────────────────────────────────────────────────────────
+  const [selectedId, setSelectedId]     = useState(null);
+  const [view, setView]                 = useState("list");
+  const [filterStatus, setFilterStatus] = useState("upcoming");
+  const [bookingModal, setBookingModal] = useState(null);
+  const [holidayModal, setHolidayModal] = useState(null);
+  const [addStepModal, setAddStepModal] = useState(false);
+  const [detailTab, setDetailTab]       = useState("bookings");
+  const [showSuppliers, setShowSuppliers] = useState(false);
+  const [rebookModal, setRebookModal]   = useState(null);
+  const [showInstructions, setShowInstructions] = useState(() => {
+    try { return localStorage.getItem("allbooked_seen_v" + APP_VERSION) !== "1"; }
+    catch { return true; }
+  });
+  const [showEmailInbox, setShowEmailInbox] = useState(false);
+  const [isPro, setIsPro]               = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [exportWarning, setExportWarning] = useState(null);
+  const [matchingEmail, setMatchingEmail] = useState(null);
+  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
+  const [rates, setRates]               = useState(null);
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null);
+
+  // ── Data hooks ────────────────────────────────────────────────────────────────
+  const { isProRef, grantPro }          = useRevenueCat(user, isPro, setIsPro);
+  const { holidays, setHolidays, loaded, saveError, setSaveError, emailAddress, pendingEmails, setPendingEmails, persist, updateHolidays } = useHolidayData(user, isProRef, setIsPro);
+  const { sharedHolidays, setSharedHolidays, myShares, sharePermission, setSharePermission, shareEmail, setShareEmail, shareLoading, shareError, shareSuccess, setShareSuccess, shareHoliday, removeShare } = useSharing(user, holidays);
+
+  // Update a shared holiday on the owner's data — stays in App because it
+  // cross-cuts holidays (useHolidayData), sharedHolidays (useSharing), and UI state
+  const updateSharedHolidayLocal = async (holidayId, updater) => {
+    const holiday = [...holidays, ...sharedHolidays].find(h => h.id === holidayId);
+    if (!holiday?._shared) return false;
+    try {
+      const updated = await updateSharedHoliday(holiday._ownerId, holidayId, updater, user.id);
+      // Refresh shared holidays
+      const refreshed = await loadSharedWithMe(user);
+      setSharedHolidays(refreshed);
+      // Update selectedHoliday if it's the one being edited
+      if (selectedHoliday?.id === holidayId) setSelectedId(holidayId);
+      return true;
+    } catch (e) {
+      console.error("Failed to update shared holiday", e);
+      setSaveError("Failed to save — check connection");
+      return false;
+    }
+  };
 
   function dismissInstructions() {
     try { localStorage.setItem("allbooked_seen_v" + APP_VERSION, "1"); } catch {}
@@ -2353,16 +2905,6 @@ export default function App({ user }) {
     }
   }
 
-  function completionCount(h) {
-    const steps = h.steps || [];
-    const countable = steps.filter(s => !h.bookings?.[s.id]?.bookOnDay);
-    return {
-      confirmed: countable.filter(s => h.bookings?.[s.id]?.confirmed).length,
-      total: countable.length,
-      onDay: steps.filter(s => h.bookings?.[s.id]?.bookOnDay).length,
-    };
-  }
-
   const filteredHolidays = holidays.filter(h => {
     const s = getStatus(h);
     if (filterStatus === "upcoming") return s === "upcoming" || s === "active";
@@ -2479,90 +3021,9 @@ export default function App({ user }) {
             </div>
           )}
 
-          {/* Feature card */}
-          <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "12px", padding: "14px 16px", marginBottom: "16px" }}>
-            <div style={{ fontSize: "12px", fontWeight: "600", color: "#0f172a", marginBottom: "10px", lineHeight: "1.5" }}>
-              Store all your booking details — references, dates, times, addresses, all in one place
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
-              <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>✓</span>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track what's booked and what still needs booking</div>
-                  <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Every step tracked</div>
-                </div>
-              </div>
-              <div style={{ background: "#f0f9ff", border: "0.5px solid #bae6fd", borderRadius: "10px", padding: "8px 10px", display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                <span style={{ fontSize: "15px", flexShrink: 0, marginTop: "1px" }}>💳</span>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3" }}>Track payments and what's outstanding</div>
-                  <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px", lineHeight: "1.4" }}>Cost, paid, due dates</div>
-                </div>
-              </div>
-            </div>
-            {emailAddress && (
-              <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "9px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "14px" }}>📧</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0f172a", lineHeight: "1.3", marginBottom: "5px" }}>Easily populate booking details by forwarding booking emails to the address below, screenshotting the details, or entering them manually</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ fontSize: "11px", fontFamily: "monospace", color: "#0ea5e9", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{emailAddress}@in.allbooked.app</div>
-                    <button onClick={() => { navigator.clipboard?.writeText(`${emailAddress}@in.allbooked.app`); }} style={{ ...secondaryBtn, fontSize: "11px", padding: "3px 10px", flexShrink: 0 }}>Copy</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <FeatureCard emailAddress={emailAddress} />
 
-          {/* Departure nudge banners */}
-          {(() => {
-            const now = new Date();
-            const nudges = holidays
-              .filter(h => {
-                if (!h.startDate) return false;
-                const daysTo = Math.ceil((new Date(h.startDate) - now) / 86400000);
-                if (daysTo < 0 || daysTo > 30) return false;
-                const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
-                return unbooked > 0;
-              })
-              .map(h => ({
-                h,
-                daysTo: Math.ceil((new Date(h.startDate) - now) / 86400000),
-                unbooked: (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length,
-              }))
-              .sort((a, b) => a.daysTo - b.daysTo);
-            if (nudges.length === 0) return null;
-            return (
-              <div style={{ marginBottom: "16px" }}>
-                {nudges.map(({ h, daysTo, unbooked }) => {
-                  const urgent = daysTo <= 7;
-                  return (
-                    <div key={h.id} onClick={() => { setSelectedId(h.id); setView("detail"); }}
-                      style={{
-                        background: urgent ? "#fef2f2" : "#fffbeb",
-                        border: `1px solid ${urgent ? "#fecaca" : "#fde68a"}`,
-                        borderRadius: "12px", padding: "12px 16px", marginBottom: "8px",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        gap: "12px", cursor: "pointer"
-                      }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "20px" }}>{urgent ? "🚨" : "⚠️"}</span>
-                        <div>
-                          <div style={{ fontSize: "13px", fontWeight: "600", color: urgent ? "#b91c1c" : "#92400e" }}>
-                            {h.emoji} {h.name} in {daysTo} day{daysTo !== 1 ? "s" : ""}
-                          </div>
-                          <div style={{ fontSize: "12px", color: urgent ? "#dc2626" : "#b45309", marginTop: "1px" }}>
-                            {unbooked} step{unbooked !== 1 ? "s" : ""} still not booked
-                          </div>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: "12px", color: urgent ? "#ef4444" : "#f59e0b", whiteSpace: "nowrap" }}>View →</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          <NudgeBanners holidays={holidays} onSelect={id => { setSelectedId(id); setView("detail"); }} />
 
           {/* Shared with me */}
           {sharedHolidays.length > 0 && (
@@ -2590,40 +3051,7 @@ export default function App({ user }) {
             </div>
           )}
 
-          {/* Upcoming payments */}
-          {holidays.length > 0 && (() => {
-            const upcomingPayments = [];
-            const now = new Date();
-            holidays.forEach(h => {
-              (h.steps || []).forEach(s => {
-                const b = h.bookings?.[s.id] || {};
-                if (!b.paymentDueDate) return;
-                const due = new Date(b.paymentDueDate);
-                const daysUntil = Math.ceil((due - now) / 86400000);
-                const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
-                const p = parseFloat((b.amountPaid || "").replace(/[^0-9.]/g, ""));
-                const outstanding = !isNaN(t) && !isNaN(p) ? t - p : 0;
-                if (daysUntil >= 0 && daysUntil <= 30 && outstanding > 0) {
-                  upcomingPayments.push({ holidayName: h.name, stepLabel: s.label, daysUntil, due: b.paymentDueDate, outstanding, currency: b.stepCurrency || h.currency || "GBP" });
-                }
-              });
-            });
-            upcomingPayments.sort((a, b) => a.daysUntil - b.daysUntil);
-            if (upcomingPayments.length === 0) return null;
-            return (
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "12px", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>💳 Upcoming payments</div>
-                {upcomingPayments.map((p, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", marginBottom: i < upcomingPayments.length - 1 ? "6px" : "0" }}>
-                    <span style={{ color: "#78350f" }}>{p.holidayName} · {p.stepLabel}</span>
-                    <span style={{ color: p.daysUntil <= 7 ? "#ef4444" : "#f59e0b", fontWeight: "600" }}>
-                      {getCurrencySymbol(p.currency)}{Math.ceil(p.outstanding)} {p.daysUntil === 0 ? "due today" : `in ${p.daysUntil}d`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+          {holidays.length > 0 && <UpcomingPayments holidays={holidays} />}
 
 
           {filteredHolidays.length === 0 ? (
@@ -2659,99 +3087,14 @@ export default function App({ user }) {
             </div>
           ) : (
             <div style={{ display: "grid", gap: "14px" }}>
-              {[...filteredHolidays].sort((a, b) => (a.startDate || "9999") < (b.startDate || "9999") ? -1 : 1).map(h => {
-                const { confirmed, total } = completionCount(h);
-                const pct = total > 0 ? Math.round((confirmed / total) * 100) : 0;
-                const status = getStatus(h);
-                return (
-                  <div key={h.id} onClick={() => { setSelectedId(h.id); setView("detail"); }}
-                    style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px 24px", cursor: "pointer", display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center", transition: "border-color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "#0ea5e9"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "22px" }}>{h.emoji}</span>
-                        <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "17px", color: "#0f172a" }}>{h.name}</span>
-                        <span style={{ fontSize: "11px", padding: "2px 10px", borderRadius: "20px", textTransform: "uppercase", background: STATUS_COLORS[status] + "22", color: STATUS_COLORS[status], border: `1px solid ${STATUS_COLORS[status]}44` }}>{status}</span>
-                      </div>
-                      <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
-                        {h.destination && <span>📍 {h.destination}</span>}
-                        {h.startDate && <span>📅 {formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</span>}
-                        <span style={{ color: "#cbd5e1" }}>{total} step{total !== 1 ? "s" : ""}</span>
-                        {(() => {
-                          const unbooked = (h.steps || []).filter(s => !h.bookings?.[s.id]?.confirmed && !h.bookings?.[s.id]?.bookOnDay).length;
-                          return unbooked > 0 ? <span style={{ color: "#ef4444", fontWeight: "600" }}>✗ {unbooked} not booked</span> : null;
-                        })()}
-                      </div>
-                      {total > 0 ? (<>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}><span>{confirmed}/{total} confirmed</span><span style={{ color: pct === 100 ? "#10b981" : "#0ea5e9" }}>{pct}%</span></div>
-                        <div style={{ height: "4px", background: "#e0f2fe", borderRadius: "2px" }}><div style={{ height: "100%", borderRadius: "2px", width: `${pct}%`, background: pct === 100 ? "#10b981" : "linear-gradient(90deg, #0ea5e9, #38bdf8)", transition: "width 0.4s" }} /></div>
-                        {(() => {
-                          const displayC = h.currency || "GBP";
-                          const sym = getCurrencySymbol(displayC);
-                          let gt = 0, gp = 0, has = false;
-                          (h.steps || []).forEach(s => {
-                            const b = h.bookings?.[s.id] || {};
-                            const stepC = b.stepCurrency || displayC;
-                            const t = parseFloat((b.totalPrice || "").replace(/[^0-9.]/g, ""));
-                            const p = parseFloat((b.amountPaid  || "").replace(/[^0-9.]/g, ""));
-                            if (!isNaN(t)) { gt += convertAmount(t, stepC, displayC, rates); has = true; }
-                            if (!isNaN(p)) gp += convertAmount(p, stepC, displayC, rates);
-                          });
-                          if (!has) return null;
-                          const go = gt - gp;
-                          return (
-                            <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "12px" }}>
-                              {go > 0 && <span style={{ color: "#f59e0b" }}>{sym}{Math.ceil(go)} outstanding</span>}
-                              {go <= 0 && <span style={{ color: "#10b981" }}>✓ all paid</span>}
-                            </div>
-                          );
-                        })()}
-                      </>) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>No booking steps added yet</span>}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between", gap: "8px", alignSelf: "stretch" }}>
-                      <div style={{ color: "#e2e8f0", fontSize: "20px" }}>›</div>
-                      <div style={{ fontSize: "10px", fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
-                        <span style={{ color: "#0ea5e9" }}>all</span><span style={{ color: "#cbd5e1" }}>booked</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {[...filteredHolidays].sort((a, b) => (a.startDate || "9999") < (b.startDate || "9999") ? -1 : 1).map(h => (
+                <HolidayCard key={h.id} h={h} rates={rates} onSelect={id => { setSelectedId(id); setView("detail"); }} />
+              ))}
             </div>
           )}
         </>)}
 
-          {/* Trip stats — bottom of list */}
-          {view === "list" && holidays.length > 0 && (() => {
-            const pastHols = holidays.filter(h => getStatus(h) === "past");
-            const upcomingHols = holidays.filter(h => getStatus(h) === "upcoming" || getStatus(h) === "active");
-            const countries = [...new Set(
-              holidays
-                .filter(h => h.destination && getStatus(h) === "past")
-                .map(h => {
-                  const parts = h.destination.split(",").map(s => s.trim());
-                  return parts[parts.length - 1];
-                })
-            )];
-            return (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginTop: "16px", marginBottom: "8px" }}>
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#0ea5e9" }}>{upcomingHols.length}</div>
-                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Upcoming</div>
-                </div>
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#10b981" }}>{pastHols.length}</div>
-                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Past trips</div>
-                </div>
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: "22px", fontWeight: "700", color: "#f59e0b" }}>{countries.length}</div>
-                  <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Countries visited</div>
-                </div>
-              </div>
-            );
-          })()}
+          {view === "list" && holidays.length > 0 && <TripStatsStrip holidays={holidays} />}
 
         {/* Sign out — bottom of list view only */}
         {view === "list" && (
@@ -2943,289 +3286,81 @@ export default function App({ user }) {
 
       {showInstructions && <InstructionsModal onClose={dismissInstructions} />}
 
-      {/* Share holiday modal */}
       {showShareModal && selectedHoliday && (
-        <div style={overlay} onClick={() => setShowShareModal(false)}>
-          <div style={{ ...modal, maxWidth: "440px" }} onClick={e => e.stopPropagation()}>
-            <div style={modalHeader}>
-              <h3 style={modalTitle}>👥 Share {selectedHoliday.emoji} {selectedHoliday.name}</h3>
-              <button onClick={() => setShowShareModal(false)} style={closeBtn}>✕</button>
-            </div>
-            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
-              Enter the email address of someone with an allbooked account. They'll see this holiday in their app.
-            </p>
-            {!shareSuccess ? (
-              <>
-                <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                  <button onClick={() => setSharePermission("view")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "view" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "view" ? "#f0f9ff" : "#fff", color: sharePermission === "view" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "view" ? "600" : "400" }}>👁 View only</button>
-                  <button onClick={() => setSharePermission("edit")} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1px solid", borderColor: sharePermission === "edit" ? "#0ea5e9" : "#e2e8f0", background: sharePermission === "edit" ? "#f0f9ff" : "#fff", color: sharePermission === "edit" ? "#0ea5e9" : "#64748b", fontSize: "13px", cursor: "pointer", fontWeight: sharePermission === "edit" ? "600" : "400" }}>✏️ Can edit</button>
-                </div>
-                <label style={labelStyle}>
-                  <span>Email address</span>
-                  <input type="email" value={shareEmail} onChange={e => setShareEmail(e.target.value)}
-                    placeholder="friend@example.com" style={inputStyle}
-                    onKeyDown={e => e.key === "Enter" && shareEmail.trim() && shareHoliday(selectedHoliday, shareEmail.trim(), sharePermission)} />
-                </label>
-                {shareError && <div style={{ color: "#ef4444", fontSize: "13px", marginBottom: "12px" }}>{shareError}</div>}
-                <button onClick={() => shareHoliday(selectedHoliday, shareEmail.trim(), sharePermission)}
-                  disabled={!shareEmail.trim() || shareLoading}
-                  style={{ ...primaryBtn, width: "100%", opacity: (!shareEmail.trim() || shareLoading) ? 0.5 : 1 }}>
-                  {shareLoading ? "Sharing..." : "Share holiday"}
-                </button>
-              </>
-            ) : (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ fontSize: "40px", marginBottom: "12px" }}>✅</div>
-                <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "8px" }}>Holiday shared!</div>
-                <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>{shareEmail} can now see this holiday in their allbooked app.</div>
-                <button onClick={() => { setShareSuccess(false); setShareEmail(""); }} style={{ ...secondaryBtn }}>Share with someone else</button>
-              </div>
-            )}
-            {/* Existing shares */}
-            {myShares.filter(s => s.holiday_id === selectedHoliday.id).length > 0 && (
-              <div style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-                <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Shared with</div>
-                {myShares.filter(s => s.holiday_id === selectedHoliday.id).map(s => (
-                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "13px", color: "#0f172a" }}>{s.shared_with_email}</span>
-                      <span style={{ fontSize: "11px", padding: "2px 6px", borderRadius: "10px", background: s.permission === "edit" ? "#f0f9ff" : "#f8fafc", color: s.permission === "edit" ? "#0ea5e9" : "#94a3b8", border: "1px solid", borderColor: s.permission === "edit" ? "#0ea5e944" : "#e2e8f0" }}>{s.permission === "edit" ? "✏️ edit" : "👁 view"}</span>
-                    </div>
-                    <button onClick={() => removeShare(s.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "12px" }}>Remove</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <ShareModal
+          holiday={selectedHoliday}
+          sharePermission={sharePermission}
+          setSharePermission={setSharePermission}
+          shareEmail={shareEmail}
+          setShareEmail={setShareEmail}
+          shareLoading={shareLoading}
+          shareError={shareError}
+          shareSuccess={shareSuccess}
+          setShareSuccess={setShareSuccess}
+          myShares={myShares}
+          onShare={(email, perm) => shareHoliday(selectedHoliday, email, perm)}
+          onRemoveShare={removeShare}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
 
-      {/* Upgrade to Pro modal */}
       {showUpgradeModal && (
-        <div style={overlay} onClick={() => setShowUpgradeModal(false)}>
-          <div style={{ ...modal, maxWidth: "400px" }} onClick={e => e.stopPropagation()}>
-            <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
-              <div style={{ fontSize: "48px", marginBottom: "12px" }}>⭐</div>
-              <h2 style={{ margin: "0 0 8px", fontFamily: "'Playfair Display', Georgia, serif", fontSize: "24px", color: "#0f172a" }}>
-                <span style={{ color: "#0ea5e9" }}>all</span>booked Pro
-              </h2>
-              <p style={{ margin: "0 0 24px", color: "#64748b", fontSize: "14px" }}>Unlock unlimited holidays and share trips with travel companions.</p>
-              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginBottom: "20px", textAlign: "left" }}>
-                <div style={{ fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" }}>What you get</div>
-                {["✓  Unlimited holidays", "✓  Share holidays with travel companions", "✓  Everything in the free plan included"].map(t => (
-                  <div key={t} style={{ fontSize: "14px", color: "#0f172a", marginBottom: "8px" }}>{t}</div>
-                ))}
-              </div>
-              <div style={{ background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", borderRadius: "12px", padding: "16px", marginBottom: "12px" }}>
-                <div style={{ fontSize: "13px", color: "#e0f2fe", marginBottom: "6px", fontWeight: "600" }}>allbooked Pro — Monthly</div>
-                <div style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff" }}>£2.99<span style={{ fontSize: "14px", fontWeight: "400" }}>/month</span></div>
-                <div style={{ fontSize: "13px", color: "#e0f2fe", marginTop: "4px" }}>Monthly subscription · Auto-renews · Cancel anytime</div>
-              </div>
-              <button onClick={async () => {
-                try {
-                  const offerings = await Purchases.getOfferings();
-                  const pkg = offerings.current?.availablePackages[0];
-                  if (pkg) {
-                    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-                    if (customerInfo.entitlements.active["pro"]) {
-                      await grantPro(true);
-                      setShowUpgradeModal(false);
-                    }
-                  }
-                } catch (e) { if (e.code !== "1") console.error("Purchase error", e); }
-              }} style={{ ...primaryBtn, width: "100%", padding: "14px", fontSize: "15px", marginBottom: "12px" }}>
-                Upgrade to Pro
-              </button>
-              <button onClick={() => setShowUpgradeModal(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "13px" }}>
-                Maybe later
-              </button>
-              <div style={{ marginTop: "16px", fontSize: "11px", color: "#94a3b8", lineHeight: "1.8" }}>
-                <a href="https://allbooked.app/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Privacy Policy</a>
-                {" · "}
-                <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" style={{ color: "#0ea5e9", textDecoration: "underline" }}>Terms of Use</a>
-                <br />
-              </div>
-              <div style={{ marginTop: "8px", fontSize: "11px", color: "#cbd5e1" }}>
-                Already have Pro? <button onClick={async () => {
-                  // Check if input looks like a promo code
-                  const input = prompt("Enter your promo code or leave blank to restore purchases:");
-                  if (input && input.trim().length > 0) {
-                    const trimmed = input.trim().toUpperCase();
-                    const { data: promoData, error: promoError } = await supabase
-                      .from("promo_codes")
-                      .select("id, used_by")
-                      .eq("code", trimmed)
-                      .single();
-                    if (promoError || !promoData) {
-                      alert("Invalid promo code.");
-                    } else if (promoData.used_by) {
-                      alert("This promo code has already been used.");
-                    } else {
-                      const { error: updateError } = await supabase
-                        .from("promo_codes")
-                        .update({ used_by: user.id, used_at: new Date().toISOString() })
-                        .eq("id", promoData.id)
-                        .is("used_by", null);
-                      if (updateError) {
-                        alert("Failed to redeem code. Please try again.");
-                      } else {
-                        await grantPro(true);
-                        setShowUpgradeModal(false);
-                        alert("Promo code applied! Welcome to Pro 🎉");
-                      }
-                    }
-                  } else if (input !== null) {
-                    try {
-                      const { customerInfo } = await Purchases.restorePurchases();
-                      if (customerInfo.entitlements.active["pro"]) {
-                        await grantPro(true);
-                        setShowUpgradeModal(false);
-                      } else {
-                        alert("No active Pro subscription found.");
-                      }
-                    } catch (e) { console.error("Restore error", e); }
-                  }
-                }} style={{ background: "none", border: "none", color: "#0ea5e9", cursor: "pointer", fontSize: "11px", padding: 0 }}>Restore or enter access code</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <UpgradeModal
+          user={user}
+          onClose={() => setShowUpgradeModal(false)}
+          onGrant={grantPro}
+        />
       )}
 
       {exportWarning && (
-        <div style={overlay} onClick={() => setExportWarning(null)}>
-          <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
-            <div style={modalHeader}>
-              <h3 style={modalTitle}>⚠️ Before you export</h3>
-              <button onClick={() => setExportWarning(null)} style={closeBtn}>✕</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
-              {exportWarning.unbooked > 0 && (
-                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#b91c1c" }}>
-                  ✗ <strong>{exportWarning.unbooked} step{exportWarning.unbooked !== 1 ? "s" : ""} not yet booked</strong> — these will still be exported but may not reflect final details.
-                </div>
-              )}
-              {exportWarning.noDate > 0 && (
-                <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "13px", color: "#92400e" }}>
-                  📅 <strong>{exportWarning.noDate} step{exportWarning.noDate !== 1 ? "s" : ""} have no date set</strong> — these will be placed on the holiday departure date in your calendar.
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => setExportWarning(null)} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
-              <button onClick={() => { exportToCalendar(exportWarning.holiday); setExportWarning(null); }} style={{ ...primaryBtn, flex: 2 }}>Export anyway</button>
-            </div>
-          </div>
-        </div>
+        <ExportWarningModal
+          warning={exportWarning}
+          onClose={() => setExportWarning(null)}
+          onExport={() => { exportToCalendar(exportWarning.holiday); setExportWarning(null); }}
+        />
       )}
 
-      {/* Pending email inbox */}
       {showEmailInbox && !matchingEmail && (
-        <div style={overlay} onClick={() => setShowEmailInbox(false)}>
-          <div style={{ ...modal, maxWidth: "520px" }} onClick={e => e.stopPropagation()}>
-            <div style={modalHeader}>
-              <h3 style={modalTitle}>📧 Unmatched emails</h3>
-              <button onClick={() => setShowEmailInbox(false)} style={closeBtn}>✕</button>
-            </div>
-            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>
-              These booking confirmations couldn't be matched to a holiday automatically. Tap "Add to holiday" to assign one manually.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {pendingEmails.map(email => (
-                <div key={email.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
-                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#0f172a" }}>{email.subject || "(no subject)"}</div>
-                    <button onClick={async () => {
-                      await supabase.from("pending_emails").update({ dismissed: true }).eq("id", email.id);
-                      setPendingEmails(prev => prev.filter(e => e.id !== email.id));
-                    }} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>✕</button>
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "6px" }}>From: {email.from_address} · {new Date(email.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
-                  {email.extracted?.provider && <div style={{ fontSize: "12px", color: "#0ea5e9", marginBottom: "4px" }}>{email.extracted.provider}{email.extracted.reference ? ` · Ref: ${email.extracted.reference}` : ""}</div>}
-                  {email.extracted?.date && <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>Booking date: {email.extracted.date}</div>}
-                  <button onClick={() => setMatchingEmail(email)}
-                    style={{ ...primaryBtn, fontSize: "12px", padding: "6px 14px", width: "100%" }}>
-                    + Add to holiday
-                  </button>
-                </div>
-              ))}
-              {pendingEmails.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px" }}>No unmatched emails</div>}
-            </div>
-          </div>
-        </div>
+        <EmailInboxModal
+          pendingEmails={pendingEmails}
+          onDismiss={async (emailId) => {
+            await supabase.from("pending_emails").update({ dismissed: true }).eq("id", emailId);
+            setPendingEmails(prev => prev.filter(e => e.id !== emailId));
+          }}
+          onMatchEmail={setMatchingEmail}
+          onClose={() => setShowEmailInbox(false)}
+        />
       )}
 
-      {/* Match email to holiday picker */}
       {matchingEmail && (
-        <div style={overlay} onClick={() => setMatchingEmail(null)}>
-          <div style={{ ...modal, maxWidth: "420px" }} onClick={e => e.stopPropagation()}>
-            <div style={modalHeader}>
-              <h3 style={modalTitle}>Add to which holiday?</h3>
-              <button onClick={() => setMatchingEmail(null)} style={closeBtn}>✕</button>
-            </div>
-            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", background: "#f8fafc", borderRadius: "8px", padding: "10px 12px" }}>
-              <div style={{ fontWeight: "600", color: "#0f172a", marginBottom: "2px" }}>{matchingEmail.subject}</div>
-              {matchingEmail.extracted?.provider && <div style={{ color: "#0ea5e9" }}>{matchingEmail.extracted.provider}</div>}
-              {matchingEmail.extracted?.date && <div>Date: {matchingEmail.extracted.date}</div>}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {holidays.map(h => (
-                <button key={h.id} onClick={() => addEmailToHoliday(matchingEmail, h.id)}
-                  style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#0ea5e9"; e.currentTarget.style.background = "#f0f9ff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#ffffff"; }}
-                >
-                  <span style={{ fontSize: "22px" }}>{h.emoji}</span>
-                  <div>
-                    <div style={{ fontWeight: "600", fontSize: "14px", color: "#0f172a" }}>{h.name}</div>
-                    {h.startDate && <div style={{ fontSize: "12px", color: "#94a3b8" }}>{formatDate(h.startDate)}{h.endDate ? ` → ${formatDate(h.endDate)}` : ""}</div>}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MatchEmailModal
+          email={matchingEmail}
+          holidays={holidays}
+          onAdd={addEmailToHoliday}
+          onClose={() => setMatchingEmail(null)}
+        />
       )}
 
-      {/* Rebook modal */}
       {rebookModal && (
-        <div style={overlay}>
-          <div style={{ ...modal, maxWidth: "420px" }}>
-            <div style={modalHeader}>
-              <h3 style={modalTitle}>Rebook Holiday</h3>
-              <button onClick={() => setRebookModal(null)} style={closeBtn}>✕</button>
-            </div>
-            <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.6", marginBottom: "20px" }}>
-              This will create a new copy of <strong style={{ color: "#0f172a" }}>{rebookModal.emoji} {rebookModal.name}</strong> with the same booking steps but no booking details filled in — ready for you to start fresh for a new trip.
-            </p>
-            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: "#94a3b8" }}>
-              {(rebookModal.steps || []).length} step{(rebookModal.steps || []).length !== 1 ? "s" : ""} will be copied · All booking details cleared · Dates cleared
-            </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => setRebookModal(null)} style={{ ...secondaryBtn, flex: 1 }}>Cancel</button>
-              <button onClick={() => rebookHoliday(rebookModal)} style={{ ...primaryBtn, flex: 2 }}>Create Copy</button>
-            </div>
-          </div>
-        </div>
+        <RebookConfirmModal
+          holiday={rebookModal}
+          onConfirm={() => rebookHoliday(rebookModal)}
+          onClose={() => setRebookModal(null)}
+        />
       )}
 
       {showRatingPrompt && (
-        <div style={{ position: "fixed", bottom: "calc(100px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 2000, width: "calc(100% - 40px)", maxWidth: "400px" }}>
-          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px", boxShadow: "0 8px 30px rgba(14,165,233,0.15)" }}>
-            <button onClick={() => setShowRatingPrompt(false)} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: "18px" }}>✕</button>
-            <div style={{ fontSize: "28px", marginBottom: "8px" }}>⭐</div>
-            <div style={{ fontSize: "15px", fontWeight: "600", color: "#0f172a", marginBottom: "6px" }}>Enjoying allbooked?</div>
-            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px", lineHeight: "1.5" }}>A quick rating helps other travellers find the app — it only takes a second.</div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button onClick={() => { setShowRatingPrompt(false); try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {} }} style={{ flex: 1, padding: "9px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "10px", color: "#64748b", fontSize: "13px", cursor: "pointer" }}>Not now</button>
-              <button onClick={() => {
-                try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {}
-                setShowRatingPrompt(false);
-                window.open("https://apps.apple.com/app/allbooked/id6744030076?action=write-review", "_blank");
-              }} style={{ flex: 2, padding: "9px", background: "linear-gradient(135deg, #0ea5e9, #38bdf8)", border: "none", borderRadius: "10px", color: "#ffffff", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>⭐ Rate allbooked</button>
-            </div>
-          </div>
-        </div>
+        <RatingPromptToast
+          onDismiss={() => {
+            setShowRatingPrompt(false);
+            try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {}
+          }}
+          onRate={() => {
+            try { localStorage.setItem("allbooked_rated", "1"); } catch(e) {}
+            setShowRatingPrompt(false);
+            window.open("https://apps.apple.com/app/allbooked/id6744030076?action=write-review", "_blank");
+          }}
+        />
       )}
 
       {saveError && (
