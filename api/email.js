@@ -203,6 +203,7 @@ export default async function handler(req, res) {
       sailing: { icon: "⛵", label: "Sailing Trip" },
       parking: { icon: "🅿️", label: "Airport Parking" },
       transfer: { icon: "🚕", label: "Transfer" },
+      restaurant: { icon: "🍽️", label: "Restaurant" },
       custom: { icon: "📋", label: extracted.provider || subject.slice(0, 30) || "Booking" },
     };
 
@@ -239,6 +240,9 @@ export default async function handler(req, res) {
       terminalName: extracted.terminalName || "",
       parkingEntry: extracted.parkingEntry || "",
       parkingExit: extracted.parkingExit || "",
+      restaurantDate: extracted.restaurantDate || extracted.date || "",
+      restaurantTime: extracted.restaurantTime || "",
+      restaurantAddress: extracted.restaurantAddress || "",
       totalPrice: "",  // Don't auto-populate price — user should verify and enter manually
       amountPaid: "",
       stepCurrency: extracted.currency || "GBP",
@@ -448,15 +452,17 @@ TRANSFER/TAXI emails (stepType: "transfer"):
 - Drop-off: destination address
 - Vehicle type: put in notes
 
-RESTAURANT emails (stepType: "custom"):
-- Date and time: reservation date and time → use "date" and put time in notes
+RESTAURANT emails (stepType: "restaurant"):
+- Date: reservation date → restaurantDate field (YYYY-MM-DD)
+- Time: reservation time → restaurantTime field (HH:MM 24hr)
 - Party size: number of guests → put in notes
 - Special requests: dietary requirements, occasion → put in notes
 - Restaurant name → provider field
+- Address → restaurantAddress field if present
 
 Return this exact JSON structure (empty string "" for any field not found):
 {
-  "stepType": "flight|hotel|villa|carHire|ferry|sailing|parking|transfer|custom",
+  "stepType": "flight|hotel|villa|carHire|ferry|sailing|parking|transfer|restaurant|custom",
   "provider": "airline or company name e.g. British Airways, easyJet, Hilton",
   "reference": "booking reference or PNR e.g. XPRIAN, ABC123",
   "date": "YYYY-MM-DD primary travel date",
@@ -485,6 +491,9 @@ Return this exact JSON structure (empty string "" for any field not found):
   "terminalName": "airport terminal e.g. Terminal 2",
   "parkingEntry": "YYYY-MM-DDTHH:MM entry datetime",
   "parkingExit": "YYYY-MM-DDTHH:MM exit datetime",
+  "restaurantDate": "YYYY-MM-DD reservation date",
+  "restaurantTime": "HH:MM reservation time",
+  "restaurantAddress": "restaurant address if present",
   "returnFlightDate": "YYYY-MM-DD return flight date if present",
   "returnDepartureAirport": "return departure airport",
   "returnArrivalAirport": "return arrival airport",

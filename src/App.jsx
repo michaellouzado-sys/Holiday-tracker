@@ -131,7 +131,8 @@ function getStepDate(step, booking) {
   if (isCarHire(step))  return booking.pickUpDate    || null;
   if (isParking(step))  return booking.parkingEntry ? booking.parkingEntry.slice(0,10) : null;
   if (isTransfer(step)) return booking.transferDate || null;
-  // All other steps (restaurant, activities, custom etc) use customStartDate
+  if (step.label?.toLowerCase().includes("restaurant")) return booking.restaurantDate || null;
+  // All other steps (activities, custom etc) use customStartDate
   return booking.customStartDate || null;
 }
 
@@ -151,6 +152,7 @@ function getStepTime(step, booking) {
   if (isFlight(step))   return booking.departureTime || null;
   if (isFerry(step))    return booking.ferryDepartTime || null;
   if (isTransfer(step)) return booking.pickupTime || null;
+  if (step.label?.toLowerCase().includes("restaurant")) return booking.restaurantTime || null;
   return null;
 }
 
@@ -352,6 +354,8 @@ async function extractFromImage(base64Data, mediaType, stepType) {
 {"provider":"company name","reference":"booking ref","carParkName":"car park name","terminalName":"e.g. Terminal 2","terminalTransfer":"e.g. shuttle bus","parkingEntry":"YYYY-MM-DDTHH:MM","parkingExit":"YYYY-MM-DDTHH:MM","dateBooked":"YYYY-MM-DD if visible","notes":"other info"}`,
     transfer: `Extract all transfer booking details from this image. Return ONLY a JSON object (use empty string if not found):
 {"provider":"company name","reference":"booking ref","transferDate":"YYYY-MM-DD transfer date","pickupTime":"HH:MM 24h","pickupLocation":"e.g. hotel lobby","driverContact":"phone number","dateBooked":"YYYY-MM-DD if visible","notes":"passengers, vehicle type"}`,
+    restaurant: `Extract all restaurant reservation details from this image. Return ONLY a JSON object (use empty string if not found):
+{"provider":"restaurant name","reference":"booking ref","restaurantDate":"YYYY-MM-DD","restaurantTime":"HH:MM 24h","restaurantAddress":"full address if present","dateBooked":"YYYY-MM-DD if visible","notes":"party size, special requests, occasion"}`,
     default: `Extract booking details from this image. Return ONLY a JSON object (use empty string if not found):
 {"provider":"company name","reference":"booking ref","dateBooked":"YYYY-MM-DD if visible","notes":"any useful details"}`,
   };
@@ -1726,7 +1730,7 @@ function LinkifiedText({ text, style }) {
 }
 
 // ─── Step Card ─────────────────────────────────────────────────────────────────
-function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDown, isFirst, isLast }) {
+function StepCard({ step, booking, currency = "GBP", onOpen }) {
   const isBooked = booking?.confirmed;
   const rating = RATING_OPTIONS.find(r => r.value === (booking?.rating ?? null));
   const nights = (isHotel(step) || isVilla(step)) && booking?.checkIn && booking?.checkOut
@@ -1806,35 +1810,6 @@ function StepCard({ step, booking, currency = "GBP", onOpen, onMoveUp, onMoveDow
           {booking?.notes && <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "5px", lineHeight: "1.4" }}><LinkifiedText text={booking.notes} /></div>}
           {!booking?.provider && !booking?.notes && !booking?.departureAirport && !booking?.checkIn && !booking?.pickUpDate && !booking?.carParkName && !booking?.pickupTime && <div style={{ color: "#cbd5e1", fontSize: "12px", marginTop: "4px" }}>Tap to add details</div>}
         </div>
-      </div>
-      {/* Reorder bar — below the card, clearly separate */}
-      <div style={{ display: "flex", gap: "4px" }}>
-        <button
-          onClick={e => { e.stopPropagation(); onMoveUp(); }}
-          disabled={isFirst}
-          style={{
-            flex: 1, padding: "7px", background: "#f8fafc",
-            border: "1px solid #e2e8f0", borderRadius: "8px",
-            color: isFirst ? "#e2e8f0" : "#94a3b8", cursor: isFirst ? "default" : "pointer",
-            fontSize: "14px", transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { if (!isFirst) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.color = isFirst ? "#e2e8f0" : "#94a3b8"; }}
-          title="Move up"
-        >↑ Move up</button>
-        <button
-          onClick={e => { e.stopPropagation(); onMoveDown(); }}
-          disabled={isLast}
-          style={{
-            flex: 1, padding: "7px", background: "#f8fafc",
-            border: "1px solid #e2e8f0", borderRadius: "8px",
-            color: isLast ? "#e2e8f0" : "#94a3b8", cursor: isLast ? "default" : "pointer",
-            fontSize: "14px", transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { if (!isLast) { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.color = isLast ? "#e2e8f0" : "#94a3b8"; }}
-          title="Move down"
-        >↓ Move down</button>
       </div>
     </div>
   );
@@ -2770,6 +2745,7 @@ export default function App({ user }) {
       sailing: { icon: "⛵", label: "Sailing Trip" },
       parking: { icon: "🅿️", label: "Airport Parking" },
       transfer: { icon: "🚕", label: "Transfer" },
+      restaurant: { icon: "🍽️", label: "Restaurant" },
       custom: { icon: "📋", label: ex.provider || email.subject?.slice(0, 30) || "Booking" },
     };
     const template = stepTemplates[stepType] || stepTemplates.custom;
@@ -2798,6 +2774,9 @@ export default function App({ user }) {
       transferDate: ex.date || "",
       totalPrice: ex.totalPrice || "",
       stepCurrency: ex.currency || "GBP",
+      restaurantDate: ex.restaurantDate || ex.date || "",
+      restaurantTime: ex.restaurantTime || "",
+      restaurantAddress: ex.restaurantAddress || "",
       customStartDate: ex.date || ex.checkIn || ex.flightDate || "",
     };
     updateHolidays(prev => prev.map(h => {
@@ -2874,17 +2853,6 @@ export default function App({ user }) {
 
   function renameStep(stepId, newLabel) {
     updateHolidays(prev => prev.map(h => h.id !== selectedId ? h : { ...h, steps: (h.steps || []).map(s => s.id === stepId ? { ...s, label: newLabel } : s) }));
-  }
-
-  function moveStep(stepId, dir) {
-    updateHolidays(prev => prev.map(h => {
-      if (h.id !== selectedId) return h;
-      const steps = [...(h.steps || [])];
-      const i = steps.findIndex(s => s.id === stepId); const j = i + dir;
-      if (j < 0 || j >= steps.length) return h;
-      [steps[i], steps[j]] = [steps[j], steps[i]];
-      return { ...h, steps };
-    }));
   }
 
   async function saveBooking(stepId, data) {
@@ -3164,10 +3132,7 @@ export default function App({ user }) {
                       }).map((step, idx, arr) => (
                       <StepCard key={step.id} step={step} booking={selectedHoliday.bookings?.[step.id]}
                         currency={selectedHoliday.currency || "GBP"}
-                        onOpen={() => setBookingModal({ stepId: step.id })}
-                        onMoveUp={() => moveStep(step.id, -1)}
-                        onMoveDown={() => moveStep(step.id, 1)}
-                        isFirst={idx === 0} isLast={idx === arr.length - 1} />
+                        onOpen={() => setBookingModal({ stepId: step.id })} />
                     ))}
                   </div>
                 ) : (
